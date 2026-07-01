@@ -1,0 +1,59 @@
+{
+  "paths": {
+    "research_root": "C:/Users/shres/Desktop/HILDALE RESEARCH",
+    "koi_catalog": "cumulative_2026.02.11_22.33.58.csv",
+    "gaia_kepler_fits": "kepler_dr3_good.fits",
+    "berger_table2": "table2.dat.gz",
+    "berger2018_stellar": "data/berger2018_table1_min.tsv",
+    "angus_velocities": "angus_velocities_parsed.csv",
+    "furlan_contamination": "data/furlan2017_table9.dat",
+    "apogee_dr17_chemical": "data/apogee_dr17_kepler_crossmatch.csv",
+    "alderaan_repo": "external/alderaan",
+    "alderaan_project": "sagear_reproduction/alderaan_project",
+    "alderaan_convergence": null
+  },
+  "cuts": {
+    "period_min_days": 1.0,
+    "period_max_days": 100.0,
+    "ruwe_max": 1.4,
+    "contamination_max": 0.05,
+    "impact_max": null,
+    "parallax_min_mas": null,
+    "stellar_teff_max": 6500.0,
+    "berger2018_bin_required": 0,
+    "apogee_teff_max": 6500.0,
+    "apogee_logg_min": 4.0,
+    "high_alpha_intercept": 0.14,
+    "high_alpha_slope": -0.08,
+    "p_thick_threshold": 0.5
+  },
+  "sagear_targets": {
+    "planets_total": 2465,
+    "hosts_total": 1888,
+    "thin_hosts_total": 1515,
+    "thick_hosts_total": 378,
+    "thin_singles_planets": 1121,
+    "thick_singles_planets": 275,
+    "thin_multi_planets": 862,
+    "thin_multi_hosts": 394,
+    "thick_multi_planets": 207,
+    "thick_multi_hosts": 98,
+    "rayleigh_expected_e": {
+      "thick_singles": 0.066,
+      "thin_singles": 0.022,
+      "thick_multis": 0.033,
+      "thin_multis": 0.030
+    }
+  },
+  "alderaan": {
+    "mission": "Kepler",
+    "run_id": "sagear_validation",
+    "cadence": "long",
+    "include_short_cadence_when_available": true,
+    "default_limbdark_1": 0.3,
+    "default_limbdark_2": 0.2,
+    "posterior_resample_size": 4000,
+    "eccentricity_grid_size": 300,
+    "omega_grid_size": 240
+  }
+}

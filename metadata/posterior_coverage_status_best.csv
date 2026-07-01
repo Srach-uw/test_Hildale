@@ -1,0 +1,6 @@
+disk,system,sample_planets,posterior_extracted,posterior_coverage_fraction,missing_extracted_posterior,existing_posterior_flagged_for_refit_or_stress_test,existing_posterior_not_flagged_preliminary,total_planets_on_alderaan_needed_manifest
+thick,multi,233,160,0.6866952789699571,73,27,133,100
+thick,single,272,149,0.5477941176470589,123,33,116,156
+thin,multi,860,664,0.772093023255814,196,106,558,302
+thin,single,1109,756,0.6816952209197475,353,154,602,507
+ALL,ALL,2474,1729,0.6988682295877122,745,320,1409,1065

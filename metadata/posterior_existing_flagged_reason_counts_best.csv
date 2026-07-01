@@ -1,0 +1,9 @@
+flag,flagged_existing_posterior_planets
+flag_zeta_lt_0p7,242
+flag_e50_gt_0p5,239
+flag_low_snr_lt_20,178
+flag_ror_shift_25pct,79
+flag_duration_shift_25pct,65
+flag_zeta_gt_1p3,23
+flag_impact_gt_1,8
+flag_results_file_bad_match,0

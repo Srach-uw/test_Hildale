@@ -1,0 +1,5 @@
+disk,system,sagear_planets,current_sample_planets,delta_current_minus_sagear,extracted_posteriors,coverage_fraction,baseline_usable_existing,existing_flagged_review_or_refit,missing_posterior,missing_launchable_now,missing_unseeded
+thick,multi,207,233,26,160,0.6866952789699571,133,27,73,71,2
+thick,single,275,272,-3,149,0.5477941176470589,116,33,123,120,3
+thin,multi,862,860,-2,664,0.772093023255814,558,106,196,193,3
+thin,single,1121,1109,-12,756,0.6816952209197475,602,154,353,334,19

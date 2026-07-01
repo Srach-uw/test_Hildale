@@ -1,0 +1,13 @@
+disk,system,posterior_status_clean,planets
+thick,multi,missing_extracted_posterior,73
+thick,multi,posterior_available_but_refit_or_stress_test,27
+thick,multi,posterior_available_not_flagged,133
+thick,single,missing_extracted_posterior,123
+thick,single,posterior_available_but_refit_or_stress_test,33
+thick,single,posterior_available_not_flagged,116
+thin,multi,missing_extracted_posterior,196
+thin,multi,posterior_available_but_refit_or_stress_test,106
+thin,multi,posterior_available_not_flagged,558
+thin,single,missing_extracted_posterior,353
+thin,single,posterior_available_but_refit_or_stress_test,154
+thin,single,posterior_available_not_flagged,602

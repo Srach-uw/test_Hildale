@@ -1,0 +1,6 @@
+queue,planets,targets,thin_single,thick_single,thin_multi,thick_multi
+baseline_usable_existing_posteriors,1409,1069,602,116,558,133
+existing_posterior_flagged_review_or_refit,320,302,154,33,106,27
+missing_extracted_posterior_total,745,617,353,123,196,73
+missing_launchable_alderaan_now,718,592,334,120,193,71
+missing_unseeded_manual_seed_needed,27,27,19,3,3,2

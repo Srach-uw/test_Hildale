@@ -1,0 +1,40 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Local environments
+.venv/
+venv/
+env/
+.env
+
+# Large science data
+*.fits
+*.fits.gz
+*.tar.gz
+*.zip
+*.dat.gz
+*.h5
+*.hdf5
+
+# ALDERAAN / Kepler generated products
+alderaan_project/
+cloud_batch/
+cloud_missing_batch/
+ALDERAAN_posteriors/
+Kepler_light_curves/
+lightcurves/
+mastDownload/
+
+# Generated result directories
+outputs/full_posteriors/
+outputs/eccentricity_posteriors*/
+outputs/alderaan_results*/
+outputs/*large*
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
