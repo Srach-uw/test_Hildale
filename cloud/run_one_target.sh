@@ -12,6 +12,9 @@ PROJECT_DIR="${PROJECT_DIR:-$PWD/alderaan_project}"
 RUN_ID="${RUN_ID:-sagear_missing}"
 MISSION="${MISSION:-Kepler}"
 ALDERAAN_REPO="${ALDERAAN_REPO:-$HOME/alderaan}"
+# ALDERAAN has no setup.py/installer; bin/*.py do `import alderaan.io`, which
+# only resolves if the repo root is on PYTHONPATH.
+export PYTHONPATH="$ALDERAAN_REPO${PYTHONPATH:+:$PYTHONPATH}"
 DATA_DIR="$PROJECT_DIR/Data"
 CATALOG_NAME="${CATALOG_NAME:-sagear_missing_catalog.csv}"
 RESULTS_FITS="$PROJECT_DIR/Results/$RUN_ID/$TARGET/$TARGET-results.fits"
@@ -29,7 +32,11 @@ echo "running" > "$STATUS_DIR/$TARGET.status"
 echo "[$(date -Is)] Starting $TARGET / KIC $KEPID"
 
 pushd "$DATA_DIR" >/dev/null
-python "$ALDERAAN_REPO/bin/get_kepler_data.py" "$KEPID" -c long -t lightcurve -o "get_${KEPID}_lc.sh" --cmdtype curl
+# --cmdtype wget, not curl: archive.stsci.edu 301-redirects http->https, and
+# ALDERAAN's generated curl command has no -L, so it silently "succeeds" by
+# saving the tiny HTML redirect page instead of the real FITS file. wget
+# follows redirects by default and needs no extra flag.
+python "$ALDERAAN_REPO/bin/get_kepler_data.py" "$KEPID" -c long -t lightcurve -o "get_${KEPID}_lc.sh" --cmdtype wget
 bash "get_${KEPID}_lc.sh" || true
 popd >/dev/null
 

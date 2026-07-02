@@ -17,6 +17,17 @@ if [ ! -d "$HOME/alderaan" ]; then
   git clone https://github.com/gjgilbert/alderaan "$HOME/alderaan"
 fi
 
+# Upstream bug (verified 2026-07-02, all commits on main/develop, all tags):
+# bin/detrend_and_estimate_ttvs.py unconditionally imports alderaan.validate,
+# a module that has never existed in the repo. The two functions it provides
+# are only used inside `if MISSION == "Kepler-Validation":`, which our runs
+# never enter (we always pass --mission Kepler). Make the import lazy so it
+# doesn't crash script startup for the code path we actually use.
+DETREND_SCRIPT="$HOME/alderaan/bin/detrend_and_estimate_ttvs.py"
+if grep -q '^from alderaan.validate import remove_known_transits, inject_synthetic_transits$' "$DETREND_SCRIPT"; then
+  sed -i 's/^from alderaan.validate import remove_known_transits, inject_synthetic_transits$/try:\n    from alderaan.validate import remove_known_transits, inject_synthetic_transits\nexcept ImportError:\n    remove_known_transits = inject_synthetic_transits = None/' "$DETREND_SCRIPT"
+fi
+
 if ! conda env list | awk '{print $1}' | grep -qx alderaan; then
   if command -v mamba >/dev/null 2>&1; then
     mamba env create -n alderaan -f "$HOME/alderaan/environment.yml"
