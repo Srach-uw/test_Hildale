@@ -14,6 +14,9 @@ ALDERAAN_REPO="${ALDERAAN_REPO:-$HOME/alderaan}"
 
 mkdir -p "$PROJECT_DIR/Catalogs" "$PROJECT_DIR/Data" "$PROJECT_DIR/Results" "$PROJECT_DIR/Figures" "$PROJECT_DIR/status" logs
 cp sagear_missing_catalog.csv "$PROJECT_DIR/Catalogs/sagear_missing_catalog.csv"
+# bin/detrend_and_estimate_ttvs.py loads Catalogs/holczer_2016_kepler_ttvs.txt
+# from PROJECT_DIR unconditionally; ships in the ALDERAAN repo, not our bundle.
+cp "$ALDERAAN_REPO/Catalogs/holczer_2016_kepler_ttvs.txt" "$PROJECT_DIR/Catalogs/holczer_2016_kepler_ttvs.txt"
 cp "$TARGET_CSV" "$PROJECT_DIR/targets.csv"
 chmod +x run_one_target.sh
 
