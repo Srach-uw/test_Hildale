@@ -1,0 +1,10 @@
+subsample,N,e,e_lo,e_hi,sagear
+thin singles,875,0.0803,0.064,0.1265,0.022
+thick singles,100,0.0717,0.0038,0.1129,0.066
+thin multis,671,0.0363,0.0042,0.0363,0.03
+thick multis,70,0.0042,0.0038,0.0456,0.033
+thin singles (no companions),735,0.1008,0.09,0.1265,0.022
+thin singles (companion hosts),140,0.029,0.0038,0.1008,0.022
+thin singles (confirmed only),638,0.0803,0.0803,0.1265,0.022
+thin singles P < 5 d,272,0.0074,0.0038,0.064,0.022
+thin singles P >= 5 d,603,0.1129,0.09,0.1417,0.022

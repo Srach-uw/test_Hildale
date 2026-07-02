@@ -1,6 +1,7 @@
-# New Repo Candidate Contents
+# Repo Contents
 
-This folder is the clean candidate layout Claude should review and then use for a new GitHub repo.
+This layout was independently reviewed and verified against the real local data
+(2026-07-02) before publishing; see "Independent Verification" in `README.md`.
 
 ## Include
 
@@ -8,6 +9,8 @@ This folder is the clean candidate layout Claude should review and then use for 
 - `cloud/`: ALDERAAN/GCP helper scripts for the missing-posterior run.
 - `docs/`: concise reports and operational checklists.
 - `metadata/`: small CSV summaries needed to understand current state.
+- `reference/`: Sagear et al. paper, reference figures, original photoeccentric script.
+- `legacy/`: superseded earlier-attempt results, kept for provenance.
 
 ## Exclude
 
@@ -18,12 +21,13 @@ This folder is the clean candidate layout Claude should review and then use for 
 - Cloud result tarballs.
 - Large raw catalog products unless explicitly needed and small enough for GitHub.
 
-## Review Before Publishing
+## Review Status (completed 2026-07-02)
 
-Claude should verify:
-
-1. The scripts still run from this new layout or update path handling.
-2. The `.gitignore` excludes heavy/generated artifacts.
-3. The README states current status without overclaiming.
-4. The cloud scripts are safe enough and do not hide billable operations.
-5. The repository can be recreated from documented local inputs.
+1. Scripts compile from this layout (`py_compile` / `bash -n` pass). ✔
+2. `.gitignore` excludes heavy/generated artifacts (spot-checked with `git check-ignore`). ✔
+3. README states current status with verification results and known caveats. ✔
+4. Cloud scripts reviewed: SPOT + `--max-run-duration` cap, no hidden billable operations;
+   `pack_results.sh` hardened to tar only existing paths. ✔
+5. Regeneration documented: external inputs via `scripts/prepare_external_inputs.py`,
+   bundle via `scripts/prepare_gcp_missing_alderaan_bundle.py`, validation via
+   `cloud/validate_bundle.py`. ✔
