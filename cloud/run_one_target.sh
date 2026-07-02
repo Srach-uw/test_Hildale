@@ -42,7 +42,13 @@ popd >/dev/null
 
 pushd "$ALDERAAN_REPO" >/dev/null
 python bin/detrend_and_estimate_ttvs.py --mission "$MISSION" --target "$TARGET" --run_id "$RUN_ID" --project_dir "$PROJECT_DIR" --data_dir "$DATA_DIR/" --catalog "$CATALOG_NAME"
-python bin/analyze_autocorrelated_noise.py --mission "$MISSION" --target "$TARGET" --run_id "$RUN_ID" --project_dir "$PROJECT_DIR"
+# --data_dir/--catalog are required=True here too; omitting them makes
+# argparse raise SystemExit, which this script's own top-level
+# `except SystemExit: warnings.warn(...)` silently swallows instead of
+# exiting - execution then continues with MISSION/TARGET/etc never
+# assigned, crashing later with a confusing NameError. Found live on the
+# smoke-test VM (K00179 failure, 2026-07-02).
+python bin/analyze_autocorrelated_noise.py --mission "$MISSION" --target "$TARGET" --run_id "$RUN_ID" --project_dir "$PROJECT_DIR" --data_dir "$DATA_DIR/" --catalog "$CATALOG_NAME"
 python bin/fit_transit_shape_simultaneous_nested.py --mission "$MISSION" --target "$TARGET" --run_id "$RUN_ID" --project_dir "$PROJECT_DIR"
 popd >/dev/null
 
