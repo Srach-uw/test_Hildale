@@ -1,0 +1,5 @@
+# Force LF regardless of platform/editor. CRLF in cloud/*.sh has repeatedly
+# broken bash on the GCP VM ("set -euo pipefail" parses as an invalid option
+# with a trailing \r) - found live during the 2026-07-02 smoke test.
+*.sh text eol=lf
+*.py text eol=lf
