@@ -12,6 +12,22 @@ You should only run the VM if one of these is true:
 
 If none of those is true, do not create the VM.
 
+## Rough Cost Estimate (2026-07-02, verify current prices)
+
+Assumptions: `e2-standard-32` Spot in `us-central1` ≈ $0.30–0.45/hr; 150 GB pd-ssd
+≈ $0.9/day; ALDERAAN ≈ 20–90 min per target single-core; `JOBS=30`.
+
+- 592 targets ≈ 15–40 VM-hours → **roughly $6–20 compute + $1–2 disk**.
+- One test shard (148 targets, `JOBS=8`) ≈ **$5–10**.
+- Well within a $300 free trial, but preemptions can stretch wall time; the
+  `--max-run-duration 20h` cap bounds each VM session regardless.
+
+Flag-compatibility note (verified against Google Cloud docs, 2026-07-02):
+`--max-run-duration` is supported with `--provisioning-model=SPOT` and
+`--instance-termination-action=STOP` (duration 30 s – 120 d). The
+`--discard-local-ssds-at-termination-timestamp` requirement applies only to
+local SSDs; this VM uses a persistent boot disk, so it does not apply.
+
 ## Before Creating The VM
 
 1. Open Google Cloud Console.

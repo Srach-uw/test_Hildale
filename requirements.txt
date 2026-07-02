@@ -1,0 +1,8 @@
+# Local analysis/pipeline scripts (scripts/). The ALDERAAN cloud environment is
+# separate and built from the upstream repo's environment.yml (see cloud/setup_vm.sh).
+numpy
+pandas
+scipy
+astropy
+matplotlib
+scikit-learn
