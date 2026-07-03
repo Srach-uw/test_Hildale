@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Conda env activation is per-shell-session and does not persist across a
+# fresh SSH login (e.g. after a VM restart) - self-activate here so a
+# forgotten manual `conda activate alderaan` doesn't kill the whole batch
+# with a cryptic "python: command not found". Found live, 2026-07-03.
+if [ "${CONDA_DEFAULT_ENV:-}" != "alderaan" ]; then
+  source "$HOME/miniforge3/etc/profile.d/conda.sh"
+  conda activate alderaan
+fi
+
 export OMP_NUM_THREADS="${OMP_NUM_THREADS:-1}"
 export MKL_NUM_THREADS="${MKL_NUM_THREADS:-1}"
 export OPENBLAS_NUM_THREADS="${OPENBLAS_NUM_THREADS:-1}"
