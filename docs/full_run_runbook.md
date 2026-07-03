@@ -29,23 +29,29 @@ Written 2026-07-03, after the 5-target smoke test validated the pipeline end to 
 
 ## Phase 1 — create the VM (STANDARD, not Spot)
 
+Chosen config (2026-07-03): a single **n2-standard-64** (64 vCPU, 256 GB) at JOBS=56 —
+one VM to babysit, ~overnight (~18 h), ~$52. Cost is trivial vs the $300 credit; the goal
+is minimizing operational hassle (one SSH session, no target-list sharding). Region CPU
+quota confirmed at 200 with only 8 in use, so 64 fits easily.
+
 ```bash
 export ZONE=us-central1-b
-export INSTANCE=alderaan-full-e2-32
+export INSTANCE=alderaan-full-n2-64
 
 gcloud compute instances create "$INSTANCE" \
   --zone "$ZONE" \
-  --machine-type e2-standard-32 \
+  --machine-type n2-standard-64 \
   --provisioning-model=STANDARD \
   --max-run-duration=72h \
   --instance-termination-action=STOP \
-  --boot-disk-size 150GB \
+  --boot-disk-size 200GB \
   --boot-disk-type pd-ssd \
   --image-family ubuntu-2204-lts \
   --image-project ubuntu-os-cloud
 ```
 
 Zone stockout → try us-central1-c, then -f. The 72h cap is a cost backstop, not a target.
+Boot disk 200 GB (vs 150) because 56 concurrent targets stage more light curves at once.
 
 ## Phase 2 — stage and set up
 
@@ -75,12 +81,16 @@ results.fits here = full-stack confirmation on THIS VM. It auto-skips in the ful
 
 ```bash
 cd ~/sagear_cloud_missing
-JOBS=24 nohup bash run_batch.sh > full_run.log 2>&1 &
+JOBS=56 nohup bash run_batch.sh > full_run.log 2>&1 &
 disown
 echo "PID $!"
 ```
 
 (run_batch.sh self-activates conda since the bug-7 fix — a fresh SSH session is fine.)
+JOBS=56 on 64 vCPU / 256 GB: leaves 8 cores for OS + GNU parallel overhead; steady-state
+memory ~90–120 GB (detrend spikes are the short stage), comfortably under 256 GB. The
+Phase-3 warm-up is REQUIRED before this — without a populated theano cache, 56 targets
+would cold-compile simultaneously and thrash the compile lock.
 
 ## Phase 5 — monitor (paste as one block, ~2–3×/day)
 
