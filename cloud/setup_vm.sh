@@ -1,6 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# Self-heal CRLF in the sibling scripts. A stale/Windows-built bundle zip can
+# carry carriage returns that break `set -euo pipefail` ("invalid option name")
+# the moment run_batch.sh / run_one_target.sh are executed. Strip them here so
+# the run doesn't depend on the zip's line endings being perfect. (This file
+# must itself be LF to reach this line; unzip on the VM preserves that, but if
+# in doubt run `sed -i 's/\r$//' *.sh` manually right after unzipping.)
+sed -i 's/\r$//' "$(dirname "$0")"/*.sh 2>/dev/null || true
+
 export DEBIAN_FRONTEND=noninteractive
 sudo apt-get update
 sudo apt-get install -y git curl wget bzip2 build-essential parallel rsync
