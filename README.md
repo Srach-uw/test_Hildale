@@ -30,11 +30,12 @@ internal consistency of the summaries):
   **and** by same-KIC/same-period aliasing — the 718 are genuinely missing.
 - Catalog units match ALDERAAN's ingestion (`depth` in ppm ×1e-6, `duration` in hours /24).
 - Catalog rows are strictly period-ascending per system (ALDERAAN hard-errors otherwise).
-- **Postprocess chain smoke-tested end-to-end**: a synthetic ALDERAAN results FITS
-  (matching the real format: `NPL` header, `TTIMES_nn` HDUs, `SAMPLES` table) was run
-  through the real `extract_eccentricity_posteriors.py` (flat `--results-dir` mode) and
-  `merge_posterior_summaries.py` — correct category match, 1729+1=1730 merged rows, zero
-  duplicates. The local half of the cloud round-trip works before any cloud spend.
+- **Postprocess chain validated twice**: first with a synthetic ALDERAAN results FITS
+  (before any cloud spend), then for real (2026-07-03) with an actual `K00179-results.fits`
+  produced by ALDERAAN on GCP — period recovered to 8 ppm accuracy (20.740124 fit vs
+  20.740286 catalog), a physically sensible eccentricity posterior (e50=0.226,
+  16th/84th-percentile bounds, 4000 resampled draws), merged into the real 1729-row
+  archive with zero duplicates and the value preserved through the merge.
 - **Cloud flag compatibility verified against Google docs**: `--max-run-duration` works
   with SPOT + STOP (see `docs/gcp_no_charge_safety_checklist.md`, incl. cost estimate).
 - **3 of the 27 unseeded planets are recoverable** via DR25 TCE seeds
