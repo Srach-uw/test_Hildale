@@ -1,0 +1,5 @@
+disk,system,sample_planets,posterior_planets,missing_planets,coverage_fraction
+thick,multi,233,37,196,0.15879828326180256
+thick,single,272,30,242,0.11029411764705882
+thin,multi,860,0,860,0.0
+thin,single,1109,0,1109,0.0
