@@ -228,7 +228,7 @@ def write_download_script(cfg: dict, targets_path: str | None) -> None:
             f"Push-Location '{data_dir}'",
         ]
         for kepid in targets["kepid"].drop_duplicates():
-            lines.append(f"python $AlderaanGet {int(kepid)} -c long -t lightcurve -o get_{int(kepid)}_lc.sh --cmdtype curl")
+            lines.append(f"python $AlderaanGet {int(kepid)} -c long -t lightcurve -o get_{int(kepid)}_lc.sh --cmdtype wget")
             lines.append(f"bash get_{int(kepid)}_lc.sh")
         lines.append("Pop-Location")
     else:
@@ -256,7 +256,7 @@ def write_run_script(cfg: dict, targets_path: str | None) -> None:
         for target in targets["koi_target"].drop_duplicates():
             lines += [
                 f"python bin/detrend_and_estimate_ttvs.py --mission {mission} --target {target} --run_id {run_id} --project_dir $ProjectDir --data_dir \"$ProjectDir\\Data\\\" --catalog sagear_validation_catalog.csv",
-                f"python bin/analyze_autocorrelated_noise.py --mission {mission} --target {target} --run_id {run_id} --project_dir $ProjectDir",
+                f"python bin/analyze_autocorrelated_noise.py --mission {mission} --target {target} --run_id {run_id} --project_dir $ProjectDir --data_dir \"$ProjectDir\\Data\\\" --catalog sagear_validation_catalog.csv",
                 f"python bin/fit_transit_shape_simultaneous_nested.py --mission {mission} --target {target} --run_id {run_id} --project_dir $ProjectDir",
             ]
         lines.append("Pop-Location")

@@ -170,13 +170,13 @@ fi
 
 echo "[$(date -Is)] Starting $TARGET / KIC $KEPID"
 pushd "$DATA_DIR" >/dev/null
-python "$ALDERAAN_REPO/bin/get_kepler_data.py" "$KEPID" -c long -t lightcurve -o "get_${KEPID}_lc.sh" --cmdtype curl
+python "$ALDERAAN_REPO/bin/get_kepler_data.py" "$KEPID" -c long -t lightcurve -o "get_${KEPID}_lc.sh" --cmdtype wget
 bash "get_${KEPID}_lc.sh" || true
 popd >/dev/null
 
 pushd "$ALDERAAN_REPO" >/dev/null
 python bin/detrend_and_estimate_ttvs.py --mission "$MISSION" --target "$TARGET" --run_id "$RUN_ID" --project_dir "$PROJECT_DIR" --data_dir "$DATA_DIR/" --catalog "$CATALOG_NAME"
-python bin/analyze_autocorrelated_noise.py --mission "$MISSION" --target "$TARGET" --run_id "$RUN_ID" --project_dir "$PROJECT_DIR"
+python bin/analyze_autocorrelated_noise.py --mission "$MISSION" --target "$TARGET" --run_id "$RUN_ID" --project_dir "$PROJECT_DIR" --data_dir "$DATA_DIR/" --catalog "$CATALOG_NAME"
 python bin/fit_transit_shape_simultaneous_nested.py --mission "$MISSION" --target "$TARGET" --run_id "$RUN_ID" --project_dir "$PROJECT_DIR"
 popd >/dev/null
 
