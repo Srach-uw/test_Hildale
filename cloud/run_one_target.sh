@@ -8,6 +8,7 @@ export NUMEXPR_NUM_THREADS="${NUMEXPR_NUM_THREADS:-1}"
 
 TARGET="${1:?target required}"
 KEPID="${2:?kepid required}"
+SLOT="${3:-shared}"
 PROJECT_DIR="${PROJECT_DIR:-$PWD/alderaan_project}"
 RUN_ID="${RUN_ID:-sagear_missing}"
 MISSION="${MISSION:-Kepler}"
@@ -15,6 +16,17 @@ ALDERAAN_REPO="${ALDERAAN_REPO:-$HOME/alderaan}"
 # ALDERAAN has no setup.py/installer; bin/*.py do `import alderaan.io`, which
 # only resolves if the repo root is on PYTHONPATH.
 export PYTHONPATH="$ALDERAAN_REPO${PYTHONPATH:+:$PYTHONPATH}"
+# Give each concurrent GNU-parallel job slot (passed as $3 = {%}) its own
+# Theano compiledir. Theano's compile lock is a single global lock per
+# compiledir with a polling wait (not a native futex) - at high JOBS with a
+# mostly-cold cache this serializes almost all real work. Isolating by slot
+# means a slot's lock is never contended by any other slot, while targets
+# processed sequentially by the same slot still reuse that slot's cache.
+# Falls back to the shared default dir for ad-hoc single-target invocations
+# that don't pass a slot number.
+if [ "$SLOT" != "shared" ]; then
+  export THEANO_FLAGS="base_compiledir=$HOME/.theano_slot_${SLOT}${THEANO_FLAGS:+,$THEANO_FLAGS}"
+fi
 DATA_DIR="$PROJECT_DIR/Data"
 CATALOG_NAME="${CATALOG_NAME:-sagear_missing_catalog.csv}"
 RESULTS_FITS="$PROJECT_DIR/Results/$RUN_ID/$TARGET/$TARGET-results.fits"

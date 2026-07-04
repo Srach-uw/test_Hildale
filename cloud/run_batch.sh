@@ -32,8 +32,16 @@ chmod +x run_one_target.sh
 echo "Running $TARGET_CSV with JOBS=$JOBS RUN_ID=$RUN_ID"
 python validate_bundle.py --targets "$TARGET_CSV" --catalog sagear_missing_catalog.csv
 
+# {%} = GNU parallel's job-slot number (1..JOBS). Passed through so each
+# concurrent slot gets its own private Theano compiledir - see the
+# THEANO_FLAGS export in run_one_target.sh. Without this, all JOBS-many
+# processes share one compiledir lock; Theano's lock is a polling wait
+# (wchan=do_select), not a native futex, so at high concurrency with mostly
+# cold cache it serializes almost everything - observed live 2026-07-04:
+# JOBS=30 for 12h+ produced 0/592 results, load average ~2.5 on 32 cores,
+# ~90% CPU idle, ~27 of 30 processes sleeping on the lock at any moment.
 tail -n +2 "$TARGET_CSV" | awk -F, '{print $2","$3}' \
-  | parallel --colsep ',' -j "$JOBS" --joblog "logs/parallel_joblog_${RUN_ID}.tsv" './run_one_target.sh {1} {2}' \
+  | parallel --colsep ',' -j "$JOBS" --joblog "logs/parallel_joblog_${RUN_ID}.tsv" './run_one_target.sh {1} {2} {%}' \
   > "logs/batch_${RUN_ID}_stdout.log" 2> "logs/batch_${RUN_ID}_stderr.log"
 
 bash summarize_progress.sh
