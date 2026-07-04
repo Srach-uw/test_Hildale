@@ -159,8 +159,28 @@ def build_alderaan_catalog(df: pd.DataFrame, cfg: dict) -> pd.DataFrame:
     for target, grp in df.groupby("koi_target"):
         grp = grp.sort_values("koi_period")
         npl = len(grp)
+        # Limb darkening is a stellar (system-wide) property, not per-planet.
+        # ALDERAAN's io.parse_catalog hard-requires identical LD_U1/LD_U2 across
+        # every planet in a system and raises ValueError otherwise. Computing it
+        # per-row let differing/missing koi_ldm_coeff values across sibling
+        # planets produce inconsistent rows within the same system - found live
+        # via "There are inconsistencies with LD_U1" crashes on the GCP run,
+        # 2026-07-04. Compute once per system: prefer the first row with a
+        # finite koi_ldm_coeff pair, falling back to defaults only if none of
+        # the system's planets have one.
+        u1 = u2 = None
+        for _, cand in grp.iterrows():
+            cu1, cu2 = limb_darkening_from_koi(cand, defaults)
+            if u1 is None or (
+                np.isfinite(cand.get("koi_ldm_coeff1", np.nan))
+                and np.isfinite(cand.get("koi_ldm_coeff2", np.nan))
+            ):
+                u1, u2 = cu1, cu2
+                if np.isfinite(cand.get("koi_ldm_coeff1", np.nan)) and np.isfinite(
+                    cand.get("koi_ldm_coeff2", np.nan)
+                ):
+                    break
         for _, p in grp.iterrows():
-            u1, u2 = limb_darkening_from_koi(p, defaults)
             rows.append(
                 {
                     "koi_id": target,
