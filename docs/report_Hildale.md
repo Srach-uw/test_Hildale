@@ -1344,6 +1344,14 @@ singles, 886 thin-multi planets, and 207 thick-multi planets, but only the fit-N
 subsets above have uniform paired-impact direct posteriors. These results must
 not be represented as a final full-sample replication.
 
+The same after-cut recount pattern was also found in the published-label
+overlap diagnostic. It did not feed the hierarchical fit, but it biased the
+reported overlap-bin counts. After preserving the canonical architecture, the
+broad no-binary-cut overlap contains 1052 thin singles, 803 thin-multi planets,
+269 thick singles, and 205 thick-multi planets; 39 rows would have been labeled
+differently by the overlap-only recount. This supersedes the historical
+1082/773/278/196 overlap counts.
+
 An aggressive combined quality sensitivity (confirmed, high-S/N, dwarf,
 small-planet filters) gives thin singles 0.022 on only 49 objects, but the fit
 is boundary-sensitive and the multis remain high. It diagnoses where the

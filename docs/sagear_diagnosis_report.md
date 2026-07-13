@@ -1416,7 +1416,15 @@ The live pipeline now parses this table with a strict count/threshold contract i
 
 For `canonical_sample_strict_raw_no_bin.csv`, 1,764 hosts overlap the published table. Only 84.58% of overlapping labels agree; 272 hosts disagree. There are also 206 hosts only in our sample and 124 only in the published host table. This proves that the reconstructed classifier was not Sagear-equivalent and was a major upstream source of the incorrect Toomre diagram.
 
-After applying published labels to the overlapping broad sample, the retained counts are 1,082 thin singles, 773 thin multi planets, 278 thick singles, and 196 thick multi planets. Sagear reports 1,121, 862, 275, and 207, respectively. The thick-single count is already close, while the multi and thin-single deficits are now clearly a planet-sample/crossmatch problem rather than a disk-classifier problem.
+After applying published labels to the overlapping broad sample while preserving
+the canonical pre-cut KOI architecture, the retained counts are 1,052 thin
+singles, 803 thin multi planets, 269 thick singles, and 205 thick multi planets.
+Sagear reports 1,121, 862, 275, and 207, respectively. The previous overlap
+audit incorrectly recounted planets after intersection and reported
+1,082/773/278/196; 39 planet rows disagreed with their pre-cut architecture.
+With that diagnostic fixed, both thick populations are close, while the thin
+deficits remain a planet-sample/crossmatch problem rather than solely a disk
+classifier problem.
 
 ## Eccentricity-method audit against final publication
 

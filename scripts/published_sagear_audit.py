@@ -65,6 +65,8 @@ def reconcile(hosts: pd.DataFrame, sample_path: Path) -> tuple[pd.DataFrame, dic
 
 def relabel_planets(hosts: pd.DataFrame, sample_path: Path) -> tuple[pd.DataFrame, dict[str, int]]:
     planets = pd.read_csv(sample_path)
+    if "system" not in planets:
+        raise ValueError("Planet sample lacks the canonical pre-cut system label")
     planets["kepid"] = pd.to_numeric(planets["kepid"], errors="coerce").astype("Int64")
     published = hosts[["kepid", "disk_published", "p_thick_published"]].copy()
     relabeled = planets.merge(published, on="kepid", how="inner", validate="many_to_one").copy()
@@ -74,11 +76,21 @@ def relabel_planets(hosts: pd.DataFrame, sample_path: Path) -> tuple[pd.DataFram
         relabeled = relabeled.rename(columns={"p_thick": "p_thick_reconstructed"})
     relabeled = relabeled.copy()
     relabeled["disk"] = relabeled["disk_published"]
+    # Disk labels come from the published host table, but multiplicity remains
+    # the pre-cut architecture carried by the canonical planet sample. Keep an
+    # overlap-only recount solely to audit the historical notebook failure mode.
     counts_per_host = relabeled.groupby("kepid")["kepid"].transform("size")
-    relabeled["system_published_overlap"] = np.where(counts_per_host == 1, "single", "multi")
+    relabeled["system_overlap_recount"] = np.where(counts_per_host == 1, "single", "multi")
+    relabeled["system_published_overlap"] = relabeled["system"].astype(str)
+    relabeled["multiplicity_recount_disagrees"] = (
+        relabeled["system_overlap_recount"] != relabeled["system_published_overlap"]
+    )
     counts: dict[str, int] = {
         "published_relabel_planets": len(relabeled),
         "published_relabel_hosts": int(relabeled["kepid"].nunique()),
+        "published_relabel_multiplicity_recount_disagreements": int(
+            relabeled["multiplicity_recount_disagrees"].sum()
+        ),
     }
     for disk in ("thin", "thick"):
         for system in ("single", "multi"):
