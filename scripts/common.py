@@ -20,8 +20,6 @@ def load_config(path: str | Path | None = None) -> dict[str, Any]:
     with cfg_path.open("r", encoding="utf-8") as f:
         cfg = json.load(f)
     root = Path(cfg["paths"]["research_root"]).expanduser()
-    if not root.is_absolute():
-        root = (cfg_path.resolve().parent.parent / root).resolve()
     cfg["_config_path"] = str(cfg_path)
     cfg["_root"] = str(root)
     return cfg
@@ -184,10 +182,6 @@ def read_sagear2026_kinematic_hosts(cfg: dict[str, Any]) -> pd.DataFrame:
     """Read Sagear et al. (2026) AJ 172, 42 machine-readable Table 1."""
     path = root_path(cfg, "sagear2026_kinematic_hosts")
     if path is None or not path.exists():
-        bundled = PIPELINE_DIR.parent / "reference" / "data" / "sagear2026_table1_kinematic_hosts_mrt.txt"
-        if bundled.exists():
-            path = bundled
-    if path is None or not path.exists():
         raise FileNotFoundError(f"Published Sagear host table not found: {path}")
     names = [
         "kepid", "gaia_dr3_source_id", "ra_deg", "dec_deg", "parallax_mas",
@@ -231,10 +225,28 @@ def koi_target(kepoi_name: Any) -> str | None:
     return kepoi_name.split(".")[0]
 
 
-def add_target_and_system(df: pd.DataFrame) -> pd.DataFrame:
+def add_target_and_system(
+    df: pd.DataFrame,
+    host_multiplicity: pd.Series | None = None,
+) -> pd.DataFrame:
+    """Attach KOI target and architecture labels.
+
+    Pass a host-indexed multiplicity series derived before downstream quality
+    cuts to preserve known system architecture. Without it, multiplicity is
+    computed from the supplied frame and is therefore suitable only for
+    explicitly requested filtered-sample sensitivities.
+    """
     out = df.copy()
     out["koi_target"] = out["kepoi_name"].map(koi_target)
-    host_counts = out.groupby("kepid")["kepoi_name"].transform("count")
+    if host_multiplicity is None:
+        host_counts = out.groupby("kepid")["kepoi_name"].transform("count")
+    else:
+        if host_multiplicity.index.has_duplicates:
+            raise ValueError("Host multiplicity index contains duplicate KIC identifiers")
+        host_counts = out["kepid"].map(host_multiplicity)
+        if host_counts.isna().any():
+            missing = sorted(out.loc[host_counts.isna(), "kepid"].astype(int).unique())
+            raise ValueError(f"Raw host multiplicity is missing KIC identifiers: {missing[:10]}")
     out["system"] = np.where(host_counts == 1, "single", "multi")
     return out
 

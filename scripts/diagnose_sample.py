@@ -288,12 +288,12 @@ def main() -> None:
         df, note = classify_with_fallback_gmm(df, cfg, args.fallback_velocity)
         add_audit_row(audit, "09_fallback_angus_allstar_gmm", df, note)
 
-    df = add_target_and_system(df)
     if args.multiplicity_basis == "raw_koi":
         df["raw_nonfp_host_multiplicity"] = df["kepid"].map(raw_host_multiplicity)
-        df["system"] = np.where(df["raw_nonfp_host_multiplicity"] > 1, "multi", "single")
+        df = add_target_and_system(df, raw_host_multiplicity)
         add_audit_row(audit, "10_assign_single_multi_raw_nonfp_koi", df)
     else:
+        df = add_target_and_system(df)
         add_audit_row(audit, "10_assign_single_multi_after_cuts", df)
 
     conv_path = root_path(cfg, "alderaan_convergence")

@@ -1303,3 +1303,57 @@ still running in GCP.
 Partial analysis products are under:
 
 `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\factorial_validation_partial_20260713T102557Z`
+
+## 2026-07-13 multiplicity contract and current four-bin result
+
+The professor's notebook diagnosis is correct for the historical workflow:
+single/multi architecture must be determined before planet-level quality cuts.
+The current canonical sample already does this from all KOIs with archive
+disposition `CONFIRMED` or `CANDIDATE`. A direct data audit established:
+
+| multiplicity audit | count |
+|---|---:|
+| canonical planet rows | 2474 |
+| rows missing a raw non-FP host count | 0 |
+| current labels disagreeing with the pre-cut raw count | 0 |
+| planets that an after-cut recount would mislabel | 45 |
+| affected thin-multi planets/hosts | 41 / 41 |
+| affected thick-multi planets/hosts | 4 / 4 |
+
+`common.add_target_and_system` now accepts an explicit host-indexed pre-cut
+multiplicity series and fails closed if any KIC is missing. The canonical
+sample builder passes this series directly; the filtered recount remains only
+an explicit sensitivity option. Three dedicated regression tests were added,
+and the full live test suite passes 23/23.
+
+The current method-consistent population result is the 710-planet uniform
+direct-posterior subset under the count-calibrated q=0.535 classifier context.
+It is diagnostic because coverage is incomplete and nonrandom. Under Sagear's
+printed reciprocal transit-selection convention, the Rayleigh expected-value
+comparison is:
+
+| population | current fit N | current mean e (16th-84th) | Sagear full N | Sagear mean e (16th-84th) | current/Sagear |
+|---|---:|---:|---:|---:|---:|
+| thin singles | 304 | 0.335 (0.319-0.353) | 1121 | 0.022 (0.017-0.029) | 15.2x |
+| thick singles | 108 | 0.288 (0.263-0.315) | 275 | 0.066 (0.045-0.096) | 4.4x |
+| thin multis | 222 | 0.122 (0.108-0.136) | 862 | 0.030 (0.023-0.031) | 4.1x |
+| thick multis | 69 | 0.117 (0.086-0.154) | 207 | 0.033 (0.015-0.065) | 3.5x |
+
+The corresponding q=0.535 sample inventory has 1096 thin singles, 285 thick
+singles, 886 thin-multi planets, and 207 thick-multi planets, but only the fit-N
+subsets above have uniform paired-impact direct posteriors. These results must
+not be represented as a final full-sample replication.
+
+An aggressive combined quality sensitivity (confirmed, high-S/N, dwarf,
+small-planet filters) gives thin singles 0.022 on only 49 objects, but the fit
+is boundary-sensitive and the multis remain high. It diagnoses where the
+tension is concentrated; it is not a defensible replacement for Sagear's
+stated sample.
+
+At 2026-07-13 10:46 UTC the factorial VM was running with 47/82 FITS complete.
+It restarted at 2026-07-13 10:01:17 UTC with a 24-hour maximum runtime, so its
+next automatic stop is approximately 2026-07-14 10:01:17 UTC (15:31:17 IST).
+Changing the maximum runtime requires stopping the VM. The cost-controlled
+default is therefore to let it run, then restart and use the repaired
+FITS-aware runner, which skips every completed result and grants a fresh
+24-hour window.
