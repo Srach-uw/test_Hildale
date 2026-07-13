@@ -4,6 +4,7 @@ import argparse
 
 import numpy as np
 import pandas as pd
+from scipy.special import logsumexp
 from sklearn.mixture import GaussianMixture
 
 from common import (
@@ -12,6 +13,7 @@ from common import (
     finite_columns,
     load_config,
     output_dir,
+    read_berger2018_stellar_table,
     read_angus,
     read_berger_table2,
     read_gaia_kepler,
@@ -43,9 +45,68 @@ def main() -> None:
             "'old_astropy' reproduces the old Hilldale cylindrical projection used by its Toomre figure."
         ),
     )
+    parser.add_argument(
+        "--chemical-model",
+        choices=["conditioned", "pooled"],
+        default="conditioned",
+        help=(
+            "Kinematic calibration model. 'conditioned' fits one Gaussian component to each chemically "
+            "defined low/high-alpha sample; 'pooled' retains the older unsupervised pooled GMM sensitivity."
+        ),
+    )
+    parser.add_argument(
+        "--chemical-velocity",
+        choices=["old_astropy", "direct"],
+        default="old_astropy",
+        help="Velocity basis for chemical calibration; old_astropy is the cylindrical convention shown in Sagear Figure 1.",
+    )
+    parser.add_argument(
+        "--apogee-scope",
+        choices=["planet_hosts", "all_kepler"],
+        default="planet_hosts",
+        help="Restrict the APOGEE calibration to the selected planet-host sample, as stated in the manuscript.",
+    )
+    parser.add_argument(
+        "--apogee-flag-policy",
+        choices=["finite", "all_zero"],
+        default="finite",
+        help="ASPCAP quality policy. 'finite' matches the explicit manuscript text; all_zero is a conservative sensitivity.",
+    )
+    parser.add_argument(
+        "--chemical-prior",
+        choices=["equal", "empirical"],
+        default="equal",
+        help=(
+            "Prior mixture weight for chemically conditioned components. The manuscript does not state this; "
+            "equal corresponds to a relative-likelihood classification, empirical is a sensitivity."
+        ),
+    )
+    parser.add_argument(
+        "--chemical-prior-high",
+        type=float,
+        default=None,
+        help="Diagnostic explicit high-alpha prior in (0,1); overrides --chemical-prior.",
+    )
+    parser.add_argument(
+        "--multiplicity-basis",
+        choices=["raw_koi", "filtered"],
+        default="raw_koi",
+        help=(
+            "Define single/multi from all non-false-positive KOIs around the host (raw_koi) or only planets "
+            "surviving the analysis cuts (filtered). raw_koi preserves known system architecture."
+        ),
+    )
+    parser.add_argument(
+        "--berger2018-bin0",
+        action="store_true",
+        help="Sensitivity only: require Berger+2018 Bin=0, a plausible but unstated extra binary/sample cut.",
+    )
+    parser.add_argument("--out-tag", default=None, help="Append a label to output filenames without changing method status.")
     args = parser.parse_args()
 
     cfg = load_config(args.config)
+    if args.berger2018_bin0:
+        cfg["cuts"]["berger2018_bin_required"] = 0
     out_dir = output_dir()
     mode = "strict"
     missing: dict[str, str] = {}
@@ -55,6 +116,7 @@ def main() -> None:
     add_audit_row(audit, "00_raw_koi_catalog", koi, "NASA Exoplanet Archive KOI table")
 
     df = koi[koi["koi_disposition"].isin(["CONFIRMED", "CANDIDATE"])].copy()
+    raw_host_multiplicity = df.groupby("kepid")["kepoi_name"].size()
     add_audit_row(audit, "01_remove_false_positives", df, "koi_disposition in CONFIRMED,CANDIDATE")
 
     cuts = cfg["cuts"]
@@ -126,7 +188,12 @@ def main() -> None:
     if cuts.get("berger2018_bin_required") is not None:
         if b18_path and b18_path.exists():
             b18 = read_berger2018_stellar_table(b18_path)
-            df = df.merge(b18[["kepid", "berger2018_bin"]], on="kepid", how="inner")
+            b18_cols = [
+                c
+                for c in ["kepid", "berger2018_bin", "berger2018_evol", "berger2018_rad"]
+                if c in b18.columns
+            ]
+            df = df.merge(b18[b18_cols], on="kepid", how="inner")
             df = df[
                 pd.to_numeric(df["berger2018_bin"], errors="coerce")
                 == cuts["berger2018_bin_required"]
@@ -144,6 +211,34 @@ def main() -> None:
             )
             add_audit_row(audit, "07b_berger2018_bin0_SKIPPED", df, "missing input")
 
+    if cuts.get("berger2018_evol_required") is not None:
+        if "berger2018_evol" not in df.columns and b18_path and b18_path.exists():
+            b18 = read_berger2018_stellar_table(b18_path)
+            b18_cols = [
+                c
+                for c in ["kepid", "berger2018_evol", "berger2018_rad"]
+                if c in b18.columns and c not in df.columns
+            ]
+            if b18_cols:
+                df = df.merge(b18[["kepid", *b18_cols]], on="kepid", how="inner")
+        if "berger2018_evol" not in df.columns:
+            missing["berger2018_evol"] = (
+                "Berger+2018 Evol flag is unavailable; evolutionary-state cut was not applied. "
+                "Make sure berger2018_stellar points to a table with Evol."
+            )
+            add_audit_row(audit, "07c_berger2018_evol_SKIPPED", df, "missing Evol column")
+        else:
+            df = df[
+                pd.to_numeric(df["berger2018_evol"], errors="coerce")
+                == cuts["berger2018_evol_required"]
+            ].copy()
+            add_audit_row(
+                audit,
+                "07c_berger2018_evol",
+                df,
+                "Optional Berger+2018 Evol evolutionary-state cut; diagnostic until Sagear's exact host cut is confirmed",
+            )
+
     angus = read_angus(cfg)
     df = df.merge(angus, on="kepid", how="inner", suffixes=("", "_angus"))
     add_audit_row(audit, "08_join_angus_velocities", df)
@@ -151,7 +246,18 @@ def main() -> None:
     df = add_velocity_features(df)
     apogee_path = root_path(cfg, "apogee_dr17_chemical")
     if apogee_path and apogee_path.exists() and not args.force_fallback_gmm:
-        df, note = classify_with_chemical_gmm(df, pd.read_csv(apogee_path), cfg)
+        df, note, classifier_metadata = classify_with_chemical_gmm(
+            df,
+            pd.read_csv(apogee_path),
+            cfg,
+            model=args.chemical_model,
+            velocity=args.chemical_velocity,
+            scope=args.apogee_scope,
+            flag_policy=args.apogee_flag_policy,
+            component_prior=args.chemical_prior,
+            prior_high_override=args.chemical_prior_high,
+            return_metadata=True,
+        )
         add_audit_row(audit, "09_sagear_apogee_calibrated_gmm", df, note)
     elif not (args.allow_fallback_gmm or args.force_fallback_gmm):
         expected = f" Expected path: {apogee_path}" if apogee_path else ""
@@ -183,7 +289,12 @@ def main() -> None:
         add_audit_row(audit, "09_fallback_angus_allstar_gmm", df, note)
 
     df = add_target_and_system(df)
-    add_audit_row(audit, "10_assign_single_multi_after_cuts", df)
+    if args.multiplicity_basis == "raw_koi":
+        df["raw_nonfp_host_multiplicity"] = df["kepid"].map(raw_host_multiplicity)
+        df["system"] = np.where(df["raw_nonfp_host_multiplicity"] > 1, "multi", "single")
+        add_audit_row(audit, "10_assign_single_multi_raw_nonfp_koi", df)
+    else:
+        add_audit_row(audit, "10_assign_single_multi_after_cuts", df)
 
     conv_path = root_path(cfg, "alderaan_convergence")
     if conv_path and conv_path.exists():
@@ -198,25 +309,29 @@ def main() -> None:
     counts = disk_counts(df)
     comparison = compare_to_sagear(counts, cfg)
 
+    file_mode = f"{mode}_{args.out_tag}" if args.out_tag else mode
+    if "classifier_metadata" in locals():
+        classifier_metadata["sample_file_mode"] = file_mode
+        write_json(out_dir / f"chemical_classifier_{file_mode}.json", classifier_metadata)
     status = {
         "mode": mode,
         "sagear_equivalent": mode == "strict" and not missing,
         "missing_inputs": missing,
         "outputs": {
-            "sample_audit": f"sample_audit_{mode}.csv",
-            "disk_counts": f"disk_counts_{mode}.csv",
-            "sagear_count_comparison": f"sagear_count_comparison_{mode}.csv",
-            "canonical_sample": f"canonical_sample_{mode}.csv",
-            "missing_inputs": f"missing_inputs_{mode}.json",
+            "sample_audit": f"sample_audit_{file_mode}.csv",
+            "disk_counts": f"disk_counts_{file_mode}.csv",
+            "sagear_count_comparison": f"sagear_count_comparison_{file_mode}.csv",
+            "canonical_sample": f"canonical_sample_{file_mode}.csv",
+            "missing_inputs": f"missing_inputs_{file_mode}.json",
         },
     }
 
-    audit_df.to_csv(out_dir / f"sample_audit_{mode}.csv", index=False)
-    counts.to_csv(out_dir / f"disk_counts_{mode}.csv", index=False)
-    comparison.to_csv(out_dir / f"sagear_count_comparison_{mode}.csv", index=False)
-    df.to_csv(out_dir / f"canonical_sample_{mode}.csv", index=False)
-    write_json(out_dir / f"missing_inputs_{mode}.json", missing)
-    write_json(out_dir / f"pipeline_status_{mode}.json", status)
+    audit_df.to_csv(out_dir / f"sample_audit_{file_mode}.csv", index=False)
+    counts.to_csv(out_dir / f"disk_counts_{file_mode}.csv", index=False)
+    comparison.to_csv(out_dir / f"sagear_count_comparison_{file_mode}.csv", index=False)
+    df.to_csv(out_dir / f"canonical_sample_{file_mode}.csv", index=False)
+    write_json(out_dir / f"missing_inputs_{file_mode}.json", missing)
+    write_json(out_dir / f"pipeline_status_{file_mode}.json", status)
 
     print("\n=== Sample audit ===")
     print(audit_df.to_string(index=False))
@@ -271,36 +386,18 @@ def apply_contamination_cut(df: pd.DataFrame, contamination: pd.DataFrame, max_f
     return out[(out["furlan_contam"].isna()) | (out["furlan_contam"] <= max_frac)].copy()
 
 
-def read_berger2018_stellar_table(path) -> pd.DataFrame:
-    from io import StringIO
-    from pathlib import Path
-
-    lines = Path(path).read_text(errors="replace").splitlines()
-    header_idx = next((i for i, line in enumerate(lines) if line.startswith("KIC\t")), None)
-    if header_idx is None:
-        raise ValueError(f"Could not find Berger+2018 VizieR header in {path}")
-    data = "\n".join([lines[header_idx]] + lines[header_idx + 3 :])
-    tab = pd.read_csv(StringIO(data), sep="\t")
-    out = tab.rename(columns={"KIC": "kepid", "Teff": "berger2018_teff", "R*": "berger2018_rad", "Bin": "berger2018_bin"})
-    out["kepid"] = pd.to_numeric(out["kepid"], errors="coerce")
-    out = out.dropna(subset=["kepid"]).copy()
-    out["kepid"] = out["kepid"].astype(int)
-    if "berger2018_bin" in out:
-        out["berger2018_bin"] = pd.to_numeric(out["berger2018_bin"], errors="coerce")
-    return out.drop_duplicates("kepid")
-
-
 def add_velocity_features(df: pd.DataFrame) -> pd.DataFrame:
     out = df.copy()
-    # Angus+2022 provides Galactocentric Cartesian velocities where vy is the
-    # rotational component used as V_phi in the Sagear-style figures. Keep this
-    # direct convention as the primary classifier input.
-    out["V_R"] = out["vx"]
-    out["V_phi"] = out["vy"]
+    # Angus+2022 provides Galactocentric Cartesian velocities. Preserve those
+    # aliases explicitly; vx/vy are not cylindrical V_R/V_phi away from one
+    # special position. The paper-defined primary fields are filled from the
+    # position-dependent cylindrical projection below.
+    out["V_R_cartesian_proxy"] = out["vx"]
+    out["V_phi_cartesian_proxy"] = out["vy"]
     out["V_z"] = out["vz"]
-    out["V_perp"] = np.sqrt(out["vx"] ** 2 + out["vz"] ** 2)
-    out["V_phi_proxy"] = out["V_phi"]
-    out["V_perp_proxy"] = out["V_perp"]
+    out["V_perp_cartesian_proxy"] = np.sqrt(out["vx"] ** 2 + out["vz"] ** 2)
+    out["V_phi_proxy"] = out["V_phi_cartesian_proxy"]
+    out["V_perp_proxy"] = out["V_perp_cartesian_proxy"]
 
     # Also compute an explicitly position-derived cylindrical basis for
     # diagnostics. It is not the default classifier input because it moves the
@@ -308,9 +405,14 @@ def add_velocity_features(df: pd.DataFrame) -> pd.DataFrame:
     from astropy.coordinates import SkyCoord
     import astropy.units as u
 
-    ra_col = "gaia_ra" if "gaia_ra" in out.columns else "ra"
-    dec_col = "gaia_dec" if "gaia_dec" in out.columns else "dec"
-    good = finite_columns(out, [ra_col, dec_col, "parallax", "vx", "vy", "vz"]) & (out["parallax"] > 0)
+    ra_col = "angus_ra" if "angus_ra" in out.columns else ("gaia_ra" if "gaia_ra" in out.columns else "ra")
+    dec_col = "angus_dec" if "angus_dec" in out.columns else ("gaia_dec" if "gaia_dec" in out.columns else "dec")
+    if "angus_dist_pc" in out.columns:
+        distance_pc = pd.to_numeric(out["angus_dist_pc"], errors="coerce")
+        good = finite_columns(out, [ra_col, dec_col, "angus_dist_pc", "vx", "vy", "vz"]) & (distance_pc > 0)
+    else:
+        distance_pc = 1000.0 / pd.to_numeric(out["parallax"], errors="coerce")
+        good = finite_columns(out, [ra_col, dec_col, "parallax", "vx", "vy", "vz"]) & (out["parallax"] > 0)
     out["galcen_X_pc"] = np.nan
     out["galcen_Y_pc"] = np.nan
     out["galcen_Z_pc"] = np.nan
@@ -322,12 +424,15 @@ def add_velocity_features(df: pd.DataFrame) -> pd.DataFrame:
     out["V_R_astropy"] = np.nan
     out["V_phi_astropy"] = np.nan
     out["V_perp_astropy"] = np.nan
+    out["V_R"] = np.nan
+    out["V_phi"] = np.nan
+    out["V_perp"] = np.nan
 
     if good.any():
         coord_icrs = SkyCoord(
             ra=out.loc[good, ra_col].to_numpy(float) * u.deg,
             dec=out.loc[good, dec_col].to_numpy(float) * u.deg,
-            distance=(1000.0 / out.loc[good, "parallax"].to_numpy(float)) * u.pc,
+            distance=distance_pc.loc[good].to_numpy(float) * u.pc,
             frame="icrs",
         )
         coord = coord_icrs.galactic
@@ -372,12 +477,15 @@ def add_velocity_features(df: pd.DataFrame) -> pd.DataFrame:
         out.loc[good, "V_R_astropy"] = v_r_ast
         out.loc[good, "V_phi_astropy"] = v_phi_ast
         out.loc[good, "V_perp_astropy"] = np.sqrt(v_r_ast * v_r_ast + vz * vz)
+        out.loc[good, "V_R"] = v_r_ast
+        out.loc[good, "V_phi"] = v_phi_ast
+        out.loc[good, "V_perp"] = np.sqrt(v_r_ast * v_r_ast + vz * vz)
     return out
 
 
 def classify_with_fallback_gmm(df: pd.DataFrame, cfg: dict, velocity: str = "direct") -> tuple[pd.DataFrame, str]:
     if velocity == "direct":
-        x_col, y_col = "V_phi", "V_perp"
+        x_col, y_col = "V_phi_cartesian_proxy", "V_perp_cartesian_proxy"
         velocity_note = "direct Angus vy and sqrt(vx^2+vz^2)"
         score_sign = -1.0
     elif velocity == "old_astropy":
@@ -407,7 +515,19 @@ def classify_with_fallback_gmm(df: pd.DataFrame, cfg: dict, velocity: str = "dir
     return out, note
 
 
-def classify_with_chemical_gmm(df: pd.DataFrame, apogee: pd.DataFrame, cfg: dict) -> tuple[pd.DataFrame, str]:
+def classify_with_chemical_gmm(
+    df: pd.DataFrame,
+    apogee: pd.DataFrame,
+    cfg: dict,
+    *,
+    model: str = "conditioned",
+    velocity: str = "old_astropy",
+    scope: str = "planet_hosts",
+    flag_policy: str = "finite",
+    component_prior: str = "equal",
+    prior_high_override: float | None = None,
+    return_metadata: bool = False,
+) -> tuple[pd.DataFrame, str] | tuple[pd.DataFrame, str, dict[str, object]]:
     kep_col = next((c for c in apogee.columns if c.lower() in {"kepid", "kic", "kic_id"}), None)
     feh_col = next((c for c in apogee.columns if c.lower() in {"feh", "apogee_feh", "[fe/h]", "fe_h", "m_h"}), None)
     mg_col = next((c for c in apogee.columns if c.lower() in {"mgfe", "apogee_mgfe", "[mg/fe]", "mg_fe"}), None)
@@ -415,28 +535,132 @@ def classify_with_chemical_gmm(df: pd.DataFrame, apogee: pd.DataFrame, cfg: dict
         raise ValueError("APOGEE table needs KIC/kepid, [Fe/H], and [Mg/Fe] columns.")
 
     cal = build_apogee_velocity_calibration(apogee, kep_col, feh_col, mg_col, cfg)
-    cal = cal[finite_columns(cal, ["apogee_feh", "apogee_mgfe", "V_phi", "V_perp"])]
+    if scope == "planet_hosts":
+        cal = cal[cal["kepid"].isin(pd.to_numeric(df["kepid"], errors="coerce"))].copy()
+    elif scope != "all_kepler":
+        raise ValueError(f"Unknown APOGEE scope: {scope}")
+
+    if flag_policy == "all_zero":
+        flag_cols = [c for c in ["aspcapflag", "starflag", "fe_h_flag", "mg_fe_flag"] if c in cal.columns]
+        for col in flag_cols:
+            cal = cal[pd.to_numeric(cal[col], errors="coerce").fillna(1).eq(0)].copy()
+    elif flag_policy != "finite":
+        raise ValueError(f"Unknown APOGEE flag policy: {flag_policy}")
+
+    if velocity == "old_astropy":
+        x_col, y_col = "V_phi_astropy", "V_perp_astropy"
+    elif velocity == "direct":
+        x_col, y_col = "V_phi_cartesian_proxy", "V_perp_cartesian_proxy"
+    else:
+        raise ValueError(f"Unknown chemical velocity convention: {velocity}")
+
+    cal = cal[finite_columns(cal, ["apogee_feh", "apogee_mgfe", x_col, y_col])]
     high_alpha = cal["apogee_mgfe"] > (
         cfg["cuts"]["high_alpha_slope"] * cal["apogee_feh"] + cfg["cuts"]["high_alpha_intercept"]
     )
     if high_alpha.nunique() < 2:
         raise ValueError("APOGEE calibration sample does not contain both high-alpha and low-alpha stars.")
 
-    x_cal = cal[["V_phi", "V_perp"]].to_numpy()
-    gmm = GaussianMixture(n_components=2, covariance_type="full", random_state=42, n_init=20)
-    labels = gmm.fit_predict(x_cal)
-    frac_high = [float(high_alpha[labels == i].mean()) for i in range(2)]
-    thick_i = int(np.argmax(frac_high))
+    x_cal = cal[[x_col, y_col]].to_numpy()
+    use = finite_columns(df, [x_col, y_col])
+    x_all = df.loc[use, [x_col, y_col]].to_numpy()
+    probs = np.full(len(df), np.nan)
+    loglike_low = np.full(len(df), np.nan)
+    loglike_high = np.full(len(df), np.nan)
 
-    use = finite_columns(df, ["V_phi", "V_perp"])
-    probs = np.full((len(df), 2), np.nan)
-    probs[use.to_numpy()] = gmm.predict_proba(df.loc[use, ["V_phi", "V_perp"]].to_numpy())
+    if model == "conditioned":
+        if int((~high_alpha).sum()) < 5 or int(high_alpha.sum()) < 5:
+            raise ValueError(
+                "Chemically conditioned calibration requires at least five low-alpha and high-alpha stars; "
+                f"got low={int((~high_alpha).sum())}, high={int(high_alpha.sum())}."
+            )
+        low_model = GaussianMixture(
+            n_components=1, covariance_type="full", random_state=42, reg_covar=1e-6
+        ).fit(x_cal[~high_alpha.to_numpy()])
+        high_model = GaussianMixture(
+            n_components=1, covariance_type="full", random_state=42, reg_covar=1e-6
+        ).fit(x_cal[high_alpha.to_numpy()])
+        if prior_high_override is not None:
+            if not 0.0 < prior_high_override < 1.0:
+                raise ValueError("prior_high_override must be strictly between 0 and 1")
+            prior_high = float(prior_high_override)
+        elif component_prior == "equal":
+            prior_high = 0.5
+        elif component_prior == "empirical":
+            prior_high = float(high_alpha.mean())
+        else:
+            raise ValueError(f"Unknown chemical component prior: {component_prior}")
+        low_score = low_model.score_samples(x_all)
+        high_score = high_model.score_samples(x_all)
+        logp = np.column_stack(
+            [
+                low_score + np.log1p(-prior_high),
+                high_score + np.log(prior_high),
+            ]
+        )
+        probs[use.to_numpy()] = np.exp(logp[:, 1] - logsumexp(logp, axis=1))
+        loglike_low[use.to_numpy()] = low_score
+        loglike_high[use.to_numpy()] = high_score
+        model_note = (
+            "chemically conditioned Gaussian components; "
+            f"low_mean={low_model.means_[0].round(3).tolist()}, "
+            f"high_mean={high_model.means_[0].round(3).tolist()}, prior_high={prior_high:.6f}"
+        )
+        metadata = {
+            "model": "chemically_conditioned_gaussian_components",
+            "velocity": velocity,
+            "x_column": x_col,
+            "y_column": y_col,
+            "low_mean": low_model.means_[0].tolist(),
+            "low_covariance": low_model.covariances_[0].tolist(),
+            "high_mean": high_model.means_[0].tolist(),
+            "high_covariance": high_model.covariances_[0].tolist(),
+            "prior_high": prior_high,
+            "calibration_n": int(len(cal)),
+            "high_alpha_n": int(high_alpha.sum()),
+            "scope": scope,
+            "flag_policy": flag_policy,
+        }
+    elif model == "pooled":
+        gmm = GaussianMixture(n_components=2, covariance_type="full", random_state=42, n_init=20)
+        labels = gmm.fit_predict(x_cal)
+        frac_high = [float(high_alpha[labels == i].mean()) for i in range(2)]
+        thick_i = int(np.argmax(frac_high))
+        probs[use.to_numpy()] = gmm.predict_proba(x_all)[:, thick_i]
+        model_note = (
+            f"pooled unsupervised GMM; means={gmm.means_.round(3).tolist()}, "
+            f"high_alpha_fraction_by_component={frac_high}, thick_component={thick_i}"
+        )
+        metadata = {
+            "model": "pooled_unsupervised_gmm",
+            "velocity": velocity,
+            "x_column": x_col,
+            "y_column": y_col,
+            "means": gmm.means_.tolist(),
+            "covariances": gmm.covariances_.tolist(),
+            "weights": gmm.weights_.tolist(),
+            "thick_component": thick_i,
+            "calibration_n": int(len(cal)),
+            "high_alpha_n": int(high_alpha.sum()),
+            "scope": scope,
+            "flag_policy": flag_policy,
+        }
+    else:
+        raise ValueError(f"Unknown chemical model: {model}")
 
     out = df.copy()
-    out["P_thick"] = probs[:, thick_i]
+    out["P_thick"] = probs
+    out["kinematic_loglike_thin"] = loglike_low
+    out["kinematic_loglike_thick"] = loglike_high
     out["disk"] = np.where(out["P_thick"] > cfg["cuts"]["p_thick_threshold"], "thick", "thin")
     out.loc[out["P_thick"].isna(), "disk"] = "unclassified"
-    return out, f"APOGEE-calibrated GMM; calibration_n={len(cal)}, high_alpha_fraction_by_component={frac_high}"
+    note = (
+        f"APOGEE-calibrated model={model}; calibration_n={len(cal)}, "
+        f"high_alpha_n={int(high_alpha.sum())}, velocity={velocity}, scope={scope}, "
+        f"flag_policy={flag_policy}, component_prior={component_prior}, "
+        f"prior_high_override={prior_high_override}; {model_note}"
+    )
+    return (out, note, metadata) if return_metadata else (out, note)
 
 
 def build_apogee_velocity_calibration(

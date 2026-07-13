@@ -6,22 +6,73 @@ reproducibility metadata. It intentionally excludes large local data products su
 ALDERAAN posterior FITS files, Kepler light curves, downloaded archives, generated run
 directories, and cloud result tarballs.
 
+The local analysis suite is tested on Python 3.11. Use `requirements-lock.txt` for the
+verified environment or `requirements.txt` when adapting to another supported platform.
+
 Supersedes the earlier attempt at
 https://github.com/Srach-uw/Shreshth_Hildale_Project (see `legacy/README.md`).
 
 ## Current Status
 
-- Canonical pre-ALDERAAN sample and posterior inventory have been rebuilt.
-- Existing eccentricity posterior summaries cover 1729 / 2474 planets.
-- True missing posterior queue contains 745 planets.
-- Launch-ready missing ALDERAAN queue contains 718 planets across 592 KOI systems.
-- 27 missing rows remain blocked by missing/unreliable transit seeds.
-- 320 existing posterior rows are flagged for later review or possible refit.
+- The final published article is now the reference: Sagear et al. (2026), AJ 172, 42,
+  DOI [10.3847/1538-3881/ae71bf](https://doi.org/10.3847/1538-3881/ae71bf).
+- The official machine-readable host table is bundled under `reference/data/` and
+  supplies authoritative velocities, `P_thick`, and disk labels for all 1,888 hosts.
+- The missing-posterior cloud campaign recovered 547 / 592 target systems (92.4%).
+  The remaining 45 systems failed upstream ALDERAAN numerical or transit-quality checks.
+- The postprocessed archive currently covers 2,395 / 2,474 planets (96.8%), before
+  final publication-label/sample reconciliation and validation-arm selection.
+- A factorial ALDERAAN validation is testing original versus published transit priors,
+  long versus available short cadence, deterministic repeatability, and limb-darkening
+  choices before one arm is declared canonical.
+- Current eccentricity population values remain diagnostic until that validation and the
+  Berger-density ambiguity described below are resolved.
 
-## Independent Verification (2026-07-02)
+## Most Important Published-Record Finding (2026-07-13)
 
-All headline counts were re-verified against the real local data CSVs (not just
-internal consistency of the summaries):
+Sagear's machine-readable Table 1 contains 1,515 thin and **373 thick** hosts. The
+article prose says 378 thick hosts, but that is internally impossible: 1,515 + 373 =
+1,888, and 275 thick singles + 98 thick-multi hosts = 373.
+
+Our broad reconstructed sample overlaps 1,764 published hosts, but 272 of those disk
+labels disagree (84.58% agreement). This is a major upstream explanation for the
+incorrect reconstructed Toomre diagram. Primary replication runs must now use the
+published labels; the reconstructed APOGEE/GMM classifier is sensitivity-only.
+
+Run the publication contract and regenerate the authoritative host/Toomre products:
+
+```bash
+python scripts/published_sagear_audit.py
+pytest -q scripts/test_published_sagear_audit.py
+```
+
+The parser asserts 1,888 hosts, 1,515 thin, 373 thick, 585 measured-velocity hosts,
+unique KIC identifiers, and exact agreement between labels and `P_thick > 0.5`.
+
+## Canonical Safety Rules
+
+- Preserve paired ALDERAAN `T14`, `Rp/R*`, and `b` samples and nested-sampling weights.
+- Use the direct MacDougall/Sagear postmodel importance sampler with `e in [0,0.95]`.
+- Require an explicit posterior-summary path for hierarchical inference.
+- Exclude `qc_primary_exclude` rows by default; low importance ESS is not publishable.
+- Never invent missing stellar-density errors in a canonical run. The 13% fallback is
+  available only through an explicitly labeled sensitivity flag.
+- Use reciprocal geometric transit-probability correction for Sagear comparison.
+- Treat deterministic sigma-grid inference as a numerical cross-check. The exact paper
+  reports NumPyro, two chains, 1,000 steps, and `Rhat < 1.05`.
+
+## Unresolved Publication Ambiguity
+
+The final paper explicitly says the eccentricity analysis uses stellar densities from
+Berger et al. (2018), but that catalog publishes radii rather than the homogeneous
+log-density column used by this pipeline. The available homogeneous density table is
+Berger et al. (2020). This cannot be resolved safely by inference; it requires an author
+clarification or a labeled Berger-2018-derived sensitivity reconstruction.
+
+## Earlier Independent Verification (2026-07-02)
+
+The following section records the pre-cloud inventory audit for provenance. Its queue
+counts are historical and are superseded by the current-status section above.
 
 - `cloud/validate_bundle.py` against the real bundle → `VALIDATION OK: 592 targets, 767 catalog rows`.
 - Existing posterior archive: 1729 rows, all unique `kepoi_name` (no double-counting).

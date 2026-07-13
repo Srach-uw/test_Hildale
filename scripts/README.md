@@ -4,6 +4,20 @@ Canonical pipeline for diagnosing and reproducing the Sagear Kepler thin/thick d
 
 This folder is deliberately separate from the exploratory notebooks and older scripts. The first goal is not to force a match; it is to make every mismatch visible.
 
+Run commands from the repository root in an environment created from
+`requirements.txt`. The publication-only audit is self-contained because the official
+machine-readable tables are bundled under `reference/data/`:
+
+```powershell
+python scripts/published_sagear_audit.py
+python -m pytest -q scripts/test_published_sagear_audit.py
+```
+
+Other analyses still require the large catalogs and ALDERAAN products excluded from
+Git. Override `paths.research_root` in a local config instead of editing committed
+defaults. The final published disk labels are canonical; reconstructed GMM labels are
+diagnostic only.
+
 ## Files
 
 - `config.json`: paths, thresholds, Sagear target counts, and missing optional inputs.
@@ -23,11 +37,10 @@ This folder is deliberately separate from the exploratory notebooks and older sc
 
 ## First Run
 
-Use the base Anaconda Python for the audit because it already has `astropy`, `scipy`, and `sklearn`:
+For a full local-data audit, create a local config pointing at the research data root:
 
 ```powershell
-cd "C:\Users\shres\Desktop\HILDALE RESEARCH"
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\diagnose_sample.py
+python scripts/diagnose_sample.py --config path\to\local_config.json
 ```
 
 That strict command is the Sagear-equivalence gate. If Furlan, APOGEE, or ALDERAAN convergence inputs are missing, it marks the sample as unclassified/missing instead of inventing labels.

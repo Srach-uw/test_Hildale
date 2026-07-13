@@ -9,7 +9,8 @@ This layout was independently reviewed and verified against the real local data
 - `cloud/`: ALDERAAN/GCP helper scripts for the missing-posterior run.
 - `docs/`: concise reports and operational checklists.
 - `metadata/`: small CSV summaries needed to understand current state.
-- `reference/`: Sagear et al. paper, reference figures, original photoeccentric script.
+- `reference/`: submitted paper/figures, original photoeccentric script, and the final
+  AJ machine-readable Tables 1-3 under `reference/data/`.
 - `legacy/`: superseded earlier-attempt results, kept for provenance.
 
 ## Exclude

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 from pathlib import Path
 
 import matplotlib.image as mpimg
@@ -8,6 +9,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.mixture import GaussianMixture
+from scipy.special import logsumexp
+from scipy.stats import multivariate_normal
 
 from common import finite_columns, load_config, output_dir, read_angus, write_json
 from toomre_diagnostics import ensure_velocity_aliases, read_old_angus_astropy_catalog
@@ -19,6 +22,7 @@ def main() -> None:
     )
     parser.add_argument("--config", default=None)
     parser.add_argument("--sample", default=None)
+    parser.add_argument("--classifier-model", default=None, help="Chemical classifier JSON written by diagnose_sample.py.")
     parser.add_argument("--max-background", type=int, default=80000)
     args = parser.parse_args()
 
@@ -28,6 +32,16 @@ def main() -> None:
     sample = ensure_velocity_aliases(pd.read_csv(sample_path))
     angus = read_angus(cfg)
     old_angus = read_old_angus_astropy_catalog(cfg)
+
+    model_path = Path(args.classifier_model) if args.classifier_model else out_dir / "chemical_classifier_strict.json"
+    chemical = None
+    chemical_path = None
+    if model_path.exists() and old_angus is not None:
+        with model_path.open("r", encoding="utf-8") as handle:
+            model = json.load(handle)
+        chemical = build_chemical_panel(sample, old_angus, model, args.max_background)
+        chemical_path = out_dir / "toomre_sagear_style_chemical.png"
+        plot_sagear_style(chemical, chemical_path, "Chemically calibrated cylindrical classifier")
 
     direct = build_panel_data(
         sample=sample,
@@ -68,17 +82,21 @@ def main() -> None:
     )
     comparison_path = out_dir / "toomre_sagear_reference_comparison.png"
     if reference_path.exists():
-        plot_reference_comparison(reference_path, direct_path, astropy_path, comparison_path)
+        plot_reference_comparison(reference_path, chemical_path or direct_path, astropy_path, comparison_path)
     else:
         comparison_path = None
 
     summary = summarize_panels(sample, direct, astropy)
+    if chemical is not None:
+        summary = pd.concat([summary, summarize_panels(sample, chemical, None).assign(panel="chemical_classifier")])
     summary_path = out_dir / "toomre_sagear_style_summary.csv"
     summary.to_csv(summary_path, index=False)
 
     metadata = {
         "sample": str(sample_path),
         "direct_plot": str(direct_path),
+        "chemical_classifier_model": str(model_path) if model_path.exists() else None,
+        "chemical_plot": str(chemical_path) if chemical_path else None,
         "old_astropy_plot": str(astropy_path) if astropy_path else None,
         "reference_comparison": str(comparison_path) if comparison_path else None,
         "summary": str(summary_path),
@@ -92,6 +110,8 @@ def main() -> None:
 
     print(summary.to_string(index=False))
     print(f"\nWrote: {direct_path}")
+    if chemical_path:
+        print(f"Wrote: {chemical_path}")
     if astropy_path:
         print(f"Wrote: {astropy_path}")
     if comparison_path:
@@ -141,6 +161,46 @@ def build_panel_data(
         "gmm_covariances": gmm.covariances_,
         "thick_component": thick_component,
         "display_sign": display_sign,
+        "x_col": x_col,
+        "y_col": y_col,
+    }
+
+
+def build_chemical_panel(
+    sample: pd.DataFrame,
+    background: pd.DataFrame,
+    model: dict[str, object],
+    max_background: int,
+) -> dict[str, object]:
+    if model.get("model") != "chemically_conditioned_gaussian_components":
+        raise ValueError("Sagear-style chemical panel requires conditioned Gaussian-component metadata")
+    x_col = str(model["x_column"])
+    y_col = str(model["y_column"])
+    required = [x_col, y_col]
+    bg = background[finite_columns(background, required)].copy()
+    bg = bg[(bg[y_col] >= 0) & (bg[y_col] <= 260) & (bg[x_col].abs() < 500)].copy()
+    if len(bg) > max_background:
+        bg = bg.sample(max_background, random_state=42).copy()
+    features = bg[[x_col, y_col]].to_numpy(float)
+    prior_high = float(model["prior_high"])
+    low_log = multivariate_normal.logpdf(features, mean=model["low_mean"], cov=model["low_covariance"])
+    high_log = multivariate_normal.logpdf(features, mean=model["high_mean"], cov=model["high_covariance"])
+    joint = np.column_stack([low_log + np.log1p(-prior_high), high_log + np.log(prior_high)])
+    bg["P_thick_panel"] = np.exp(joint[:, 1] - logsumexp(joint, axis=1))
+    bg["panel_x"] = bg[x_col]
+    bg["panel_y"] = bg[y_col]
+
+    hosts = sample[finite_columns(sample, required)].drop_duplicates("kepid").copy()
+    hosts["panel_x"] = hosts[x_col]
+    hosts["panel_y"] = hosts[y_col]
+    hosts["P_thick_panel"] = pd.to_numeric(hosts["P_thick"], errors="coerce")
+    return {
+        "background": bg,
+        "hosts": hosts,
+        "gmm_means": np.asarray([model["low_mean"], model["high_mean"]], dtype=float),
+        "gmm_covariances": np.asarray([model["low_covariance"], model["high_covariance"]], dtype=float),
+        "thick_component": 1,
+        "display_sign": 1.0,
         "x_col": x_col,
         "y_col": y_col,
     }
@@ -207,7 +267,7 @@ def plot_reference_comparison(
     out_path: Path,
 ) -> None:
     images = [(reference_path, "Sagear reference")]
-    images.append((direct_path, "Current direct-Angus replication"))
+    images.append((direct_path, "Chemically calibrated replication"))
     if astropy_path:
         images.append((astropy_path, "Old-zip Astropy convention"))
 
