@@ -1352,6 +1352,14 @@ broad no-binary-cut overlap contains 1052 thin singles, 803 thin-multi planets,
 differently by the overlap-only recount. This supersedes the historical
 1082/773/278/196 overlap counts.
 
+Two related fail-open defaults were removed during the same audit. The
+system-definition sensitivity no longer invents a `single` label when a KIC is
+absent from its multiplicity map, and the legacy posterior merger no longer
+treats unknown system completeness as known complete. Missing multiplicity now
+raises an error; unknown completeness is explicitly recorded and excluded by
+primary QC. These changes harden diagnostics and legacy merges but do not alter
+the current 710-row uniform direct-posterior result.
+
 An aggressive combined quality sensitivity (confirmed, high-S/N, dwarf,
 small-planet filters) gives thin singles 0.022 on only 49 objects, but the fit
 is boundary-sensitive and the multis remain high. It diagnoses where the

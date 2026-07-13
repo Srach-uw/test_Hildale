@@ -145,8 +145,11 @@ def annotate_qc(summary: pd.DataFrame, veto_kois: set[str] | None = None) -> pd.
     )
     out["qc_flag_vetted_veto"] = out["kepoi_name"].astype(str).isin(veto_kois)
     if "incomplete_system" not in out.columns:
-        out["incomplete_system"] = False
-    out["incomplete_system"] = out["incomplete_system"].astype("boolean").fillna(False).astype(bool)
+        out["incomplete_system"] = pd.NA
+    incomplete = out["incomplete_system"].astype("boolean")
+    out["incomplete_system_unknown"] = incomplete.isna()
+    # Unknown completeness is not evidence of a complete ALDERAAN system.
+    out["incomplete_system"] = incomplete.fillna(True).astype(bool)
     out["qc_primary_exclude"] = (
         out["zeta_any_summary_outside_grid_support"]
         | out["incomplete_system"]
@@ -157,7 +160,9 @@ def annotate_qc(summary: pd.DataFrame, veto_kois: set[str] | None = None) -> pd.
         r = []
         if bool(row.get("zeta_any_summary_outside_grid_support", False)):
             r.append("zeta_summary_outside_e095_support")
-        if bool(row.get("incomplete_system", False)):
+        if bool(row.get("incomplete_system_unknown", False)):
+            r.append("incomplete_system_unknown")
+        elif bool(row.get("incomplete_system", False)):
             r.append("incomplete_system")
         if bool(row.get("qc_flag_vetted_veto", False)):
             r.append("vetted_qc_veto")

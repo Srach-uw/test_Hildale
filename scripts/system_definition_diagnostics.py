@@ -86,8 +86,13 @@ def count_to_system(df: pd.DataFrame) -> pd.Series:
 def assign_system(sample: pd.DataFrame, def_name: str, system_by_kepid: pd.Series | None) -> pd.Series:
     if system_by_kepid is None:
         return sample["system"].astype(str)
-    out = sample["kepid"].map(system_by_kepid).fillna("single").astype(str)
-    return out
+    out = sample["kepid"].map(system_by_kepid)
+    if out.isna().any():
+        missing = sorted(sample.loc[out.isna(), "kepid"].astype(int).unique())
+        raise ValueError(
+            f"System definition {def_name} lacks multiplicity for KIC identifiers: {missing[:10]}"
+        )
+    return out.astype(str)
 
 
 def count_row(classifier: str, definition: str, sample: pd.DataFrame, system: pd.Series) -> dict[str, object]:
