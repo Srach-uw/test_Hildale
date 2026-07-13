@@ -1243,3 +1243,63 @@ What success looks like after the first shard:
 - `postprocess_missing_cloud_results.ps1` produces a new `eccentricity_posterior_summary_sagear_missing.csv`.
 - The new summary merges into the existing archive without duplicated planet IDs or broken category labels.
 - The thin-single posterior coverage increases before any refit of already-existing posteriors.
+
+## 2026-07-13 factorial-validation partial snapshot
+
+The repaired factorial runner was resumed after the VM's 24-hour automatic
+stop. Existing nonempty FITS are detected and skipped, so the restart did not
+repeat the 47 completed fits. The cloud matrix continues independently.
+
+A status-gated snapshot was taken while the interrupted `K01127` reference-LD
+fit was rerunning:
+
+| snapshot item | value |
+|---|---:|
+| completed original-LD long-cadence systems | 24 |
+| completed reference-LD long-cadence systems | 23 |
+| completed FITS total | 47 / 82 |
+| archive size | 118,322,978 bytes |
+| SHA-256 | `e8d9a772b30fe6a7e23a54989ba4dc71e100beefc92d1dc552fe35ed95784bc8` |
+
+The local and VM checksums matched exactly. The archive is stored at:
+
+`C:\Users\shres\Desktop\HILDALE ALDERAN\alderaan_factorial_partial_20260713T102557Z.tar.gz`
+
+The factorial comparator previously required all 82 expected FITS, which made
+the planned concurrent partial analysis impossible. It now has an explicit
+`--allow-incomplete` mode. Strict full-matrix behavior remains the default;
+partial mode extracts only discovered FITS, compares only complete within-planet
+pairs, preserves the full discovery/missing audit, and marks practical-effect
+claims unassessable until the repeatability arm exists. The focused comparator
+suite passes 8/8 tests in both the Git checkout and live pipeline.
+
+The 23 matched systems contain 31 matched planets. All 31 passed direct
+importance-extraction QC. Reference minus original limb-darkening results are:
+
+| quantity | median signed shift | 95% system-bootstrap interval | median absolute shift | 95th percentile absolute shift |
+|---|---:|---:|---:|---:|
+| eccentricity posterior median | +0.00168 | [-0.00103, +0.00523] | 0.01568 | 0.05548 |
+| zeta posterior median | -0.00151 | [-0.00464, +0.00837] | 0.00899 | 0.10507 |
+| impact parameter median | +0.00944 | [-0.00089, +0.02143] | 0.02763 | 0.14118 |
+| duration T14 (hours) | -0.00529 | [-0.01458, +0.01934] | 0.02058 | 0.30409 |
+| Rp/Rstar | +0.000155 | [+0.000053, +0.000249] | 0.000188 | 0.01061 |
+
+For the 13 thin-single planets in this targeted validation subset, the median
+eccentricity shift is +0.00168 and the median absolute shift is 0.00604. This
+does not support a coherent limb-darkening shift large enough, by itself, to
+explain the thin-single population discrepancy. Individual systems remain
+sensitive: the largest absolute eccentricity shifts currently include
+`K00283.03` (0.080), `K02533.03` (0.072), `K01001.02` (0.039), and
+`K02109.01` (0.039). `K02533.03` also changes duration by 2.22 hours and must
+be inspected as a high-leverage case rather than allowed to define a global
+limb-darkening conclusion.
+
+This is provisional, not the final factorial result. There is no repeat-seed
+arm in the snapshot, so no observed shift can yet be distinguished from
+ALDERAAN nested-sampling variability. The cadence, reference-LD plus
+short-cadence, repeatability, and printed-prior arms remain necessary and are
+still running in GCP.
+
+Partial analysis products are under:
+
+`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\factorial_validation_partial_20260713T102557Z`
