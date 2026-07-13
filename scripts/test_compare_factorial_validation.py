@@ -109,6 +109,17 @@ def write_all_arms(root: Path) -> None:
         write_result(result, *offsets[arm])
 
 
+def write_ld_pair(root: Path) -> None:
+    offsets = {
+        "original_lc": (0.0, 0.0),
+        "reference_lc": (0.0010, 0.0004),
+    }
+    for arm, values in offsets.items():
+        spec = ARM_SPECS[arm]
+        result = root / "projects" / arm / "Results" / spec.run_id / TARGET / f"{TARGET}-results.fits"
+        write_result(result, *values)
+
+
 def test_discovery_is_recursive_and_arm_specific(tmp_path: Path) -> None:
     metadata = tmp_path / "metadata"
     write_metadata(metadata)
@@ -183,6 +194,41 @@ def test_missing_fits_fails_after_writing_discovery_audit(tmp_path: Path) -> Non
     audit = pd.read_csv(output / "factorial_validation_discovery.csv")
     assert len(audit) == len(ARM_SPECS)
     assert audit["status"].eq("missing").all()
+
+
+def test_partial_snapshot_analyzes_only_complete_pairs(tmp_path: Path) -> None:
+    metadata = tmp_path / "metadata"
+    inventory, sample = write_metadata(metadata)
+    write_ld_pair(tmp_path)
+    output = tmp_path / "output"
+
+    paths = run_analysis(
+        validation_root=tmp_path,
+        metadata_root=metadata,
+        sample_path=sample,
+        inventory_path=inventory,
+        output_dir=output,
+        n_proposals=4_000,
+        e_max=0.95,
+        density_error_mode="symmetric-average",
+        period_tol=0.01,
+        min_importance_ess=1.0,
+        e_grid_size=30,
+        omega_grid_size=24,
+        n_bootstrap=100,
+        seed=7,
+        allow_incomplete=True,
+    )
+
+    discovery = pd.read_csv(paths["discovery"])
+    metrics = pd.read_csv(paths["paired_metrics"])
+    thresholds = pd.read_csv(paths["repeatability"])
+    report = Path(paths["report"]).read_text(encoding="utf-8")
+    assert discovery["status"].eq("present").sum() == 2
+    assert set(metrics["comparison_id"]) == {"ld_reference_lc"}
+    assert thresholds["repeatability_abs_delta_p95"].isna().all()
+    assert metrics["practical_evidence"].eq("not_assessable_without_repeatability").all()
+    assert "Analysis mode: partial snapshot" in report
 
 
 def test_direct_exclusions_fail_clearly_and_are_written(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

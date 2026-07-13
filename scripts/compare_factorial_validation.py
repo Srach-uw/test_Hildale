@@ -419,6 +419,8 @@ def extract_all_arms(
 def build_paired_outputs(
     arm_planets: pd.DataFrame,
     target_sets: dict[str, set[str]],
+    *,
+    allow_incomplete: bool = False,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     identifiers = ["koi_target", "kepoi_name", "kepid", "koi_period", "disk", "system"]
     summary_columns = sorted({column for spec in PARAMETERS.values() for column in spec[:3]})
@@ -443,18 +445,20 @@ def build_paired_outputs(
         paired = baseline.merge(
             comparison,
             on=["koi_target", "kepoi_name"],
-            how="outer",
+            how="outer" if not allow_incomplete else "inner",
             suffixes=("_baseline", "_comparison"),
             validate="one_to_one",
             indicator=True,
         )
         unmatched = paired[paired["_merge"].ne("both")]
-        if not unmatched.empty:
+        if not allow_incomplete and not unmatched.empty:
             labels = ", ".join(
                 f"{row['koi_target']}/{row['kepoi_name']}:{row['_merge']}" for _, row in unmatched.iterrows()
             )
             raise ValidationAnalysisError(f"Incomplete paired planets for {pair.comparison_id}: {labels}")
         paired = paired.drop(columns="_merge")
+        if paired.empty:
+            continue
         paired.insert(0, "comparison_id", pair.comparison_id)
         paired.insert(1, "effect", pair.effect)
         paired.insert(2, "comparison_arm", pair.comparison_arm)
@@ -499,6 +503,8 @@ def build_paired_outputs(
                     }
                 )
         wide_rows.append(paired)
+    if not wide_rows:
+        raise ValidationAnalysisError("No complete arm/planet pairs were available for comparison")
     return pd.concat(wide_rows, ignore_index=True), pd.DataFrame(long_rows)
 
 
@@ -643,6 +649,7 @@ def summarize_arms(metrics: pd.DataFrame, *, n_bootstrap: int, seed: int) -> pd.
 
 
 def write_report(path: Path, discovery: pd.DataFrame, summaries: pd.DataFrame, thresholds: pd.DataFrame) -> None:
+    incomplete = int(discovery["status"].ne("present").sum())
     lines = [
         "# Factorial validation analysis",
         "",
@@ -659,6 +666,7 @@ def write_report(path: Path, discovery: pd.DataFrame, summaries: pd.DataFrame, t
         "",
         "## Coverage",
         "",
+        f"- Analysis mode: {'partial snapshot' if incomplete else 'complete matrix'}",
         f"- Expected and discovered FITS: {int(discovery['status'].eq('present').sum())}/{len(discovery)}",
         f"- Paired comparison summaries: {len(summaries)}",
         "- Bootstrap unit: target system (all planets in a sampled system remain clustered)",
@@ -691,6 +699,7 @@ def run_analysis(
     omega_grid_size: int,
     n_bootstrap: int,
     seed: int,
+    allow_incomplete: bool = False,
 ) -> dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     target_sets = read_target_sets(metadata_root)
@@ -698,11 +707,17 @@ def run_analysis(
     discovery_path = output_dir / "factorial_validation_discovery.csv"
     discovery.to_csv(discovery_path, index=False)
     missing = discovery[discovery["status"].ne("present")]
-    if not missing.empty:
+    if not allow_incomplete and not missing.empty:
         examples = ", ".join(f"{row.arm}/{row.koi_target}" for row in missing.head(12).itertuples())
         raise ValidationAnalysisError(
             f"Validation FITS are incomplete ({len(missing)} missing of {len(discovery)} expected): {examples}. "
             f"Discovery audit: {discovery_path}"
+        )
+
+    present_discovery = discovery[discovery["status"].eq("present")].copy()
+    if present_discovery.empty:
+        raise ValidationAnalysisError(
+            f"No validation FITS were discovered. Discovery audit: {discovery_path}"
         )
 
     planets = build_planet_sample(inventory_path, sample_path, target_sets["all"])
@@ -711,7 +726,7 @@ def run_analysis(
     exclusion_path = output_dir / "factorial_validation_direct_exclusions.csv"
     try:
         arm_planets, exclusions = extract_all_arms(
-            discovery,
+            present_discovery,
             planets,
             output_dir / "direct_posteriors",
             e_grid=e_grid,
@@ -732,7 +747,11 @@ def run_analysis(
         raise
     exclusions.to_csv(exclusion_path, index=False)
 
-    paired_planets, paired_metrics = build_paired_outputs(arm_planets, target_sets)
+    paired_planets, paired_metrics = build_paired_outputs(
+        arm_planets,
+        target_sets,
+        allow_incomplete=allow_incomplete,
+    )
     paired_metrics, thresholds = attach_repeatability_evidence(paired_metrics)
     summaries = summarize_arms(paired_metrics, n_bootstrap=n_bootstrap, seed=seed)
 
@@ -799,6 +818,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--omega-grid-size", type=int, default=None)
     parser.add_argument("--bootstrap-replicates", type=int, default=10_000)
     parser.add_argument("--seed", type=int, default=20260710)
+    parser.add_argument(
+        "--allow-incomplete",
+        action="store_true",
+        help=(
+            "Analyze only discovered FITS and complete within-planet arm pairs. "
+            "The default remains strict and requires the full 82-fit matrix."
+        ),
+    )
     return parser
 
 
@@ -841,6 +868,7 @@ def main(argv: list[str] | None = None) -> int:
             omega_grid_size=omega_grid_size,
             n_bootstrap=args.bootstrap_replicates,
             seed=args.seed,
+            allow_incomplete=args.allow_incomplete,
         )
     except (ValidationAnalysisError, FileNotFoundError, pd.errors.ParserError) as exc:
         print(f"ERROR: factorial validation analysis failed: {exc}", file=sys.stderr)
