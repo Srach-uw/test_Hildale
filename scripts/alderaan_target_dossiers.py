@@ -18,7 +18,7 @@ def main() -> None:
     parser.add_argument("--summary", default=None)
     parser.add_argument(
         "--results-dir",
-        default=r"C:\Users\shres\Downloads\ALDERAAN_posteriors\ALDERAAN_posteriors",
+        required=True,
     )
     parser.add_argument("--max-planets", type=int, default=40)
     args = parser.parse_args()

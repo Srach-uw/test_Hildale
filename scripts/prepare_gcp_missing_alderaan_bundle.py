@@ -19,7 +19,7 @@ def main() -> None:
     parser.add_argument("--run-id", default="sagear_missing")
     parser.add_argument("--jobs", type=int, default=30)
     parser.add_argument("--shards", type=int, default=4)
-    parser.add_argument("--copy-to-codex-outputs", default=None)
+    parser.add_argument("--copy-to-external-output", default=None)
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -51,7 +51,7 @@ def main() -> None:
     write_readme(out_dir, args.run_id, args.jobs, targets, catalog)
     write_manifest(manifest_path, args.run_id, args.jobs, targets, catalog, queue)
 
-    copy_root = Path(args.copy_to_codex_outputs) if args.copy_to_codex_outputs else None
+    copy_root = Path(args.copy_to_external_output) if args.copy_to_external_output else None
     if copy_root:
         copy_root.mkdir(parents=True, exist_ok=True)
         for path in [targets_path, catalog_path, expanded_path, manifest_path]:
@@ -426,14 +426,14 @@ gcloud compute scp alderaan-missing-e2-32:~/sagear_cloud_missing/alderaan_result
 Extract locally into `sagear_reproduction/alderaan_project` or a separate results folder, then run:
 
 ```powershell
-& "C:\\Users\\shres\\anaconda3\\python.exe" sagear_reproduction\\extract_eccentricity_posteriors.py `
+python sagear_reproduction\\extract_eccentricity_posteriors.py `
   --sample sagear_reproduction\\outputs\\canonical_sample_old_astropy_rawcc.csv `
   --run-id {run_id} `
   --posterior-subdir eccentricity_posteriors_{run_id} `
   --summary-out sagear_reproduction\\outputs\\eccentricity_posterior_summary_{run_id}.csv `
   --coverage-out sagear_reproduction\\outputs\\eccentricity_posterior_coverage_{run_id}.csv
 
-& "C:\\Users\\shres\\anaconda3\\python.exe" sagear_reproduction\\merge_posterior_summaries.py `
+python sagear_reproduction\\merge_posterior_summaries.py `
   --new sagear_reproduction\\outputs\\eccentricity_posterior_summary_{run_id}.csv `
   --out sagear_reproduction\\outputs\\eccentricity_posterior_summary_merged_{run_id}.csv `
   --coverage-out sagear_reproduction\\outputs\\eccentricity_posterior_coverage_merged_{run_id}.csv

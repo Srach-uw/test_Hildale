@@ -402,7 +402,7 @@ Cloud batch:
 
 Existing local ALDERAAN results:
 
-- path: `C:\Users\shres\Downloads\ALDERAAN_posteriors\ALDERAAN_posteriors`;
+- path: `<alderaan-results-dir>`;
 - 1692 FITS result files;
 - 1278 corrected-sample systems with result files;
 - 579 corrected-sample systems without result files;
@@ -497,7 +497,7 @@ The replication is now much healthier:
 
 I implemented the recovery-plan fixes in the live canonical folder:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction`
+`<repository-root>`
 
 The important code changes are:
 
@@ -1284,8 +1284,8 @@ New bundle folder:
 
 Portable bundle zips:
 
-- `C:\Users\shres\Downloads\Hildale_LD_Validation_Batch_20260708.zip`
-- `C:\Users\shres\Desktop\HILDALE ALDERAN\Hildale_LD_Validation_Batch_20260708.zip`
+- `<downloads-dir>\Hildale_LD_Validation_Batch_20260708.zip`
+- `<validation-artifact-dir>\Hildale_LD_Validation_Batch_20260708.zip`
 
 New bundle files:
 

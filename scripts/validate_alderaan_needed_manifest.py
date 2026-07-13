@@ -11,7 +11,7 @@ from common import output_dir
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Validate the final pre-ALDERAAN needed-target manifest.")
-    parser.add_argument("--copy-to-codex-outputs", default=None)
+    parser.add_argument("--copy-to-external-output", default=None)
     args = parser.parse_args()
 
     out = output_dir()
@@ -36,7 +36,7 @@ def main() -> None:
     missing_from_catalog.to_csv(missing_path, index=False)
     write_markdown(md_path, checks, missing_from_catalog, needed, targets, catalog)
 
-    copy_root = Path(args.copy_to_codex_outputs) if args.copy_to_codex_outputs else None
+    copy_root = Path(args.copy_to_external_output) if args.copy_to_external_output else None
     if copy_root:
         copy_root.mkdir(parents=True, exist_ok=True)
         for path in [checks_path, missing_path, md_path]:

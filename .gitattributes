@@ -1,5 +1,13 @@
 # Force LF regardless of platform/editor. CRLF in cloud/*.sh has repeatedly
 # broken bash on the GCP VM ("set -euo pipefail" parses as an invalid option
 # with a trailing \r) - found live during the 2026-07-02 smoke test.
+.gitattributes text eol=lf
 *.sh text eol=lf
 *.py text eol=lf
+*.md text eol=lf
+*.csv text eol=lf
+*.json text eol=lf
+*.ps1 text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

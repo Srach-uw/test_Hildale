@@ -19,7 +19,7 @@ def main() -> None:
     parser.add_argument("--summary", default=None)
     parser.add_argument("--coverage", default=None)
     parser.add_argument("--shape", default=None)
-    parser.add_argument("--copy-to-codex-outputs", default=None)
+    parser.add_argument("--copy-to-external-output", default=None)
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -91,7 +91,7 @@ def main() -> None:
         needed_targets.to_csv(project / "sagear_needed_targets.csv", index=False)
         write_needed_scripts(cfg, needed_targets, "sagear_needed_catalog.csv", "sagear_needed_targets.csv")
 
-    copy_root = Path(args.copy_to_codex_outputs) if args.copy_to_codex_outputs else None
+    copy_root = Path(args.copy_to_external_output) if args.copy_to_external_output else None
     if copy_root:
         copy_root.mkdir(parents=True, exist_ok=True)
         for path in [

@@ -17,11 +17,11 @@ Current status:
 
 Cloud bundle:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\cloud_missing_batch`
+`<repository-root>\cloud_missing_batch`
 
 Ready-to-upload zip:
 
-`C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\cloud_missing_batch_ready_for_gcp.zip`
+`cloud_missing_batch_ready_for_gcp.zip`
 
 Bundle contents:
 
@@ -77,7 +77,7 @@ bash pack_results.sh
 5. Local postprocess after retrieving tarball:
 
 ```powershell
-cd "C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction"
+cd "<repository-root>"
 .\postprocess_missing_cloud_results.ps1 -TarPath "C:\path\to\alderaan_results_sagear_missing_YYYYMMDD_HHMMSS.tar.gz"
 ```
 

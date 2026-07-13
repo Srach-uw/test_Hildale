@@ -7,3 +7,4 @@ astropy
 matplotlib
 scikit-learn
 tabulate
+pytest

@@ -81,14 +81,14 @@ gcloud compute scp alderaan-missing-e2-32:~/sagear_cloud_missing/alderaan_result
 Extract locally into `sagear_reproduction/alderaan_project` or a separate results folder, then run:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\extract_eccentricity_posteriors.py `
+python sagear_reproduction\extract_eccentricity_posteriors.py `
   --sample sagear_reproduction\outputs\canonical_sample_old_astropy_rawcc.csv `
   --run-id sagear_missing `
   --posterior-subdir eccentricity_posteriors_sagear_missing `
   --summary-out sagear_reproduction\outputs\eccentricity_posterior_summary_sagear_missing.csv `
   --coverage-out sagear_reproduction\outputs\eccentricity_posterior_coverage_sagear_missing.csv
 
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\merge_posterior_summaries.py `
+python sagear_reproduction\merge_posterior_summaries.py `
   --new sagear_reproduction\outputs\eccentricity_posterior_summary_sagear_missing.csv `
   --out sagear_reproduction\outputs\eccentricity_posterior_summary_merged_sagear_missing.csv `
   --coverage-out sagear_reproduction\outputs\eccentricity_posterior_coverage_merged_sagear_missing.csv
