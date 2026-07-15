@@ -2,7 +2,12 @@ from __future__ import annotations
 
 import pandas as pd
 
-from factorial_validation_diagnostics import clean_pairs, leverage_table, population_summaries
+from factorial_validation_diagnostics import (
+    clean_pairs,
+    cluster_bootstrap,
+    leverage_table,
+    population_summaries,
+)
 
 
 def synthetic_pairs() -> pd.DataFrame:
@@ -44,3 +49,11 @@ def test_population_summary_and_leverage_are_system_clustered() -> None:
     leverage = leverage_table(pairs)
     assert set(leverage["koi_target"]) == {"K00000", "K00001", "K00002"}
     assert leverage["leave_system_out_median_delta_e"].notna().all()
+
+
+def test_cluster_bootstrap_is_seed_deterministic_and_preserves_system_rows() -> None:
+    pairs = clean_pairs(synthetic_pairs())
+    first = cluster_bootstrap(pairs, "delta_e", n_bootstrap=200, seed=11)
+    second = cluster_bootstrap(pairs, "delta_e", n_bootstrap=200, seed=11)
+    assert first == second
+    assert first[0] <= pairs["delta_e"].median() <= first[1]

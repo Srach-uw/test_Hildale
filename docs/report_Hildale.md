@@ -1403,3 +1403,37 @@ the current multi results, especially thick multis, are not robust to system-lev
 dependence. A forward-normalized selection sensitivity produces the same qualitative
 conclusion. The complete synthesis is in
 `<repository-root>\docs\scientific_interim_assessment.md`.
+
+## 2026-07-15 complete factorial matrix and decision record
+
+The full factorial ALDERAAN matrix completed successfully. The release contains 82 of 82
+expected target-system FITS: 24 original-long-cadence, 24 reference-long-cadence, 9
+original long-plus-short-cadence, 9 reference long-plus-short-cadence, 8 repeat-seed, and
+8 printed-prior fits. All 82 FITS were directly re-extracted with the paired-impact
+MacDougall implementation; no matched-matrix planet was excluded by direct QC.
+
+The key comparisons are target-system clustered and must not be interpreted as population
+estimates:
+
+| comparison | planets / systems | median delta e | 95% system-bootstrap interval | median absolute delta e |
+|---|---:|---:|---:|---:|
+| reference versus original limb darkening | 34 / 24 | +0.00120 | -0.01034 to +0.00512 | 0.01545 |
+| long plus short versus long, original LD | 13 / 9 | +0.00101 | -0.00059 to +0.01280 | 0.00682 |
+| long plus short versus long, reference LD | 13 / 9 | -0.00081 | -0.04771 to +0.00263 | 0.00431 |
+| printed priors versus public defaults | 9 / 8 | +0.00014 | -0.00053 to +0.00065 | 0.00065 |
+| same configuration, different sampler seed | 9 / 8 | +0.00071 | -0.00108 to +0.00276 | 0.00108 |
+
+This rules out a simple global explanation based on limb-darkening centers, cadence,
+the printed public-prior discrepancy, or ordinary nested-sampling variability. Individual
+systems remain important. K00283 has the largest reference-LD cadence response, with a
+maximum absolute planet-level delta e of 0.194, and K02533 has the next largest cadence
+response. Both are retained as target-level QC cases rather than silently excluded.
+
+The remaining dominant uncertainties are now identifiable: the paper uses a Berger et
+al. (2018) stellar-density construction whose exact density values and uncertainty model
+are not publicly supplied, and the final planet-level fit-inclusion/visual-rejection list
+is unavailable. A larger full-catalog rerun should not be launched until those contracts
+are resolved or explicitly frozen as a labeled sensitivity. The complete review record is
+in `<repository-root>\docs\full_factorial_validation_assessment.md`; compact derived
+tables are in `metadata\factorial_validation_20260715` and immutable FITS/provenance are
+in `data\alderaan_factorial_validation_20260715`.

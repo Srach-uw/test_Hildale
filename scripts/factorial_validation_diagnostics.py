@@ -97,13 +97,15 @@ def cluster_bootstrap(
     systems = frame["koi_target"].drop_duplicates().to_numpy()
     if len(systems) == 0:
         return np.nan, np.nan
-    grouped = {system: frame[frame["koi_target"].eq(system)] for system in systems}
+    grouped_values = [
+        frame.loc[frame["koi_target"].eq(system), column].to_numpy(float)
+        for system in systems
+    ]
     rng = np.random.default_rng(seed)
     values = np.empty(n_bootstrap, dtype=float)
     for index in range(n_bootstrap):
-        sampled = rng.choice(systems, size=len(systems), replace=True)
-        draw = pd.concat([grouped[system] for system in sampled], ignore_index=True)
-        values[index] = np.nanmedian(draw[column].to_numpy(float))
+        sampled = rng.integers(0, len(systems), size=len(systems))
+        values[index] = np.nanmedian(np.concatenate([grouped_values[item] for item in sampled]))
     return tuple(np.nanquantile(values, [0.025, 0.975]))
 
 
@@ -425,7 +427,11 @@ def run(
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--paired", required=True)
+    parser.add_argument(
+        "--paired",
+        required=True,
+        help="Detailed factorial_validation_paired_planets.csv table.",
+    )
     parser.add_argument("--output-dir", required=True)
     parser.add_argument("--selection", default=None)
     parser.add_argument("--discovery", default=None)

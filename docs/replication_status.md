@@ -1,6 +1,6 @@
 # Replication Status
 
-Updated: 2026-07-13
+Updated: 2026-07-15
 
 ## Bottom Line
 
@@ -49,32 +49,34 @@ non-random, so the table is a diagnostic of the mismatch, not a final measuremen
 - Hierarchical inference rejects missing provenance, mixed transit-prior conventions, and
   absent required QC fields.
 
-## Factorial Validation
+## Complete Factorial Validation
 
-The controlled validation compares original and reference limb darkening, long cadence
-and available short cadence, a repeated nested-sampling run, and the paper's printed
-priors. The first 23 matched systems contain 31 matched planets.
+The controlled ALDERAAN matrix is complete: 82 of 82 expected target-system FITS across
+six paired arms. It compares original and reference limb darkening, long cadence and
+available short cadence, independent nested-sampling seeds, and the paper's printed
+transit priors. Direct re-extraction found no matched-matrix QC exclusions.
 
-For reference minus original limb darkening, the median change in posterior median
-eccentricity is +0.00168, with a bootstrap interval of -0.00103 to +0.00523. The median
-absolute change is 0.00604. This is much smaller than the full Table 2 discrepancy, but
-repeatability, cadence, and prior arms are still required before attributing causes.
+At the panel level, none of these tested choices produces an eccentricity shift remotely
+large enough to explain the current thin-single diagnostic mismatch. Reference minus
+original limb darkening has median delta e = +0.00120 across 34 planets in 24 systems;
+the corresponding 95% system-bootstrap interval is -0.01034 to +0.00512. The remaining
+arms likewise have median effects of order 0.001 in this targeted panel.
 
-A complementary host-clustered robustness analysis now treats all planets around one
-star as a correlated unit. Thin singles are comparatively stable: 97.5% of 5,000 random
-leave-10%-of-hosts trials move the mean by less than 5%. Thick singles pass 83.6%, thin
-multis 67.6%, and thick multis 31.9%. Removing K01992 alone changes the current
-thick-multi mean by 34.3%. See `docs/scientific_interim_assessment.md` for the complete
-evidence table and interpretation.
+Some individual systems are sensitive, especially `K00283` and `K02533`, so target-level
+QC remains necessary. The full evidence and decision record are in
+`docs/full_factorial_validation_assessment.md` and
+`metadata/factorial_validation_20260715/`.
 
 ## Remaining Gates
 
-1. Finish and analyze the repeatability, cadence, and prior validation arms.
-2. Quantify whether between-run stochastic variation exceeds the limb-darkening shift.
-3. Freeze one posterior-construction arm and one explicit stellar-density source.
-4. Regenerate the deterministic QC manifest and population inputs from that arm.
-5. Run leave-10-percent-out and per-planet leverage checks.
-6. Compare with Table 2 only after all four populations pass the same provenance rules.
+1. Freeze an explicit stellar-density construction. The paper identifies Berger et al.
+   (2018), but the exact density calculation and uncertainties are not public.
+2. Obtain or reconstruct Sagear's final planet-level inclusion list and visual-fit
+   rejection list.
+3. Apply target-level visual and posterior-shape QC to the high-leverage systems before
+   any full population refit.
+4. Run the nine-system combined reference-LD, LC+SC, printed-prior confirmation arm.
+5. Only then choose whether a large uniform rerun is justified and compare with Table 2.
 
 ## Known Limitation
 
@@ -103,6 +105,6 @@ results, input catalogs, target selections, status manifests, runner specificati
 SHA-256 manifest are published under
 `data/alderaan_factorial_validation_20260715/` through Git LFS.
 
-The 82-file release is a reproducibility artifact, not yet a final scientific comparison.
-The next analysis must compare the six arms at matched target and planet level before
-changing the canonical posterior construction or reporting a revised population result.
+The 82-file release is a reproducibility artifact, not a final population result. Its
+matched target and planet analysis is complete and rules out several easy explanations;
+it does not remove the unresolved density and final-QC provenance limitations.

@@ -1,6 +1,6 @@
 # Scientific Interim Assessment
 
-Updated: 2026-07-13
+Updated: 2026-07-15
 
 ## Executive Finding
 
@@ -13,8 +13,9 @@ Sagear et al.'s final posterior sample.
 The current uniformly processed 710-planet subset remains much more eccentric than the
 published result. The discrepancy is not explained by limb darkening, transit-selection
 weighting, the reconstructed disk classifier, or a small number of thin-single systems.
-The running factorial validation is still needed to quantify short-cadence, prior, and
-nested-sampling effects.
+The complete factorial validation now quantifies short-cadence, prior, and
+nested-sampling effects. These tested choices do not create a panel-wide shift large
+enough to explain the discrepancy.
 
 ## Published Ground Truth
 
@@ -70,30 +71,26 @@ by less than 5%. Thin singles are nevertheless comparatively stable, so their hi
 is not the product of one target. The current thick-multi inference is strongly
 host-dominated and cannot support a population claim.
 
-## Factorial Validation So Far
+## Complete Factorial Validation
 
-The completed partial snapshot contains 24 original-limb-darkening systems and 23
-reference-limb-darkening counterparts, giving 31 paired planets in 23 systems. Reference
-minus original results are:
+The complete matrix contains 82 successful target-system FITS: 24 original-long-cadence,
+24 reference-long-cadence, 9 original long-plus-short-cadence, 9 reference
+long-plus-short-cadence, 8 repeat-seed, and 8 printed-prior runs. All expected FITS were
+directly re-extracted and all matched planets passed direct extraction QC.
 
-| diagnostic | result |
-|---|---:|
-| median signed change in e50 | +0.00168 |
-| system-bootstrap interval | -0.00103 to +0.00523 |
-| median absolute change in e50 | 0.01568 |
-| 95th percentile absolute change | 0.05548 |
-| thin-single median signed change | +0.00168 |
-| thin-single median absolute change | 0.00604 |
+| comparison | planets / systems | median delta e | 95% system-bootstrap interval | median absolute delta e |
+|---|---:|---:|---:|---:|
+| reference versus original limb darkening | 34 / 24 | +0.00120 | -0.01034 to +0.00512 | 0.01545 |
+| long plus short versus long, original LD | 13 / 9 | +0.00101 | -0.00059 to +0.01280 | 0.00682 |
+| long plus short versus long, reference LD | 13 / 9 | -0.00081 | -0.04771 to +0.00263 | 0.00431 |
+| printed priors versus public defaults | 9 / 8 | +0.00014 | -0.00053 to +0.00065 | 0.00065 |
+| same configuration, different sampler seed | 9 / 8 | +0.00071 | -0.00108 to +0.00276 | 0.00108 |
 
-The global median is stable to removing the highest-leverage system and to impact and
-posterior-width sensitivity cuts. Larger eccentricity changes are concentrated in a few
-high-impact or duration-sensitive planets. Exploratory correlations suggest that signed
-eccentricity change increases with catalog impact parameter, but this is a targeted
-sample with multiple tests and is not a population result.
-
-The final reference-LD system, K01127, contains three thick-multi planets. The partial
-thick-multi LD result currently has only one system and must not be interpreted until
-K01127 and the remaining validation arms are available.
+The tested choices cause meaningful changes for a few systems, but not a coherent panel
+shift. `K00283` and `K02533` deserve explicit target-level investigation; they must not
+be allowed to drive a decision about the full population. See
+`docs/full_factorial_validation_assessment.md` for the interpretation boundary, results,
+and next decisions.
 
 ## Causes Assessed
 
@@ -107,7 +104,7 @@ K01127 and the remaining validation arms are available.
 | Berger 2018 versus 2020 density | Still not exactly reproducible. Radius-based 2018-like shifts are generally too small and inconsistent in direction to remove the high-e tail. |
 | A few thin-single outliers | Not sufficient. Thin singles remain high under host-level resampling and top-leverage removal. |
 | Hidden convergence or visual vetting | Still plausible and not publicly identifiable because the final planet and rejected-fit tables are unavailable. |
-| ALDERAAN cadence, priors, and run stochasticity | Actively being measured by the factorial matrix. |
+| ALDERAAN cadence, priors, and run stochasticity | Measured in the complete matrix. They affect some individual fits but do not explain the panel-wide discrepancy. |
 
 ## Scientific Versus Literal Replication
 
@@ -119,15 +116,11 @@ not be blended into one headline number.
 
 ## Remaining Decision Gates
 
-1. Complete the factorial repeatability, cadence, and printed-prior arms.
-2. Require matched target-level comparisons and quantify arm effects relative to repeat
-   seed variability.
-3. Inspect the high-leverage systems named in the host and planet leverage tables.
-4. Freeze one stellar-density construction and record it per planet.
-5. Re-extract the selected validation arm with deterministic QC and rerun both literal
-   and generative hierarchical fits.
-6. Request Sagear's final planet list, visually rejected targets, density-prior table,
+1. Inspect the high-leverage systems named in the factorial leverage tables.
+2. Freeze one stellar-density construction and record it per planet.
+3. Request Sagear's final planet list, visually rejected targets, density-prior table,
    and NumPyro likelihood if an exact numerical match remains impossible.
+4. Re-extract and refit only after the density and inclusion contracts are fixed.
 
 The current evidence rules out several easy explanations. It does not justify giving up.
 It narrows the unresolved problem to a smaller and testable set of posterior-generation
