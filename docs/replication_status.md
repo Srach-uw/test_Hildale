@@ -93,3 +93,16 @@ Berger et al. (2020) densities are therefore labeled as a sensitivity. Resolving
 - `docs/scientific_interim_assessment.md`: current evidence synthesis and robustness results.
 - `docs/report_Hildale.md`: chronological project worklog; older entries are superseded by
   later dated findings where they conflict.
+
+## Completed Factorial Result Release
+
+The complete factorial matrix now contains 82 successful target-system result FITS:
+24 original-long-cadence, 24 reference-long-cadence, 9 original long-plus-short-cadence,
+9 reference long-plus-short-cadence, 8 repeat-seed, and 8 paper-prior runs. The immutable
+results, input catalogs, target selections, status manifests, runner specification, and
+SHA-256 manifest are published under
+`data/alderaan_factorial_validation_20260715/` through Git LFS.
+
+The 82-file release is a reproducibility artifact, not yet a final scientific comparison.
+The next analysis must compare the six arms at matched target and planet level before
+changing the canonical posterior construction or reporting a revised population result.

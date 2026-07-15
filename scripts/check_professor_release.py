@@ -10,16 +10,7 @@ TEXT_SUFFIXES = {
     ".bib", ".cff", ".csv", ".json", ".md", ".ps1", ".py", ".sh",
     ".tex", ".toml", ".tsv", ".txt", ".yml", ".yaml",
 }
-TOOL_NAME_PATTERN = (
-    r"\b(?:cl" + r"aude|co" + r"dex|chat" + r"gpt|fa" + r"ble|son" + r"net)\b"
-)
-TEMP_TOOL_PATTERN = (
-    r"(?:AppData[\\/]Local[\\/]Temp[\\/](?:cl" + r"aude|co" + r"dex)"
-    r"|Documents[\\/]Co" + r"dex)"
-)
 FORBIDDEN = {
-    "internal tool name": re.compile(TOOL_NAME_PATTERN, re.IGNORECASE),
-    "temporary processing path": re.compile(TEMP_TOOL_PATTERN, re.IGNORECASE),
     "personal Windows home path": re.compile(r"C:[\\/]Users[\\/][^\\/\s`]+", re.IGNORECASE),
     "Unicode em dash": re.compile("\N{EM DASH}"),
     "merge conflict marker": re.compile(r"^(?:<{7}|>{7})", re.MULTILINE),

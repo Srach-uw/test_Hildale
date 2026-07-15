@@ -11,3 +11,7 @@
 *.txt text eol=lf
 *.yml text eol=lf
 *.yaml text eol=lf
+
+# Immutable nested-sampling result products for the completed factorial validation.
+# Keep these binary files in Git LFS so ordinary clones remain usable.
+data/alderaan_factorial_validation_20260715/results/** filter=lfs diff=lfs merge=lfs -text

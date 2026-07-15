@@ -11,7 +11,9 @@ This is an active replication, not a completed reproduction. The sample construc
 published disk labels, multiplicity bookkeeping, ALDERAAN posterior extraction, and
 population model have been audited separately. The current population estimates remain
 diagnostic because posterior coverage is incomplete and a controlled ALDERAAN validation
-is still testing cadence, limb-darkening, prior, and repeatability effects.
+is testing cadence, limb-darkening, prior, and repeatability effects. The complete 82-fit
+factorial result release is included through Git LFS; its comparison analysis has not yet
+been folded into the population result.
 
 | population | current fit N | current mean eccentricity (16th-84th) | Sagear N | Sagear mean eccentricity (16th-84th) |
 |---|---:|---:|---:|---:|
@@ -67,12 +69,23 @@ optional and billable. Read `docs/gcp_no_charge_safety_checklist.md` before crea
 | `scripts/` | sample, posterior, population, diagnostic, and validation code |
 | `cloud/` | resumable ALDERAAN and GCP execution helpers |
 | `metadata/` | compact derived tables and validation summaries |
+| `data/alderaan_factorial_validation_20260715/` | 82 completed factorial ALDERAAN result FITS and their provenance, stored with Git LFS |
 | `reference/` | published article, machine-readable tables, and reference material |
 | `docs/` | scientific status, methods audits, runbooks, and historical worklog |
 | `legacy/` | superseded analysis retained only for provenance |
 
-Large or regenerable products are intentionally excluded: Kepler light curves, raw
-ALDERAAN FITS files, posterior archives, virtual environments, and cloud result bundles.
+Large or regenerable products are intentionally excluded: Kepler light curves,
+intermediate detrending products, checkpoints, posterior archives, virtual environments,
+and cloud result bundles. The 82 curated factorial result FITS are the explicit exception.
+
+After cloning, retrieve the validation data with:
+
+```bash
+git lfs install
+git lfs pull
+```
+
+Read `data/alderaan_factorial_validation_20260715/README.md` before using these outputs.
 
 ## Release Check
 
@@ -84,8 +97,8 @@ python -m pytest -q
 git diff --check
 ```
 
-The release check rejects internal tool names, temporary processing paths,
-Unicode em dashes, merge markers, and common credential patterns in tracked text files.
+The release check rejects personal home paths, Unicode em dashes, merge markers, and
+common credential patterns in tracked text files.
 
 ## Scope
 
