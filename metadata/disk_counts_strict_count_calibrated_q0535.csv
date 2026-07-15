@@ -1,0 +1,5 @@
+disk,system,planets,hosts,median_p_thick
+thin,single,1096,1096,0.39626975247225216
+thin,multi,886,390,0.39203526000559447
+thick,single,285,285,0.5755022295207025
+thick,multi,207,86,0.566374317680868

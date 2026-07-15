@@ -29,7 +29,7 @@ So: sample construction is now strong; disk classification is close but not exac
 
 Important correction: ALDERAAN posterior FITS files already exist locally in:
 
-`C:\Users\shres\Downloads\ALDERAAN_posteriors\ALDERAAN_posteriors`
+`<alderaan-results-dir>`
 
 This folder contains:
 
@@ -173,7 +173,7 @@ The current `sagear_reproduction` code now follows the correct conceptual split:
 
 `(1 - e^2) / (1 + e sin omega)`
 
-This direction is mathematically correct. However, Claude is right that this does not by itself prove the final science result. The formula sanity checks are synthetic checks, not a reproduction of Sagear Table 2.
+This direction is mathematically correct. However, the earlier review is right that this does not by itself prove the final science result. The formula sanity checks are synthetic checks, not a reproduction of Sagear Table 2.
 
 ### 6. Current Eccentricity Diagnostics Are Not Final
 
@@ -218,7 +218,7 @@ So the correct statement is:
 
 Yes. Existing ALDERAAN FITS results are already downloaded:
 
-`C:\Users\shres\Downloads\ALDERAAN_posteriors\ALDERAAN_posteriors`
+`<alderaan-results-dir>`
 
 There are `1692` system FITS files. They cover `1768` of the `2474` planets in the corrected current sample.
 
@@ -231,9 +231,9 @@ Missing from existing FITS:
 
 This is enough to start a serious posterior-based reproduction immediately. It is not enough for complete Sagear coverage.
 
-## What I Think Claude Is Right About
+## What The Earlier Review Got Right
 
-Claude's critique is right on these points:
+The earlier review was right on these points:
 
 - The two sample cuts are the most important practical discovery so far.
 - The threshold sweep should not be merged as a final classifier.
@@ -241,11 +241,11 @@ Claude's critique is right on these points:
 - No new ALDERAAN fits have been run in the current pipeline.
 - The thin-single discrepancy is not solved merely by sample cuts.
 
-Claude's earlier claim that there were no ALDERAAN posteriors available is no longer correct after checking the local machine. They exist in Downloads, but not wired cleanly into the current canonical `sagear_reproduction` workflow.
+The earlier claim that there were no ALDERAAN posteriors available became outdated after checking the local machine. The files existed locally but were not wired cleanly into the canonical `sagear_reproduction` workflow.
 
-## What I Think Needs Revising In Claude's Plan
+## What Needed Revision In The Earlier Plan
 
-Claude suggests merging only the two cuts into the older `HILDALE_RESEARCH_SUMMER` pipeline and rerunning the old forward model.
+The earlier plan suggested merging only the two cuts into the older `HILDALE_RESEARCH_SUMMER` pipeline and rerunning the old forward model.
 
 I agree with the spirit, but I would add two steps:
 
@@ -310,7 +310,7 @@ Code changes:
 
 Processed files:
 
-- ALDERAAN source: `C:\Users\shres\Downloads\ALDERAAN_posteriors\ALDERAAN_posteriors`
+- ALDERAAN source: `<alderaan-results-dir>`
 - Systems checked with FITS: 1278
 - Systems missing FITS: 579
 - Planet posterior grids extracted: 1729
@@ -326,7 +326,7 @@ Coverage after real extraction:
 
 Coverage detail file:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_existing_coverage_detail.csv`
+`<repository-root>\outputs\alderaan_existing_coverage_detail.csv`
 
 Rayleigh fit from existing extracted posteriors, with reciprocal transit-selection correction:
 
@@ -374,10 +374,10 @@ I added and ran:
 
 Shape diagnostics output:
 
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_shape_diagnostics.csv`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_shape_diagnostics_flagged.csv`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_shape_diagnostics.png`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_shape_diagnostics.md`
+- `<repository-root>\outputs\alderaan_shape_diagnostics.csv`
+- `<repository-root>\outputs\alderaan_shape_diagnostics_flagged.csv`
+- `<repository-root>\outputs\alderaan_shape_diagnostics.png`
+- `<repository-root>\outputs\alderaan_shape_diagnostics.md`
 
 Main shape result:
 
@@ -453,21 +453,21 @@ These turn the vague next step into concrete run lists and visual dossiers.
 
 New outputs:
 
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_refit_full_manifest.csv`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_refit_validation_targets.csv`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_missing_targets_all.csv`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_refit_plan.md`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_target_dossiers\index.md`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_target_dossiers\*.png`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\alderaan_shape_pathology_rates.csv`
+- `<repository-root>\outputs\alderaan_refit_full_manifest.csv`
+- `<repository-root>\outputs\alderaan_refit_validation_targets.csv`
+- `<repository-root>\outputs\alderaan_missing_targets_all.csv`
+- `<repository-root>\outputs\alderaan_refit_plan.md`
+- `<repository-root>\outputs\alderaan_target_dossiers\index.md`
+- `<repository-root>\outputs\alderaan_target_dossiers\*.png`
+- `<repository-root>\outputs\alderaan_shape_pathology_rates.csv`
 
 ALDERAAN project files updated:
 
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\alderaan_project\sagear_refit_validation_targets.csv`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\alderaan_project\Catalogs\sagear_refit_validation_catalog.csv`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\alderaan_project\Catalogs\sagear_validation_catalog.csv`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\alderaan_project\Scripts\download_validation_lightcurves.ps1`
-- `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\alderaan_project\Scripts\run_validation_alderaan.ps1`
+- `<repository-root>\alderaan_project\sagear_refit_validation_targets.csv`
+- `<repository-root>\alderaan_project\Catalogs\sagear_refit_validation_catalog.csv`
+- `<repository-root>\alderaan_project\Catalogs\sagear_validation_catalog.csv`
+- `<repository-root>\alderaan_project\Scripts\download_validation_lightcurves.ps1`
+- `<repository-root>\alderaan_project\Scripts\run_validation_alderaan.ps1`
 
 The validation target list contains:
 
@@ -493,7 +493,7 @@ One error spotted and fixed:
 
 Another important environment finding:
 
-- The ALDERAAN repo exists at `C:\Users\shres\Desktop\HILDALE RESEARCH\external\alderaan`.
+- The ALDERAAN source repository is represented here as `<alderaan-source-dir>`.
 - The active Anaconda environment does **not** have the required ALDERAAN dependencies:
   - missing `pymc3`
   - missing `exoplanet`
@@ -573,11 +573,11 @@ New outputs:
 
 | file | purpose |
 |---|---|
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\toomre_sagear_style_direct.png` | direct Angus velocity Toomre plot with `P_thick` background |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\toomre_sagear_style_old_astropy.png` | old Hilldale/Astropy cylindrical convention plot |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\toomre_sagear_reference_comparison.png` | side-by-side with Sagear reference |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\toomre_classifier_grid_with_reference.png` | reference plus 4 classifier convention panels |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\toomre_classifier_grid_counts.csv` | count comparison for those classifier variants |
+| `<repository-root>\outputs\toomre_sagear_style_direct.png` | direct Angus velocity Toomre plot with `P_thick` background |
+| `<repository-root>\outputs\toomre_sagear_style_old_astropy.png` | old Hilldale/Astropy cylindrical convention plot |
+| `<repository-root>\outputs\toomre_sagear_reference_comparison.png` | side-by-side with Sagear reference |
+| `<repository-root>\outputs\toomre_classifier_grid_with_reference.png` | reference plus 4 classifier convention panels |
+| `<repository-root>\outputs\toomre_classifier_grid_counts.csv` | count comparison for those classifier variants |
 
 Important error caught:
 
@@ -610,7 +610,7 @@ python diagnose_sample.py --force-fallback-gmm --fallback-velocity old_astropy
 
 The old-Astropy diagnostic sample is now:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\canonical_sample_diagnostic_old_astropy.csv`
+`<repository-root>\outputs\canonical_sample_diagnostic_old_astropy.csv`
 
 ## Existing-ALDERAAN Sensitivity To Classifier Choice
 
@@ -618,7 +618,7 @@ I relabeled the already-extracted existing ALDERAAN posterior summary with the o
 
 Output:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\pre_alderaan_classifier_eccentricity_comparison.csv`
+`<repository-root>\outputs\pre_alderaan_classifier_eccentricity_comparison.csv`
 
 | population | Sagear planets | direct planets | direct ALDERAAN posteriors | direct Rayleigh `<e>` | old-Astropy planets | old-Astropy ALDERAAN posteriors | old-Astropy Rayleigh `<e>` | Sagear Rayleigh `<e>` |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
@@ -651,15 +651,15 @@ The previous pipeline labeled a system as "single" if only one planet survived a
 
 New diagnostic script:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\system_definition_diagnostics.py`
+`<repository-root>\system_definition_diagnostics.py`
 
 New outputs:
 
 | file | purpose |
 |---|---|
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\system_definition_counts.csv` | count comparison for different single/multi definitions |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\system_definition_moved_planets.csv` | planets moved between single/multi labels |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\system_definition_moved_planet_eccentricity_summary.csv` | eccentricity summary of moved planets |
+| `<repository-root>\outputs\system_definition_counts.csv` | count comparison for different single/multi definitions |
+| `<repository-root>\outputs\system_definition_moved_planets.csv` | planets moved between single/multi labels |
+| `<repository-root>\outputs\system_definition_moved_planet_eccentricity_summary.csv` | eccentricity summary of moved planets |
 
 Best count variant so far:
 
@@ -699,7 +699,7 @@ Interpretation:
 
 I created a checkpoint script:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\pre_alderaan_checkpoint.py`
+`<repository-root>\pre_alderaan_checkpoint.py`
 
 It uses the current best pre-ALDERAAN labels by default:
 
@@ -710,13 +710,13 @@ New outputs:
 
 | file | purpose |
 |---|---|
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\canonical_sample_old_astropy_rawcc.csv` | best current sample-label table |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\eccentricity_posterior_summary_old_astropy_rawcc.csv` | existing posteriors relabeled with best labels |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\pre_alderaan_best_population_table.csv` | best current population/eccentricity table |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\pre_alderaan_best_missing_posteriors.csv` | missing posterior planets under best labels |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\pre_alderaan_best_top_outliers.csv` | highest-e / most suspicious existing posterior rows |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\pre_alderaan_best_eccentricity_diagnostics.png` | e50 and zeta diagnostic plot |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\pre_alderaan_best_summary.md` | compact checkpoint report |
+| `<repository-root>\outputs\canonical_sample_old_astropy_rawcc.csv` | best current sample-label table |
+| `<repository-root>\outputs\eccentricity_posterior_summary_old_astropy_rawcc.csv` | existing posteriors relabeled with best labels |
+| `<repository-root>\outputs\pre_alderaan_best_population_table.csv` | best current population/eccentricity table |
+| `<repository-root>\outputs\pre_alderaan_best_missing_posteriors.csv` | missing posterior planets under best labels |
+| `<repository-root>\outputs\pre_alderaan_best_top_outliers.csv` | highest-e / most suspicious existing posterior rows |
+| `<repository-root>\outputs\pre_alderaan_best_eccentricity_diagnostics.png` | e50 and zeta diagnostic plot |
+| `<repository-root>\outputs\pre_alderaan_best_summary.md` | compact checkpoint report |
 
 Best current table:
 
@@ -740,7 +740,7 @@ I reran the shape/outlier sensitivity under the best labels.
 
 Output:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\rayleigh_sensitivity_diagnostics_old_astropy_rawcc.csv`
+`<repository-root>\outputs\rayleigh_sensitivity_diagnostics_old_astropy_rawcc.csv`
 
 Important results:
 
@@ -788,18 +788,18 @@ Question asked:
 
 I wrote a targeted audit:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\sagear_total_mismatch_audit.py`
+`<repository-root>\sagear_total_mismatch_audit.py`
 
 New outputs:
 
 | file | purpose |
 |---|---|
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\sagear_total_mismatch_macro_audit.csv` | compares our total to Sagear total macros |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\sagear_total_mismatch_category_audit.csv` | compares every subgroup count |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\sagear_total_mismatch_implied_removed.csv` | calculates the implied hidden bucket |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\sagear_total_mismatch_candidate_hosts.csv` | current thick hosts ranked for inspection |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\sagear_total_mismatch_candidate_planets.csv` | current thick planets ranked for inspection |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\outputs\sagear_total_mismatch_audit.md` | compact explanation |
+| `<repository-root>\outputs\sagear_total_mismatch_macro_audit.csv` | compares our total to Sagear total macros |
+| `<repository-root>\outputs\sagear_total_mismatch_category_audit.csv` | compares every subgroup count |
+| `<repository-root>\outputs\sagear_total_mismatch_implied_removed.csv` | calculates the implied hidden bucket |
+| `<repository-root>\outputs\sagear_total_mismatch_candidate_hosts.csv` | current thick hosts ranked for inspection |
+| `<repository-root>\outputs\sagear_total_mismatch_candidate_planets.csv` | current thick planets ranked for inspection |
+| `<repository-root>\outputs\sagear_total_mismatch_audit.md` | compact explanation |
 
 Key result:
 
@@ -891,9 +891,9 @@ New scripts/edits:
 
 | file | purpose |
 |---|---|
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\build_alderaan_needed_manifest.py` | builds full needed/runnable/unseeded planet manifests, runnable target manifest, ALDERAAN catalog, and runner scripts |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\validate_alderaan_needed_manifest.py` | validates duplicates, target coverage, required catalog fields, and catalog/target consistency |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\alderaan_batch.py` | relaxed the catalog seed requirement so missing impact no longer blocks a run; period, epoch, depth, and duration still must be valid |
+| `<repository-root>\build_alderaan_needed_manifest.py` | builds full needed/runnable/unseeded planet manifests, runnable target manifest, ALDERAAN catalog, and runner scripts |
+| `<repository-root>\validate_alderaan_needed_manifest.py` | validates duplicates, target coverage, required catalog fields, and catalog/target consistency |
+| `<repository-root>\alderaan_batch.py` | relaxed the catalog seed requirement so missing impact no longer blocks a run; period, epoch, depth, and duration still must be valid |
 
 Important correction:
 
@@ -959,26 +959,26 @@ The generated project scripts are now compact and parameterized rather than thou
 
 | script | use |
 |---|---|
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\alderaan_project\Scripts\download_needed_lightcurves.ps1` | Windows/PowerShell download helper |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\alderaan_project\Scripts\run_needed_alderaan.ps1` | Windows/PowerShell serial runner with `MaxPriority`, `Start`, `Limit`, and phase selection |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\alderaan_project\Scripts\download_needed_lightcurves.sh` | Linux/GCP download helper |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\alderaan_project\Scripts\run_needed_alderaan_parallel.sh` | Linux/GCP parallel runner using `JOBS`, `MAX_PRIORITY`, `START`, `LIMIT`, and `PHASE` |
+| `<repository-root>\alderaan_project\Scripts\download_needed_lightcurves.ps1` | Windows/PowerShell download helper |
+| `<repository-root>\alderaan_project\Scripts\run_needed_alderaan.ps1` | Windows/PowerShell serial runner with `MaxPriority`, `Start`, `Limit`, and phase selection |
+| `<repository-root>\alderaan_project\Scripts\download_needed_lightcurves.sh` | Linux/GCP download helper |
+| `<repository-root>\alderaan_project\Scripts\run_needed_alderaan_parallel.sh` | Linux/GCP parallel runner using `JOBS`, `MAX_PRIORITY`, `START`, `LIMIT`, and `PHASE` |
 
 I also checked the ALDERAAN nested-sampling script. It contains `ncores = cpu_count() - 2`, but `USE_MULTIPRO = False`, so the fit is currently serial per target. I still added `OMP_NUM_THREADS=1`, `MKL_NUM_THREADS=1`, `OPENBLAS_NUM_THREADS=1`, and `NUMEXPR_NUM_THREADS=1` to the generated runners to prevent hidden BLAS/Aesara oversubscription when running many targets in parallel.
 
-Deliverables copied into the Codex output folder:
+Deliverables copied into the project output folder:
 
 | file | meaning |
 |---|---|
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\alderaan_needed_planets_best.csv` | full planet-level scientific need list |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\alderaan_runnable_needed_planets_best.csv` | launch-ready planet-level subset |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\alderaan_unseeded_needed_planets_best.csv` | needed planets blocked by missing transit seeds |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\alderaan_needed_targets_best.csv` | runnable KOI-system execution list |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\alderaan_needed_targets_all_best.csv` | all target systems, including blocked missing-seed targets |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\alderaan_needed_catalog_best.csv` | ALDERAAN input catalog for runnable targets |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\alderaan_all_planets_status_best.csv` | full 2474-row status/flags table |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\alderaan_needed_manifest.md` | readable manifest summary |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\alderaan_needed_validation.md` | validation report |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\alderaan_needed_planets_best.csv` | full planet-level scientific need list |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\alderaan_runnable_needed_planets_best.csv` | launch-ready planet-level subset |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\alderaan_unseeded_needed_planets_best.csv` | needed planets blocked by missing transit seeds |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\alderaan_needed_targets_best.csv` | runnable KOI-system execution list |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\alderaan_needed_targets_all_best.csv` | all target systems, including blocked missing-seed targets |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\alderaan_needed_catalog_best.csv` | ALDERAAN input catalog for runnable targets |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\alderaan_all_planets_status_best.csv` | full 2474-row status/flags table |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\alderaan_needed_manifest.md` | readable manifest summary |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\alderaan_needed_validation.md` | validation report |
 
 Current best next step:
 
@@ -988,14 +988,14 @@ Run ALDERAAN first on the priority-1 runnable target set, not the optional tail-
 
 I added one more audit:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\audit_unseeded_transit_recovery.py`
+`<repository-root>\audit_unseeded_transit_recovery.py`
 
 Outputs:
 
 | file | purpose |
 |---|---|
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\alderaan_unseeded_historical_seed_audit.csv` | row-level check of local current/historical KOI/TCE catalogs for the 27 blocked planets |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\alderaan_unseeded_historical_seed_audit.md` | readable summary |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\alderaan_unseeded_historical_seed_audit.csv` | row-level check of local current/historical KOI/TCE catalogs for the 27 blocked planets |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\alderaan_unseeded_historical_seed_audit.md` | readable summary |
 
 Result:
 
@@ -1048,15 +1048,15 @@ New files:
 
 | file | meaning |
 |---|---|
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\existing_eccentricity_posteriors_best.csv` | all 1729 extracted posterior summaries with FITS file references |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\posterior_coverage_status_best.csv` | coverage by population |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\posterior_status_counts_best.csv` | counts by missing / usable / flagged |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\posterior_operational_queues_best.csv` | queue counts for planning |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\posterior_inventory_and_queues_best.md` | readable version |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\posterior_queue_baseline_usable_best.csv` | 1409 existing posterior rows not currently flagged |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\posterior_queue_existing_flagged_for_review_best.csv` | 320 existing posterior rows worth inspecting/refitting |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\posterior_queue_missing_launchable_alderaan_best.csv` | 718 missing-posterior rows launchable now |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\posterior_queue_missing_unseeded_best.csv` | 27 missing-posterior rows blocked by missing transit depth |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\existing_eccentricity_posteriors_best.csv` | all 1729 extracted posterior summaries with FITS file references |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\posterior_coverage_status_best.csv` | coverage by population |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\posterior_status_counts_best.csv` | counts by missing / usable / flagged |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\posterior_operational_queues_best.csv` | queue counts for planning |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\posterior_inventory_and_queues_best.md` | readable version |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\posterior_queue_baseline_usable_best.csv` | 1409 existing posterior rows not currently flagged |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\posterior_queue_existing_flagged_for_review_best.csv` | 320 existing posterior rows worth inspecting/refitting |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\posterior_queue_missing_launchable_alderaan_best.csv` | 718 missing-posterior rows launchable now |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\posterior_queue_missing_unseeded_best.csv` | 27 missing-posterior rows blocked by missing transit depth |
 
 Existing flagged-posterior reasons:
 
@@ -1093,14 +1093,14 @@ New/updated local code:
 
 | file | purpose |
 |---|---|
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\prepare_gcp_missing_alderaan_bundle.py` | creates the cloud bundle from the true missing-posterior launch-ready queue |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\extract_eccentricity_posteriors.py` | patched to accept `--run-id`, cloud-specific summary paths, and posterior subdirectories |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\merge_posterior_summaries.py` | merges new cloud posterior summaries into the existing 1729-row posterior archive |
-| `C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\postprocess_missing_cloud_results.ps1` | local one-command postprocessing after the cloud tarball is retrieved |
+| `<repository-root>\prepare_gcp_missing_alderaan_bundle.py` | creates the cloud bundle from the true missing-posterior launch-ready queue |
+| `<repository-root>\extract_eccentricity_posteriors.py` | patched to accept `--run-id`, cloud-specific summary paths, and posterior subdirectories |
+| `<repository-root>\merge_posterior_summaries.py` | merges new cloud posterior summaries into the existing 1729-row posterior archive |
+| `<repository-root>\postprocess_missing_cloud_results.ps1` | local one-command postprocessing after the cloud tarball is retrieved |
 
 Generated cloud bundle:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\cloud_missing_batch`
+`<repository-root>\cloud_missing_batch`
 
 Bundle validation:
 
@@ -1135,11 +1135,11 @@ Copied cloud planning files:
 
 | file | purpose |
 |---|---|
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\pre_cloud_alderaan_checklist.md` | concise execution checklist |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\cloud_missing_manifest.md` | bundle manifest |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\README_GCP_MISSING.md` | GCP command guide |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\targets_missing_launchable.csv` | 592 target execution list |
-| `C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\shard_summary_missing_launchable.csv` | shard sizes |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\pre_cloud_alderaan_checklist.md` | concise execution checklist |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\cloud_missing_manifest.md` | bundle manifest |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\README_GCP_MISSING.md` | GCP command guide |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\targets_missing_launchable.csv` | 592 target execution list |
+| `<user-home>\Documents\project\2026-06-29\8\outputs\shard_summary_missing_launchable.csv` | shard sizes |
 
 Recommended cloud run order:
 
@@ -1180,11 +1180,11 @@ Why:
 
 The current cloud bundle is:
 
-`C:\Users\shres\Desktop\HILDALE RESEARCH\sagear_reproduction\cloud_missing_batch`
+`<repository-root>\cloud_missing_batch`
 
 The ready-to-upload zip is:
 
-`C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\cloud_missing_batch_ready_for_gcp.zip`
+`<user-home>\Documents\project\2026-06-29\8\outputs\cloud_missing_batch_ready_for_gcp.zip`
 
 Validation was rerun on 2026-07-01:
 
@@ -1212,11 +1212,11 @@ Cost-control / risk-control decision:
 
 Local environment check:
 
-- `gcloud` is not currently available on the Windows PATH in this Codex session.
+- `gcloud` is not currently available on the Windows PATH in this project session.
 - Therefore the recommended launch path is Google Cloud Shell, not local Windows Cloud SDK setup.
 - A Cloud Shell quickstart has been written to:
 
-`C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\cloud_shell_quickstart.md`
+`<user-home>\Documents\project\2026-06-29\8\outputs\cloud_shell_quickstart.md`
 
 Stop-cost requirement:
 
@@ -1232,7 +1232,7 @@ gcloud compute instances delete alderaan-missing-e2-32 --zone $ZONE
 - This stops compute automatically after 20 hours, but it does not eliminate all possible costs because stopped VM disks can still incur storage charges until deletion.
 - A no-surprise-cost checklist has been written to:
 
-`C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\gcp_no_charge_safety_checklist.md`
+`<user-home>\Documents\project\2026-06-29\8\outputs\gcp_no_charge_safety_checklist.md`
 
 - Do not create the VM unless the Google Cloud Billing page confirms an active Free Trial / credit-covered billing account, a university/grant billing account, or you explicitly accept possible real charges.
 
@@ -1243,3 +1243,197 @@ What success looks like after the first shard:
 - `postprocess_missing_cloud_results.ps1` produces a new `eccentricity_posterior_summary_sagear_missing.csv`.
 - The new summary merges into the existing archive without duplicated planet IDs or broken category labels.
 - The thin-single posterior coverage increases before any refit of already-existing posteriors.
+
+## 2026-07-13 factorial-validation partial snapshot
+
+The repaired factorial runner was resumed after the VM's 24-hour automatic
+stop. Existing nonempty FITS are detected and skipped, so the restart did not
+repeat the 47 completed fits. The cloud matrix continues independently.
+
+A status-gated snapshot was taken while the interrupted `K01127` reference-LD
+fit was rerunning:
+
+| snapshot item | value |
+|---|---:|
+| completed original-LD long-cadence systems | 24 |
+| completed reference-LD long-cadence systems | 23 |
+| completed FITS total | 47 / 82 |
+| archive size | 118,322,978 bytes |
+| SHA-256 | `e8d9a772b30fe6a7e23a54989ba4dc71e100beefc92d1dc552fe35ed95784bc8` |
+
+The local and VM checksums matched exactly. The archive is stored at:
+
+`<validation-artifact-dir>\alderaan_factorial_partial_20260713T102557Z.tar.gz`
+
+The factorial comparator previously required all 82 expected FITS, which made
+the planned concurrent partial analysis impossible. It now has an explicit
+`--allow-incomplete` mode. Strict full-matrix behavior remains the default;
+partial mode extracts only discovered FITS, compares only complete within-planet
+pairs, preserves the full discovery/missing audit, and marks practical-effect
+claims unassessable until the repeatability arm exists. The focused comparator
+suite passes 8/8 tests in both the Git checkout and live pipeline.
+
+The 23 matched systems contain 31 matched planets. All 31 passed direct
+importance-extraction QC. Reference minus original limb-darkening results are:
+
+| quantity | median signed shift | 95% system-bootstrap interval | median absolute shift | 95th percentile absolute shift |
+|---|---:|---:|---:|---:|
+| eccentricity posterior median | +0.00168 | [-0.00103, +0.00523] | 0.01568 | 0.05548 |
+| zeta posterior median | -0.00151 | [-0.00464, +0.00837] | 0.00899 | 0.10507 |
+| impact parameter median | +0.00944 | [-0.00089, +0.02143] | 0.02763 | 0.14118 |
+| duration T14 (hours) | -0.00529 | [-0.01458, +0.01934] | 0.02058 | 0.30409 |
+| Rp/Rstar | +0.000155 | [+0.000053, +0.000249] | 0.000188 | 0.01061 |
+
+For the 13 thin-single planets in this targeted validation subset, the median
+eccentricity shift is +0.00168 and the median absolute shift is 0.00604. This
+does not support a coherent limb-darkening shift large enough, by itself, to
+explain the thin-single population discrepancy. Individual systems remain
+sensitive: the largest absolute eccentricity shifts currently include
+`K00283.03` (0.080), `K02533.03` (0.072), `K01001.02` (0.039), and
+`K02109.01` (0.039). `K02533.03` also changes duration by 2.22 hours and must
+be inspected as a high-leverage case rather than allowed to define a global
+limb-darkening conclusion.
+
+This is provisional, not the final factorial result. There is no repeat-seed
+arm in the snapshot, so no observed shift can yet be distinguished from
+ALDERAAN nested-sampling variability. The cadence, reference-LD plus
+short-cadence, repeatability, and printed-prior arms remain necessary and are
+still running in GCP.
+
+Partial analysis products are under:
+
+`<repository-root>\outputs\factorial_validation_partial_20260713T102557Z`
+
+## 2026-07-13 multiplicity contract and current four-bin result
+
+The professor's notebook diagnosis is correct for the historical workflow:
+single/multi architecture must be determined before planet-level quality cuts.
+The current canonical sample already does this from all KOIs with archive
+disposition `CONFIRMED` or `CANDIDATE`. A direct data audit established:
+
+| multiplicity audit | count |
+|---|---:|
+| canonical planet rows | 2474 |
+| rows missing a raw non-FP host count | 0 |
+| current labels disagreeing with the pre-cut raw count | 0 |
+| planets that an after-cut recount would mislabel | 45 |
+| affected thin-multi planets/hosts | 41 / 41 |
+| affected thick-multi planets/hosts | 4 / 4 |
+
+`common.add_target_and_system` now accepts an explicit host-indexed pre-cut
+multiplicity series and fails closed if any KIC is missing. The canonical
+sample builder passes this series directly; the filtered recount remains only
+an explicit sensitivity option. Three dedicated regression tests were added,
+and the full live test suite passes 23/23.
+
+The current method-consistent population result is the 710-planet uniform
+direct-posterior subset under the count-calibrated q=0.535 classifier context.
+It is diagnostic because coverage is incomplete and nonrandom. Under Sagear's
+printed reciprocal transit-selection convention, the Rayleigh expected-value
+comparison is:
+
+| population | current fit N | current mean e (16th-84th) | Sagear full N | Sagear mean e (16th-84th) | current/Sagear |
+|---|---:|---:|---:|---:|---:|
+| thin singles | 304 | 0.335 (0.319-0.353) | 1121 | 0.022 (0.017-0.029) | 15.2x |
+| thick singles | 108 | 0.288 (0.263-0.315) | 275 | 0.066 (0.045-0.096) | 4.4x |
+| thin multis | 222 | 0.122 (0.108-0.136) | 862 | 0.030 (0.023-0.031) | 4.1x |
+| thick multis | 69 | 0.117 (0.086-0.154) | 207 | 0.033 (0.015-0.065) | 3.5x |
+
+The corresponding q=0.535 sample inventory has 1096 thin singles, 285 thick
+singles, 886 thin-multi planets, and 207 thick-multi planets, but only the fit-N
+subsets above have uniform paired-impact direct posteriors. These results must
+not be represented as a final full-sample replication.
+
+The same after-cut recount pattern was also found in the published-label
+overlap diagnostic. It did not feed the hierarchical fit, but it biased the
+reported overlap-bin counts. After preserving the canonical architecture, the
+broad no-binary-cut overlap contains 1052 thin singles, 803 thin-multi planets,
+269 thick singles, and 205 thick-multi planets; 39 rows would have been labeled
+differently by the overlap-only recount. This supersedes the historical
+1082/773/278/196 overlap counts.
+
+Two related fail-open defaults were removed during the same audit. The
+system-definition sensitivity no longer invents a `single` label when a KIC is
+absent from its multiplicity map, and the legacy posterior merger no longer
+treats unknown system completeness as known complete. Missing multiplicity now
+raises an error; unknown completeness is explicitly recorded and excluded by
+primary QC. These changes harden diagnostics and legacy merges but do not alter
+the current 710-row uniform direct-posterior result.
+
+An aggressive combined quality sensitivity (confirmed, high-S/N, dwarf,
+small-planet filters) gives thin singles 0.022 on only 49 objects, but the fit
+is boundary-sensitive and the multis remain high. It diagnoses where the
+tension is concentrated; it is not a defensible replacement for Sagear's
+stated sample.
+
+At 2026-07-13 10:46 UTC the factorial VM was running with 47/82 FITS complete.
+It restarted at 2026-07-13 10:01:17 UTC with a 24-hour maximum runtime, so its
+next automatic stop is approximately 2026-07-14 10:01:17 UTC (15:31:17 IST).
+Changing the maximum runtime requires stopping the VM. The cost-controlled
+default is therefore to let it run, then restart and use the repaired
+FITS-aware runner, which skips every completed result and grants a fresh
+24-hour window.
+
+## 2026-07-13 scientific interim hardening
+
+Two additional diagnostics were completed locally while the factorial VM continued.
+They do not consume cloud compute and do not alter the running matrix.
+
+First, the 31 matched original/reference limb-darkening planets were analyzed with
+target-system clustered bootstrap uncertainty, leave-system-out leverage, impact and
+posterior-width sensitivity cuts, and exploratory parameter correlations. The global
+median change in `e50` remains +0.00168. Removing the highest-leverage system changes
+that median by only -0.00018, requiring impact below 0.8 changes it by -0.00060, and
+1,000 random leave-10%-of-systems trials have a 95th percentile absolute median shift
+of 0.00083. The current thick-multi subgroup remains underpowered because it contains
+only one matched system until K01127 finishes.
+
+Second, the current 710-planet direct posterior population input was tested by treating
+each host system as the resampling unit. Under the printed reciprocal selection mode:
+
+| population | planets / hosts | host-bootstrap e16-e84 | fraction of leave-10%-host trials within 5% | largest one-host shift |
+|---|---:|---:|---:|---:|
+| thin singles | 304 / 304 | 0.313-0.357 | 97.5% | 2.5%, K04921 |
+| thick singles | 108 / 108 | 0.252-0.320 | 83.6% | 8.4%, K04943 |
+| thin multis | 222 / 101 | 0.099-0.139 | 67.6% | 8.8%, K02857 |
+| thick multis | 69 / 28 | 0.072-0.181 | 31.9% | 34.3%, K01992 |
+
+This sharpens the diagnosis. The high thin-single result is not caused by one host, but
+the current multi results, especially thick multis, are not robust to system-level
+dependence. A forward-normalized selection sensitivity produces the same qualitative
+conclusion. The complete synthesis is in
+`<repository-root>\docs\scientific_interim_assessment.md`.
+
+## 2026-07-15 complete factorial matrix and decision record
+
+The full factorial ALDERAAN matrix completed successfully. The release contains 82 of 82
+expected target-system FITS: 24 original-long-cadence, 24 reference-long-cadence, 9
+original long-plus-short-cadence, 9 reference long-plus-short-cadence, 8 repeat-seed, and
+8 printed-prior fits. All 82 FITS were directly re-extracted with the paired-impact
+MacDougall implementation; no matched-matrix planet was excluded by direct QC.
+
+The key comparisons are target-system clustered and must not be interpreted as population
+estimates:
+
+| comparison | planets / systems | median delta e | 95% system-bootstrap interval | median absolute delta e |
+|---|---:|---:|---:|---:|
+| reference versus original limb darkening | 34 / 24 | +0.00120 | -0.01034 to +0.00512 | 0.01545 |
+| long plus short versus long, original LD | 13 / 9 | +0.00101 | -0.00059 to +0.01280 | 0.00682 |
+| long plus short versus long, reference LD | 13 / 9 | -0.00081 | -0.04771 to +0.00263 | 0.00431 |
+| printed priors versus public defaults | 9 / 8 | +0.00014 | -0.00053 to +0.00065 | 0.00065 |
+| same configuration, different sampler seed | 9 / 8 | +0.00071 | -0.00108 to +0.00276 | 0.00108 |
+
+This rules out a simple global explanation based on limb-darkening centers, cadence,
+the printed public-prior discrepancy, or ordinary nested-sampling variability. Individual
+systems remain important. K00283 has the largest reference-LD cadence response, with a
+maximum absolute planet-level delta e of 0.194, and K02533 has the next largest cadence
+response. Both are retained as target-level QC cases rather than silently excluded.
+
+The remaining dominant uncertainties are now identifiable: the paper uses a Berger et
+al. (2018) stellar-density construction whose exact density values and uncertainty model
+are not publicly supplied, and the final planet-level fit-inclusion/visual-rejection list
+is unavailable. A larger full-catalog rerun should not be launched until those contracts
+are resolved or explicitly frozen as a labeled sensitivity. The complete review record is
+in `<repository-root>\docs\full_factorial_validation_assessment.md`; compact derived
+tables are in `metadata\factorial_validation_20260715` and immutable FITS/provenance are
+in `data\alderaan_factorial_validation_20260715`.

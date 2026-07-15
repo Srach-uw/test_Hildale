@@ -4,6 +4,20 @@ Canonical pipeline for diagnosing and reproducing the Sagear Kepler thin/thick d
 
 This folder is deliberately separate from the exploratory notebooks and older scripts. The first goal is not to force a match; it is to make every mismatch visible.
 
+Run commands from the repository root in an environment created from
+`requirements.txt`. The publication-only audit is self-contained because the official
+machine-readable tables are bundled under `reference/data/`:
+
+```powershell
+python scripts/published_sagear_audit.py
+python -m pytest -q scripts/test_published_sagear_audit.py
+```
+
+Other analyses still require the large catalogs and ALDERAAN products excluded from
+Git. Override `paths.research_root` in a local config instead of editing committed
+defaults. The final published disk labels are canonical; reconstructed GMM labels are
+diagnostic only.
+
 ## Files
 
 - `config.json`: paths, thresholds, Sagear target counts, and missing optional inputs.
@@ -23,11 +37,10 @@ This folder is deliberately separate from the exploratory notebooks and older sc
 
 ## First Run
 
-Use the base Anaconda Python for the audit because it already has `astropy`, `scipy`, and `sklearn`:
+For a full local-data audit, create a local config pointing at the research data root:
 
 ```powershell
-cd "C:\Users\shres\Desktop\HILDALE RESEARCH"
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\diagnose_sample.py
+python scripts/diagnose_sample.py --config path\to\local_config.json
 ```
 
 That strict command is the Sagear-equivalence gate. If Furlan, APOGEE, or ALDERAAN convergence inputs are missing, it marks the sample as unclassified/missing instead of inventing labels.
@@ -44,13 +57,13 @@ Strict outputs:
 Furlan+2017 table 9 is now configured at `data/furlan2017_table9.dat`. If it ever needs to be refreshed:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\prepare_external_inputs.py --furlan
+python scripts/prepare_external_inputs.py --furlan
 ```
 
 The APOGEE DR17 allStarLite file is about 1.7 GB. To download it and build the Kepler/APOGEE chemical crossmatch used by the strict GMM classifier:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\prepare_external_inputs.py --apogee
+python scripts/prepare_external_inputs.py --apogee
 ```
 
 That writes `data/apogee_dr17_kepler_crossmatch.csv`, which `diagnose_sample.py` already expects.
@@ -60,7 +73,7 @@ Berger+2018 `J/ApJ/866/99/table1` is now used for an explicit `Bin=0` resolved-c
 For ALDERAAN validation target selection with the old all-Angus diagnostic classifier, run the explicit fallback:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\diagnose_sample.py --force-fallback-gmm
+python scripts/diagnose_sample.py --force-fallback-gmm
 ```
 
 Diagnostic outputs:
@@ -85,7 +98,7 @@ Then build a validation-batch project. By default this now includes representati
 plus high-e thin-single stress-test systems from `eccentricity_diagnostics.py`:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\alderaan_batch.py prepare --n-per-bin 3 --n-high-e 8
+python scripts/alderaan_batch.py prepare --n-per-bin 3 --n-high-e 8
 ```
 
 This writes catalogs and command scripts under `sagear_reproduction/alderaan_project/`.
@@ -96,7 +109,7 @@ By default this uses `canonical_sample_diagnostic.csv` so validation batches can
 To prepare a Linux/GCP bundle for around 300 planet rows:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\cloud_prepare.py --max-planets 300 --jobs 30
+python scripts/cloud_prepare.py --max-planets 300 --jobs 30
 ```
 
 This writes `sagear_reproduction/cloud_batch/`, including target CSVs, an ALDERAAN catalog, a VM setup script, and a parallel batch runner.
@@ -107,7 +120,7 @@ By default this also uses `canonical_sample_diagnostic.csv`; pass `--sample` whe
 To diagnose the Toomre/classifier mismatch:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\toomre_diagnostics.py
+python scripts/toomre_diagnostics.py
 ```
 
 Key outputs:
@@ -118,7 +131,7 @@ Key outputs:
 To test whether the remaining disk-count mismatch can be explained by a classifier threshold choice:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\classifier_threshold_diagnostics.py
+python scripts/classifier_threshold_diagnostics.py
 ```
 
 Key outputs:
@@ -129,13 +142,13 @@ Key outputs:
 To audit manuscript target-count consistency:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\target_consistency_diagnostics.py
+python scripts/target_consistency_diagnostics.py
 ```
 
 To identify the systems/planets driving classifier disagreements:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\classifier_disagreement_diagnostics.py
+python scripts/classifier_disagreement_diagnostics.py
 ```
 
 Key outputs:
@@ -147,7 +160,7 @@ Key outputs:
 To diagnose the thin-single eccentricity distribution and outliers:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\eccentricity_diagnostics.py
+python scripts/eccentricity_diagnostics.py
 ```
 
 If ALDERAAN posterior summaries are absent, this uses the old `e_photo` point estimates and marks the results as triage-only.
@@ -155,7 +168,7 @@ If ALDERAAN posterior summaries are absent, this uses the old `e_photo` point es
 To run formula-level sanity checks for the photoeccentric posterior and Rayleigh hierarchical selection correction:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\formula_sanity_checks.py
+python scripts/formula_sanity_checks.py
 ```
 
 Key output:
@@ -165,7 +178,7 @@ Key output:
 To compare Berger+2018 catalog availability/radii against the current joined stellar catalog:
 
 ```powershell
-& "C:\Users\shres\anaconda3\python.exe" sagear_reproduction\catalog_diagnostics.py
+python scripts/catalog_diagnostics.py
 ```
 
 Key outputs:

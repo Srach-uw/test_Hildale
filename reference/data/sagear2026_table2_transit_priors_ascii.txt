@@ -1,0 +1,11 @@
+Table 2 
+Transit-fit free Parameters, Prior Distributions, and Values
+
+
+Free Parameter	Description	Prior	
+C_0, C_1	Linear perturbations to the transit timing model	$\sim { \mathcal N }(0,1)$	
+T_14	First-to-fourth contact transit duration	$\sim \mathrm{log}{{ \mathcal U }}^{\dagger }$	
+R_p/R_s	Planet-star radius ratio	$\sim { \mathcal U }(1{0}^{-5},0.99)$	
+b	Impact parameter	$\sim { \mathcal U }(0,1+{R}_{p}/{R}_{\star })$	
+(u_1, u_2)	Quadratic limb-darkening parameters	$\sim { \mathcal N }(\mu ,0.1)$	
+Note. Transit duration T_14 was sampled between one Kepler short cadence integration length (1 minute) and 3 times the transit duration found during TTV fitting (i.e., the size of the nominal transit window). Limb-darkening coefficient priors are determined using values derived from Gaia measurements (Gaia Collaboration et al. 2018; T. A. Berger et al. 2020) and stellar atmosphere models (T.-O. Husser et al. 2013; H. Parviainen & S. Aigrain 2015).

@@ -289,8 +289,8 @@ gcloud compute scp --recurse alderaan-e2-32:~/sagear_cloud_batch/logs ./logs --z
 Then run locally:
 
 ```powershell
-& "C:\\Users\\shres\\anaconda3\\python.exe" sagear_reproduction\\extract_eccentricity_posteriors.py
-& "C:\\Users\\shres\\anaconda3\\python.exe" sagear_reproduction\\hierarchical_rayleigh.py
+python sagear_reproduction\\extract_eccentricity_posteriors.py
+python sagear_reproduction\\hierarchical_rayleigh.py
 ```
 """,
         encoding="utf-8",

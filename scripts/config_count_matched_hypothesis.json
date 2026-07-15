@@ -1,0 +1,6 @@
+{
+  "_note": "Sensitivity-only override. Berger+2018 Bin=0 is not stated in Sagear's sample cuts; it was previously enabled because it brought the planet total close to a contradictory manuscript macro. Merge this override into config.json only for the historical count-matched sensitivity.",
+  "cuts": {
+    "berger2018_bin_required": 0
+  }
+}

@@ -1,33 +1,24 @@
-# Repo Contents
+# Repository Contents
 
-This layout was independently reviewed and verified against the real local data
-(2026-07-02) before publishing; see "Independent Verification" in `README.md`.
+This repository contains source code, compact metadata, reference material, and audit
+documentation needed to inspect the replication. Large generated products are excluded.
 
-## Include
+## Included
 
-- `scripts/`: reproducible pipeline scripts and diagnostics.
-- `cloud/`: ALDERAAN/GCP helper scripts for the missing-posterior run.
-- `docs/`: concise reports and operational checklists.
-- `metadata/`: small CSV summaries needed to understand current state.
-- `reference/`: Sagear et al. paper, reference figures, original photoeccentric script.
-- `legacy/`: superseded earlier-attempt results, kept for provenance.
+- `scripts/`: analysis, extraction, diagnostics, tests, and release checks.
+- `cloud/`: resumable ALDERAAN execution helpers and cloud validation scripts.
+- `metadata/`: compact output tables that support documented counts and comparisons.
+- `reference/`: the published article, machine-readable tables, and source references.
+- `docs/`: current scientific status, audit records, and operational runbooks.
+- `legacy/`: superseded work retained for provenance and excluded from canonical results.
 
-## Exclude
+## Excluded
 
 - Raw Kepler light curves.
-- ALDERAAN posterior FITS files.
-- Downloaded `.tar.gz` source/data archives.
-- Full generated posterior directories.
-- Cloud result tarballs.
-- Large raw catalog products unless explicitly needed and small enough for GitHub.
+- ALDERAAN result FITS files and posterior sample archives.
+- Virtual environments and downloaded dependency repositories.
+- Cloud result archives and generated run directories.
+- Credentials, private keys, access tokens, and billing information.
 
-## Review Status (completed 2026-07-02)
-
-1. Scripts compile from this layout (`py_compile` / `bash -n` pass). ✔
-2. `.gitignore` excludes heavy/generated artifacts (spot-checked with `git check-ignore`). ✔
-3. README states current status with verification results and known caveats. ✔
-4. Cloud scripts reviewed: SPOT + `--max-run-duration` cap, no hidden billable operations;
-   `pack_results.sh` hardened to tar only existing paths. ✔
-5. Regeneration documented: external inputs via `scripts/prepare_external_inputs.py`,
-   bundle via `scripts/prepare_gcp_missing_alderaan_bundle.py`, validation via
-   `cloud/validate_bundle.py`. ✔
+The exclusions are enforced by `.gitignore`. The tracked release surface is additionally
+checked by `scripts/check_professor_release.py`.

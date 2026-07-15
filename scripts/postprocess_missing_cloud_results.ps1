@@ -2,7 +2,8 @@ param(
     [Parameter(Mandatory=$true)]
     [string]$TarPath,
     [string]$RunId = "sagear_missing",
-    [string]$Python = "C:\Users\shres\anaconda3\python.exe"
+    [string]$Python = "python",
+    [string]$ExportDir = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,11 +11,12 @@ $ErrorActionPreference = "Stop"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectDir = Join-Path $ScriptDir "alderaan_project"
 $OutputsDir = Join-Path $ScriptDir "outputs"
-$CodexOutputs = "C:\Users\shres\Documents\Codex\2026-06-29\8\outputs"
 
 New-Item -ItemType Directory -Force -Path $ProjectDir | Out-Null
 New-Item -ItemType Directory -Force -Path $OutputsDir | Out-Null
-New-Item -ItemType Directory -Force -Path $CodexOutputs | Out-Null
+if ($ExportDir) {
+    New-Item -ItemType Directory -Force -Path $ExportDir | Out-Null
+}
 
 Write-Host "Extracting $TarPath into $ProjectDir"
 tar -xzf $TarPath -C $ProjectDir
@@ -42,8 +44,8 @@ try {
     & $Python .\hierarchical_rayleigh.py --summary $merged
 
     foreach ($path in @($summary, $coverage, $merged, $mergedCoverage, ".\outputs\rayleigh_population_fit.csv", ".\outputs\rayleigh_population_fit_transit_selection.csv")) {
-        if (Test-Path $path) {
-            Copy-Item $path -Destination (Join-Path $CodexOutputs (Split-Path -Leaf $path)) -Force
+        if ($ExportDir -and (Test-Path $path)) {
+            Copy-Item $path -Destination (Join-Path $ExportDir (Split-Path -Leaf $path)) -Force
         }
     }
 }

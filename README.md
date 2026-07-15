@@ -1,101 +1,106 @@
 # Hilldale Sagear Replication
 
-Repository for reproducing and auditing the Hilldale / Sagear Kepler disk-eccentricity
-analysis. It contains code, cloud-run helpers, reference materials, and small
-reproducibility metadata. It intentionally excludes large local data products such as
-ALDERAAN posterior FITS files, Kepler light curves, downloaded archives, generated run
-directories, and cloud result tarballs.
+Research code and audit materials for reproducing the Kepler disk-eccentricity
+analysis of Sagear et al. (2026), *The Astronomical Journal*, 172, 42.
 
-Supersedes the earlier attempt at
-https://github.com/Srach-uw/Shreshth_Hildale_Project (see `legacy/README.md`).
+Reference article: [doi:10.3847/1538-3881/ae71bf](https://doi.org/10.3847/1538-3881/ae71bf)
 
-## Current Status
+## Scientific Status
 
-- Canonical pre-ALDERAAN sample and posterior inventory have been rebuilt.
-- Existing eccentricity posterior summaries cover 1729 / 2474 planets.
-- True missing posterior queue contains 745 planets.
-- Launch-ready missing ALDERAAN queue contains 718 planets across 592 KOI systems.
-- 27 missing rows remain blocked by missing/unreliable transit seeds.
-- 320 existing posterior rows are flagged for later review or possible refit.
+This is an active replication, not a completed reproduction. The sample construction,
+published disk labels, multiplicity bookkeeping, ALDERAAN posterior extraction, and
+population model have been audited separately. The current population estimates remain
+diagnostic because posterior coverage is incomplete and a controlled ALDERAAN validation
+is testing cadence, limb-darkening, prior, and repeatability effects. The complete 82-fit
+factorial result release is included through Git LFS; its comparison analysis has not yet
+been folded into the population result.
 
-## Independent Verification (2026-07-02)
+| population | current fit N | current mean eccentricity (16th-84th) | Sagear N | Sagear mean eccentricity (16th-84th) |
+|---|---:|---:|---:|---:|
+| thin singles | 304 | 0.335 (0.319-0.353) | 1121 | 0.022 (0.017-0.029) |
+| thick singles | 108 | 0.288 (0.263-0.315) | 275 | 0.066 (0.045-0.096) |
+| thin multis | 222 | 0.122 (0.108-0.136) | 862 | 0.030 (0.023-0.031) |
+| thick multis | 69 | 0.117 (0.086-0.154) | 207 | 0.033 (0.015-0.065) |
 
-All headline counts were re-verified against the real local data CSVs (not just
-internal consistency of the summaries):
+These values do not reproduce Table 2. They should not be interpreted as a physical
+measurement of disk-population eccentricity. The discrepancy is the object of the
+remaining validation work.
 
-- `cloud/validate_bundle.py` against the real bundle → `VALIDATION OK: 592 targets, 767 catalog rows`.
-- Existing posterior archive: 1729 rows, all unique `kepoi_name` (no double-counting).
-- Queues partition exactly: 1409 baseline + 320 flagged = 1729; 718 launchable + 27 unseeded = 745 missing; total 2474.
-- Zero overlap between the missing queue and the existing archive, by `kepoi_name`
-  **and** by same-KIC/same-period aliasing — the 718 are genuinely missing.
-- Catalog units match ALDERAAN's ingestion (`depth` in ppm ×1e-6, `duration` in hours /24).
-- Catalog rows are strictly period-ascending per system (ALDERAAN hard-errors otherwise).
-- **Postprocess chain validated twice**: first with a synthetic ALDERAAN results FITS
-  (before any cloud spend), then for real (2026-07-03) with an actual `K00179-results.fits`
-  produced by ALDERAAN on GCP — period recovered to 8 ppm accuracy (20.740124 fit vs
-  20.740286 catalog), a physically sensible eccentricity posterior (e50=0.226,
-  16th/84th-percentile bounds, 4000 resampled draws), merged into the real 1729-row
-  archive with zero duplicates and the value preserved through the merge.
-- **Cloud flag compatibility verified against Google docs**: `--max-run-duration` works
-  with SPOT + STOP (see `docs/gcp_no_charge_safety_checklist.md`, incl. cost estimate).
-- **3 of the 27 unseeded planets are recoverable** via DR25 TCE seeds
-  (see `docs/unseeded_dr25_tce_recovery.md`) — recommended for the follow-up batch,
-  not the current bundle. K01316.02/K06516.02 are confirmed unrecoverable.
+See [docs/replication_status.md](docs/replication_status.md) for the current evidence,
+limitations, and acceptance criteria.
 
-### Known caveats found during verification
+## Findings That Changed The Replication
 
-1. **Two systems will be fit incomplete.** K01316 and K06516 each have a second
-   sample planet (K01316.02, K06516.02) that is unseeded (no valid depth), so the
-   catalog carries them as `npl=1`. Their unmodeled sibling transits remain in the
-   light curve and may bias those two fits. **Flag the K01316 / K06516 results for
-   review after the cloud run** (or exclude the 2 targets; the other 590 are clean).
-2. **32 catalog rows have KOI impact seeds > 1** (max 8.7, unphysical). This is
-   harmless: ALDERAAN clamps them internally
-   (`detrend_and_estimate_ttvs.py`: `if b > 1 - sqrt(depth): b = (1 - sqrt(depth))**2`),
-   and the seed only initializes the fit. Similarly, `scripts/alderaan_batch.py`
-   seeds missing impacts with a neutral 0.5.
+1. The machine-readable published host table is authoritative for the primary disk
+   labels. It contains 1,515 thin and 373 thick hosts. The article's statement of 378
+   thick hosts is inconsistent with both the total of 1,888 and subgroup arithmetic.
+2. Multiplicity must be assigned from the full eligible planet inventory before
+   planet-level quality cuts. Recounting only surviving planets would misclassify 45
+   planets in the reconstructed sample. The canonical pipeline now preserves the pre-cut
+   system label and fails closed when full-system provenance is unavailable.
+3. Paired ALDERAAN samples of transit duration, radius ratio, and impact parameter must
+   remain paired during eccentricity extraction. Geometric impact draws are retained only
+   as a sensitivity analysis.
+4. A mixed archive of heterogeneous posterior constructions is not a valid canonical
+   input to the hierarchical fit. Canonical inference requires explicit provenance and
+   quality-control fields.
+5. The Berger et al. (2018) stellar-density construction used in the article is not fully
+   specified by the public catalog. Berger et al. (2020) densities are therefore a labeled
+   sensitivity, not a silent substitute.
 
-## Manifest Scope & Reproducibility
+## Reproduce The Audits
 
-Two different manifests appear in `docs/` and `metadata/`; they are consistent (subset vs.
-superset), not contradictory:
+Use Python 3.11 and the pinned analysis dependencies:
 
-- **Missing-only cloud bundle** (`cloud/`, `docs/cloud_missing_manifest.md`): **718 planets /
-  592 targets / 767 catalog rows** — only truly missing, launch-ready posteriors.
-- **Needed superset** (`docs/alderaan_needed_validation.md`): **1065 planets / 889 targets /
-  1225 catalog rows** — the 745 missing plus the 320 existing-but-flagged refit candidates
-  (745 + 320 = 1065; minus 27 unseeded = 1038 runnable). Run this only after the missing-only
-  queue is filled.
+```bash
+python -m venv .venv
+python -m pip install -r requirements-lock.txt
+python -m pytest -q
+python scripts/published_sagear_audit.py
+```
 
-**Reproducibility caveat:** the real data CSVs (`targets_missing_launchable.csv`,
-`sagear_missing_catalog.csv`, the extracted posterior archive, and the canonical sample) live
-outside this repo and are intentionally git-ignored. The `VALIDATION OK: 592 targets, 767
-catalog rows` result is regenerated locally by running `cloud/validate_bundle.py` against those
-inputs — it cannot be reproduced from the repo alone. External catalog inputs (Furlan 2017,
-APOGEE DR17 crossmatch, etc.) are regenerated with `scripts/prepare_external_inputs.py`.
-
-## Recommended Scientific Order
-
-1. Audit sample construction and disk classification counts.
-2. Audit posterior inventory and missing/flagged queue logic.
-3. Run one missing-posterior ALDERAAN shard only.
-4. Postprocess and merge that shard locally.
-5. Run the full missing launch-ready queue only after the shard passes.
-6. Reassess hierarchical fits.
-7. Only then consider rerunning the 320 existing-but-flagged posterior cases.
+ALDERAAN uses a separate pinned environment and repository commit. Cloud execution is
+optional and billable. Read `docs/gcp_no_charge_safety_checklist.md` before creating a VM.
 
 ## Repository Layout
 
 | path | contents |
 |---|---|
-| `scripts/` | Python and PowerShell analysis/reproduction scripts (incl. diagnostics) |
-| `cloud/` | GCP/ALDERAAN run helper scripts and target shards |
-| `docs/` | handoff reports, checklists, and audit notes |
-| `metadata/` | small summary CSVs and validation summaries |
-| `reference/` | Sagear et al. paper, reference figures, original photoeccentric script |
-| `legacy/` | superseded results from the earlier 1716-planet attempt (provenance only) |
+| `scripts/` | sample, posterior, population, diagnostic, and validation code |
+| `cloud/` | resumable ALDERAAN and GCP execution helpers |
+| `metadata/` | compact derived tables and validation summaries |
+| `data/alderaan_factorial_validation_20260715/` | 82 completed factorial ALDERAAN result FITS and their provenance, stored with Git LFS |
+| `reference/` | published article, machine-readable tables, and reference material |
+| `docs/` | scientific status, methods audits, runbooks, and historical worklog |
+| `legacy/` | superseded analysis retained only for provenance |
 
-## Important
+Large or regenerable products are intentionally excluded: Kepler light curves,
+intermediate detrending products, checkpoints, posterior archives, virtual environments,
+and cloud result bundles. The 82 curated factorial result FITS are the explicit exception.
 
-Cloud VM usage is billable unless covered by free trial, grant, or university credits. Read
-`docs/gcp_no_charge_safety_checklist.md` before launching anything.
+After cloning, retrieve the validation data with:
+
+```bash
+git lfs install
+git lfs pull
+```
+
+Read `data/alderaan_factorial_validation_20260715/README.md` before using these outputs.
+
+## Release Check
+
+Before sharing or publishing a revision, run:
+
+```bash
+python scripts/check_professor_release.py
+python -m pytest -q
+git diff --check
+```
+
+The release check rejects personal home paths, Unicode em dashes, merge markers, and
+common credential patterns in tracked text files.
+
+## Scope
+
+This repository supports reproducibility and diagnosis. It does not claim an independent
+astrophysical result until the validation gates in `docs/replication_status.md` pass.

@@ -1,0 +1,25 @@
+Table 3 
+Best-fit Underlying e Distribution Parameters
+
+
+Model	Disk Association	Transit Multiplicity	Expected Value angl0eangr0	
+Rayleigh	Thick	Singles	$0.06{6}_{-0.021}^{+0.030}$	
+cdots	Thick	Multis	$0.03{3}_{-0.018}^{+0.032}$	
+cdots	Thin	Singles	$0.02{2}_{-0.005}^{+0.007}$	
+cdots	Thin	Multis	$0.03{0}_{-0.007}^{+0.001}$	
+				
+Beta	Thick	Singles	$0.05{8}_{-0.023}^{+0.039}$	
+cdots	Thick	Multis	$0.04{2}_{-0.022}^{+0.035}$	
+cdots	Thin	Singles	$0.02{3}_{-0.006}^{+0.008}$	
+cdots	Thin	Multis	$0.03{0}_{-0.008}^{+0.010}$	
+				
+Monotonic Beta	Thick	Singles	$0.04{1}_{-0.016}^{+0.025}$	
+cdots	Thick	Multis	$0.02{5}_{-0.012}^{+0.023}$	
+cdots	Thin	Singles	$0.02{2}_{-0.006}^{+0.008}$	
+cdots	Thin	Multis	$0.02{6}_{-0.008}^{+0.010}$	
+				
+Half Gaussian	Thick	Singles	${\sigma }_{\mathrm{HG}}=0.06{6}_{-0.023}^{+0.033}$	
+cdots	Thick	Multis	${\sigma }_{\mathrm{HG}}=0.03{7}_{-0.020}^{+0.038}$	
+cdots	Thin	Singles	${\sigma }_{\mathrm{HG}}=0.02{5}_{-0.007}^{+0.009}$	
+cdots	Thin	Multis	${\sigma }_{\mathrm{HG}}=0.03{3}_{-0.009}^{+0.013}$	
+Note. In all cases, the median of angl0eangr0 is shown, and the uncertainties are calculated using the 16th and 84th distribution percentiles. The expected value of the half-Gaussian distribution is always zero by design. Therefore, we instead show the posterior median and uncertainties for sigma_HG.

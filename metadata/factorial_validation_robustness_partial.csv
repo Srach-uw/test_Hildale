@@ -1,0 +1,6 @@
+comparison_id,analysis,n_planets,n_systems,median_delta_e,shift_from_full_median,shift_p95,shift_max,n_trials
+ld_reference_lc,all_qc_pass,31,23,0.0016808262966827,0.0,,,
+ld_reference_lc,exclude_highest_leverage_system,28,22,0.0015001775459079,-0.00018064875077480002,,,
+ld_reference_lc,impact_below_0p8_both_arms,25,17,0.0010760188683207,-0.0006048074283619999,,,
+ld_reference_lc,e84_below_0p9_both_arms,30,22,0.0015001775459079,-0.00018064875077480002,,,
+ld_reference_lc,leave_10pct_systems_out_trials,31,23,0.0016808262966827,0.0002558474045221001,0.0008274414845259002,0.0013525115655352,1000.0

@@ -33,6 +33,10 @@ outputs/full_posteriors/
 outputs/eccentricity_posteriors*/
 outputs/alderaan_results*/
 outputs/*large*
+scripts/outputs/
+
+# The curated 82-file factorial ALDERAAN release is intentionally versioned via Git LFS.
+!data/alderaan_factorial_validation_20260715/results/**/*.fits
 
 # OS/editor
 .DS_Store

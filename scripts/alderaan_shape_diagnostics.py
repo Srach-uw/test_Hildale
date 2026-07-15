@@ -19,17 +19,33 @@ def main() -> None:
     parser.add_argument("--summary", default=None)
     parser.add_argument(
         "--results-dir",
-        default=r"C:\Users\shres\Downloads\ALDERAAN_posteriors\ALDERAAN_posteriors",
+        default=None,
         help="Flat directory containing ALDERAAN *-results.fits files.",
     )
+    parser.add_argument("--run-id", default=None, help="Nested ALDERAAN run_id under alderaan_project/Results.")
+    parser.add_argument("--leverage", default=None, help="Optional leverage table used for top-leverage focus.")
+    parser.add_argument("--top-leverage", type=int, default=None, help="Restrict to top N leverage planets.")
+    parser.add_argument("--out-tag", default="current_qcprimary")
     parser.add_argument("--max-planets", type=int, default=None)
     args = parser.parse_args()
 
     cfg = load_config(args.config)
-    sample_path = Path(args.sample) if args.sample else output_dir() / "canonical_sample_diagnostic.csv"
-    summary_path = Path(args.summary) if args.summary else output_dir() / "eccentricity_posterior_summary.csv"
+    sample_path = Path(args.sample) if args.sample else output_dir() / "canonical_sample_old_astropy_rawcc.csv"
+    summary_path = (
+        Path(args.summary)
+        if args.summary
+        else output_dir() / "eccentricity_posterior_summary_merged_paired_exact_qcprimary.csv"
+    )
     sample = pd.read_csv(sample_path)
     summary = pd.read_csv(summary_path)
+    if args.leverage and args.top_leverage:
+        leverage = pd.read_csv(args.leverage)
+        top = set(
+            leverage.sort_values("delta_loglike_map_minus_min", ascending=False)
+            .head(args.top_leverage)["kepoi_name"]
+            .astype(str)
+        )
+        summary = summary[summary["kepoi_name"].astype(str).isin(top)].copy()
     if args.max_planets is not None:
         summary = summary.head(args.max_planets).copy()
 
@@ -51,10 +67,12 @@ def main() -> None:
     df = summary.merge(keep, on="kepoi_name", how="left")
 
     rows = []
-    results_dir = Path(args.results_dir)
+    results_dir = Path(args.results_dir) if args.results_dir else None
+    project = root_path(cfg, "alderaan_project")
+    run_id = args.run_id or cfg.get("alderaan", {}).get("run_id")
     by_target = {k: v for k, v in df.groupby("koi_target", sort=False)}
     for i, (target, target_rows) in enumerate(by_target.items(), start=1):
-        path = results_dir / f"{target}-results.fits"
+        path = find_results_file(str(target), results_dir, project, run_id)
         if not path.exists():
             continue
         rows.extend(process_target(path, target_rows))
@@ -62,20 +80,37 @@ def main() -> None:
             print(f"Processed {i}/{len(by_target)} targets")
 
     out = pd.DataFrame(rows)
-    out_path = output_dir() / "alderaan_shape_diagnostics.csv"
+    if out.empty:
+        raise RuntimeError("No ALDERAAN shape rows were matched. Check --results-dir/--run-id and summary targets.")
+    suffix = f"_{args.out_tag}" if args.out_tag else ""
+    out_path = output_dir() / f"alderaan_shape_diagnostics{suffix}.csv"
     out.to_csv(out_path, index=False)
 
     flagged = flag_rows(out)
-    flagged_path = output_dir() / "alderaan_shape_diagnostics_flagged.csv"
+    flagged_path = output_dir() / f"alderaan_shape_diagnostics_flagged{suffix}.csv"
     flagged.to_csv(flagged_path, index=False)
 
-    make_plots(out)
-    write_markdown_summary(out, flagged)
+    make_plots(out, suffix)
+    write_markdown_summary(out, flagged, suffix)
 
     print(f"Wrote: {out_path}")
     print(f"Wrote: {flagged_path}")
     print("\nGroup summary:")
     print(group_summary(out).to_string(index=False))
+
+
+def find_results_file(target: str, flat_results_dir: Path | None, project: Path | None, run_id: str | None) -> Path:
+    if flat_results_dir is not None:
+        return flat_results_dir / f"{target}-results.fits"
+    if project is not None and run_id:
+        candidate = project / "Results" / run_id / target / f"{target}-results.fits"
+        if candidate.exists():
+            return candidate
+    if project is not None:
+        matches = sorted((project / "Results").glob(f"*/{target}/{target}-results.fits"))
+        if matches:
+            return matches[-1]
+    return Path("__missing__") / f"{target}-results.fits"
 
 
 def process_target(path: Path, target_rows: pd.DataFrame) -> list[dict[str, object]]:
@@ -92,6 +127,9 @@ def process_target(path: Path, target_rows: pd.DataFrame) -> list[dict[str, obje
         for _, row in target_rows.iterrows():
             idx = int(row["alderaan_planet_index"])
             suffix = f"_{idx}"
+            needed = [f"DUR14{suffix}", f"ROR{suffix}", f"IMPACT{suffix}"]
+            if any(col not in samples.names for col in needed):
+                continue
             dur = np.asarray(samples[f"DUR14{suffix}"], dtype=float)
             ror = np.asarray(samples[f"ROR{suffix}"], dtype=float)
             impact = np.asarray(samples[f"IMPACT{suffix}"], dtype=float)
@@ -206,7 +244,9 @@ def group_summary(df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def make_plots(df: pd.DataFrame) -> None:
+def make_plots(df: pd.DataFrame, suffix: str = "") -> None:
+    if df.empty:
+        return
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.5), constrained_layout=True)
     colors = {("thin", "single"): "#008b8b", ("thick", "single"): "#8b0000", ("thin", "multi"): "#66c2c2", ("thick", "multi"): "#c46a6a"}
     for (disk, system), sub in df.groupby(["disk", "system"]):
@@ -225,12 +265,12 @@ def make_plots(df: pd.DataFrame) -> None:
     axes[2].set_xlim(0, 2.5)
     axes[2].set_ylim(0, 0.95)
     axes[0].legend(fontsize=8)
-    fig.savefig(output_dir() / "alderaan_shape_diagnostics.png", dpi=200)
+    fig.savefig(output_dir() / f"alderaan_shape_diagnostics{suffix}.png", dpi=200)
     plt.close(fig)
 
 
-def write_markdown_summary(df: pd.DataFrame, flagged: pd.DataFrame) -> None:
-    path = output_dir() / "alderaan_shape_diagnostics.md"
+def write_markdown_summary(df: pd.DataFrame, flagged: pd.DataFrame, suffix: str = "") -> None:
+    path = output_dir() / f"alderaan_shape_diagnostics{suffix}.md"
     lines = [
         "# ALDERAAN Shape Diagnostics",
         "",

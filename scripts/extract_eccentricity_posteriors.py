@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 from pathlib import Path
 
 import numpy as np
@@ -15,6 +16,7 @@ from common import (
     read_berger_table2,
     root_path,
     stellar_a_over_r,
+    trapezoid,
 )
 
 
@@ -26,6 +28,11 @@ def main() -> None:
     parser.add_argument("--run-id", default=None, help="Override config alderaan.run_id for project-style results.")
     parser.add_argument("--summary-out", default=None, help="Output CSV path for posterior summary.")
     parser.add_argument("--coverage-out", default=None, help="Output CSV path for coverage summary.")
+    parser.add_argument(
+        "--excluded-out",
+        default=None,
+        help="Output CSV path for planets excluded due to zeta falling outside the model's e<=0.95 grid support.",
+    )
     parser.add_argument("--posterior-subdir", default="eccentricity_posteriors", help="Subdirectory under outputs for e,omega posterior grids.")
     parser.add_argument(
         "--results-dir",
@@ -40,10 +47,11 @@ def main() -> None:
     parser.add_argument(
         "--impact-mode",
         choices=["geometric", "alderaan", "catalog"],
-        default="geometric",
+        default="alderaan",
         help=(
             "How to handle impact parameter in the circular-duration calculation. "
-            "Default geometric marginalizes b ~ U(0, 1+Rp/R*) because ALDERAAN b can be prior-dominated."
+            "Default alderaan preserves the paired ALDERAAN T14, Rp/R*, b posterior. "
+            "Use geometric only as a labeled sensitivity mode."
         ),
     )
     parser.add_argument(
@@ -78,9 +86,10 @@ def main() -> None:
     sample = sample.merge(berger[["kepid", "rho_log", "rho_log_upper", "rho_log_lower"]], on="kepid", how="left", suffixes=("", "_berger2"))
 
     e_grid = np.linspace(0.001, 0.95, int(cfg["alderaan"]["eccentricity_grid_size"]))
-    omega_grid = np.linspace(0.0, 2.0 * np.pi, int(cfg["alderaan"]["omega_grid_size"]))
+    omega_grid = np.linspace(0.0, 2.0 * np.pi, int(cfg["alderaan"]["omega_grid_size"]), endpoint=False)
 
     summaries = []
+    excluded = []
     targets = sorted(sample["koi_target"].dropna().unique())
     if args.target:
         targets = [args.target]
@@ -97,7 +106,7 @@ def main() -> None:
             continue
         checked_targets += 1
         target_rows = sample[sample["koi_target"] == target].sort_values("koi_period").reset_index(drop=True)
-        target_summaries = process_target(
+        target_summaries, target_excluded = process_target(
             results_file,
             target_rows,
             e_grid,
@@ -109,8 +118,15 @@ def main() -> None:
             args.impact_mode,
         )
         summaries.extend(target_summaries)
+        excluded.extend(target_excluded)
         if checked_targets % 100 == 0:
             print(f"Processed {checked_targets} ALDERAAN systems; matched {len(summaries)} planets")
+
+    if excluded:
+        excluded_path = Path(args.excluded_out) if args.excluded_out else output_dir() / "eccentricity_posterior_excluded.csv"
+        excluded_path.parent.mkdir(parents=True, exist_ok=True)
+        pd.DataFrame(excluded).to_csv(excluded_path, index=False)
+        print(f"\nExcluded {len(excluded)} planets with zeta outside the e<=0.95 model grid support: {excluded_path}")
 
     if summaries:
         summary = pd.DataFrame(summaries)
@@ -127,8 +143,18 @@ def main() -> None:
         print("\nCoverage by disk/system:")
         print(coverage.to_string(index=False))
         print(f"\nSystems checked: {checked_targets}; systems with no results file: {missing_results}")
+        print(f"incomplete_system=True rows: {int(summary['incomplete_system'].sum())}")
     else:
         print("No ALDERAAN results found. Run the validation ALDERAAN batch first.")
+
+
+def stable_seed(*parts: object) -> int:
+    # Python's builtin hash() is randomly salted per process (PYTHONHASHSEED),
+    # so seeding RNGs with hash(str) made every extraction run produce
+    # slightly different impact/rho draws for the same input FITS files --
+    # not reproducible run-to-run. sha256 is stable across processes/versions.
+    text = "|".join(str(p) for p in parts)
+    return int.from_bytes(hashlib.sha256(text.encode("utf-8")).digest()[:8], "little") % (2**32)
 
 
 def result_file_for_target(target: str, flat_results_dir: Path | None, project: Path | None, run_id: str) -> Path:
@@ -148,7 +174,7 @@ def process_target(
     include_transit_prior: bool,
     period_tol: float,
     impact_mode: str,
-) -> list[dict]:
+) -> tuple[list[dict], list[dict]]:
     with fits.open(results_file, memmap=False) as hdul:
         samples = pd.DataFrame(np.array(hdul["SAMPLES"].data).byteswap().newbyteorder())
         alderaan_planets = read_alderaan_planets(hdul)
@@ -156,12 +182,24 @@ def process_target(
     logwt = samples["LN_WT"].to_numpy(float)
     weights = normalize_dynesty_weights(logwt)
     n_draw = min(int(cfg["alderaan"]["posterior_resample_size"]), len(samples))
-    rng = np.random.default_rng(42)
+    rng = np.random.default_rng(stable_seed("dynesty", results_file.name))
     idx = rng.choice(np.arange(len(samples)), size=n_draw, replace=True, p=weights)
     s = samples.iloc[idx].reset_index(drop=True)
 
     summaries = []
+    excluded = []
     matches = match_planets_by_period(planets, alderaan_planets, period_tol)
+    zeta_grid_min, zeta_grid_max = zeta_grid_support(e_grid, omega_grid)
+    # A system is "incomplete" when the ALDERAAN fit didn't model every planet
+    # the sample expects for this target (e.g. an unseeded sibling with no
+    # transit data). The modeled planet's own eccentricity fit can still be
+    # numerically sane, but it wasn't fit jointly with its real sibling(s), so
+    # flag it rather than silently treating it as a complete-system result.
+    sample_npl = len(planets)
+    fit_npl = len(alderaan_planets)
+    matched_npl = len(matches)
+    incomplete_system = matched_npl < sample_npl
+    matched_planet_idx = {pi for pi, _, _, _ in matches}
     for planet_idx, alderaan_idx, period_fit, rel_diff in matches:
         planet = planets.iloc[planet_idx]
         suffix = f"_{alderaan_idx}"
@@ -178,16 +216,57 @@ def process_target(
         zeta = dur14 / tcirc
         zeta = zeta[np.isfinite(zeta) & (zeta > 0)]
         if len(zeta) < 30:
+            excluded.append(
+                {
+                    "koi_target": planet["koi_target"],
+                    "kepid": int(planet["kepid"]),
+                    "kepoi_name": planet["kepoi_name"],
+                    "koi_period": float(planet["koi_period"]),
+                    "zeta_median": float(np.nanmedian(zeta)) if len(zeta) else np.nan,
+                    "zeta_p16": np.nan,
+                    "zeta_p84": np.nan,
+                    "n_zeta": int(len(zeta)),
+                    "reason": f"fewer than 30 finite positive zeta draws (n={len(zeta)})",
+                }
+            )
             continue
 
         post = posterior_grid_from_zeta(zeta, e_grid, omega_grid, include_transit_prior)
+        if post is None:
+            # zeta falls entirely outside the region the e<=0.95, omega grid
+            # can produce (e.g. zeta_median << 0.16 or >> 6.25) -- the density
+            # estimate has no support anywhere on the grid, which previously
+            # produced an all-NaN posterior silently. Exclude instead of
+            # clamping to an edge value the model doesn't actually support.
+            excluded.append(
+                {
+                    "koi_target": planet["koi_target"],
+                    "kepid": int(planet["kepid"]),
+                    "kepoi_name": planet["kepoi_name"],
+                    "koi_period": float(planet["koi_period"]),
+                    "zeta_median": float(np.nanmedian(zeta)),
+                    "zeta_p16": float(np.nanpercentile(zeta, 16)),
+                    "zeta_p84": float(np.nanpercentile(zeta, 84)),
+                    "n_zeta": int(len(zeta)),
+                    "reason": "zeta outside e<=0.95 model grid support (no valid density estimate)",
+                }
+            )
+            continue
+
         e_pdf = post.sum(axis=1)
-        e_pdf = e_pdf / np.trapz(e_pdf, e_grid)
+        e_pdf = e_pdf / trapezoid(e_pdf, e_grid)
         e_cdf = np.cumsum(e_pdf)
         e_cdf = e_cdf / e_cdf[-1]
         e50 = np.interp(0.5, e_cdf, e_grid)
         e16 = np.interp(0.16, e_cdf, e_grid)
         e84 = np.interp(0.84, e_cdf, e_grid)
+
+        zeta_median = float(np.nanmedian(zeta))
+        zeta_p16 = float(np.nanpercentile(zeta, 16))
+        zeta_p84 = float(np.nanpercentile(zeta, 84))
+        zeta_median_outside = not (zeta_grid_min <= zeta_median <= zeta_grid_max)
+        zeta_p16_outside = not (zeta_grid_min <= zeta_p16 <= zeta_grid_max)
+        zeta_p84_outside = not (zeta_grid_min <= zeta_p84 <= zeta_grid_max)
 
         out_file = out_dir / f"{planet['koi_target']}_{planet['kepoi_name'].replace('.', '_')}_eomega_posterior.npz"
         np.savez_compressed(
@@ -203,11 +282,18 @@ def process_target(
             alderaan_planet_index=int(alderaan_idx),
             alderaan_period_days=float(period_fit),
             period_relative_difference=float(rel_diff),
-            zeta_median=float(np.nanmedian(zeta)),
-            zeta_p16=float(np.nanpercentile(zeta, 16)),
-            zeta_p84=float(np.nanpercentile(zeta, 84)),
+            zeta_median=zeta_median,
+            zeta_p16=zeta_p16,
+            zeta_p84=zeta_p84,
             impact_mode=str(impact_mode),
         )
+        catalog_duration_hr = float(planet.get("koi_duration", np.nan))
+        catalog_ror = float(planet.get("koi_ror", np.nan))
+        catalog_impact = float(planet.get("koi_impact", np.nan))
+        alderaan_duration_median_hr = float(np.nanmedian(dur14)) * 24.0
+        alderaan_ror_median = float(np.nanmedian(ror))
+        impact_fit_p16, impact_fit_p50, impact_fit_p84 = finite_percentiles(impact_alderaan, [16, 50, 84])
+        impact_used_p16, impact_used_p50, impact_used_p84 = finite_percentiles(impact, [16, 50, 84])
         summaries.append(
             {
                 "koi_target": planet["koi_target"],
@@ -222,15 +308,81 @@ def process_target(
                 "e16": e16,
                 "e50": e50,
                 "e84": e84,
-                "zeta_median": float(np.nanmedian(zeta)),
-                "zeta_p16": float(np.nanpercentile(zeta, 16)),
-                "zeta_p84": float(np.nanpercentile(zeta, 84)),
+                "zeta_median": zeta_median,
+                "zeta_p16": zeta_p16,
+                "zeta_p84": zeta_p84,
+                "zeta_grid_min": zeta_grid_min,
+                "zeta_grid_max": zeta_grid_max,
+                "zeta_median_outside_grid_support": bool(zeta_median_outside),
+                "zeta_p16_outside_grid_support": bool(zeta_p16_outside),
+                "zeta_p84_outside_grid_support": bool(zeta_p84_outside),
+                "zeta_any_summary_outside_grid_support": bool(
+                    zeta_median_outside or zeta_p16_outside or zeta_p84_outside
+                ),
                 "n_zeta": int(len(zeta)),
                 "impact_mode": str(impact_mode),
                 "posterior_file": str(out_file),
+                "sample_npl": int(sample_npl),
+                "fit_npl": int(fit_npl),
+                "matched_npl": int(matched_npl),
+                "incomplete_system": bool(incomplete_system),
+                "catalog_duration_hr": catalog_duration_hr,
+                "alderaan_duration_median_hr": alderaan_duration_median_hr,
+                "duration_ratio": (
+                    alderaan_duration_median_hr / catalog_duration_hr
+                    if np.isfinite(catalog_duration_hr) and catalog_duration_hr > 0
+                    else np.nan
+                ),
+                "catalog_ror": catalog_ror,
+                "alderaan_ror_median": alderaan_ror_median,
+                "ror_ratio": (
+                    alderaan_ror_median / catalog_ror if np.isfinite(catalog_ror) and catalog_ror > 0 else np.nan
+                ),
+                "catalog_impact": catalog_impact,
+                "impact_fit_p16": impact_fit_p16,
+                "impact_fit_p50": impact_fit_p50,
+                "impact_fit_p84": impact_fit_p84,
+                "impact_used_p16": impact_used_p16,
+                "impact_used_p50": impact_used_p50,
+                "impact_used_p84": impact_used_p84,
+                "alderaan_impact_median": impact_fit_p50,
+                "impact_median": impact_used_p50,
             }
         )
-    return summaries
+
+    for planet_idx in range(len(planets)):
+        if planet_idx in matched_planet_idx:
+            continue
+        planet = planets.iloc[planet_idx]
+        excluded.append(
+            {
+                "koi_target": planet["koi_target"],
+                "kepid": int(planet["kepid"]),
+                "kepoi_name": planet["kepoi_name"],
+                "koi_period": float(planet["koi_period"]),
+                "zeta_median": np.nan,
+                "zeta_p16": np.nan,
+                "zeta_p84": np.nan,
+                "n_zeta": 0,
+                "reason": f"no ALDERAAN-fit planet matched within period_tol (sample_npl={sample_npl}, fit_npl={fit_npl})",
+            }
+        )
+
+    return summaries, excluded
+
+
+def zeta_grid_support(e_grid: np.ndarray, omega_grid: np.ndarray) -> tuple[float, float]:
+    e, omega = np.meshgrid(e_grid, omega_grid, indexing="ij")
+    zeta_model = np.sqrt(1.0 - e**2) / (1.0 + e * np.sin(omega))
+    return float(np.nanmin(zeta_model)), float(np.nanmax(zeta_model))
+
+
+def finite_percentiles(values: np.ndarray, qs: list[float]) -> tuple[float, ...]:
+    vals = np.asarray(values, dtype=float)
+    vals = vals[np.isfinite(vals)]
+    if len(vals) == 0:
+        return tuple(float("nan") for _ in qs)
+    return tuple(float(x) for x in np.nanpercentile(vals, qs))
 
 
 def impact_draws(
@@ -249,7 +401,7 @@ def impact_draws(
     r_med = float(np.nanmedian(ror))
     if not np.isfinite(r_med) or r_med <= 0:
         r_med = float(planet.get("koi_ror", 0.02))
-    rng = np.random.default_rng(abs(hash(("impact", str(planet.get("kepoi_name"))))) % (2**32))
+    rng = np.random.default_rng(stable_seed("impact", str(planet.get("kepoi_name"))))
     return rng.uniform(0.0, max(1e-3, 1.0 + r_med - 1e-3), size=n_draw)
 
 
@@ -317,7 +469,7 @@ def draw_rho_log(planet: pd.Series, n_draw: int) -> np.ndarray:
         err_hi = 0.13 * rho
     if not np.isfinite(err_lo) or err_lo <= 0:
         err_lo = 0.13 * rho
-    rng = np.random.default_rng(abs(hash(str(planet.get("kepoi_name")))) % (2**32))
+    rng = np.random.default_rng(stable_seed("rho", str(planet.get("kepoi_name"))))
     draws = np.empty(n_draw, dtype=float)
     filled = 0
     while filled < n_draw:
@@ -347,31 +499,56 @@ def posterior_grid_from_zeta(
     e_grid: np.ndarray,
     omega_grid: np.ndarray,
     include_transit_prior: bool,
-) -> np.ndarray:
+) -> np.ndarray | None:
     e, omega = np.meshgrid(e_grid, omega_grid, indexing="ij")
     zeta_model = np.sqrt(1.0 - e**2) / (1.0 + e * np.sin(omega))
-    likelihood = density_from_samples(zeta_samples, zeta_model)
+    support_min = float(np.nanmin(zeta_model))
+    support_max = float(np.nanmax(zeta_model))
+    likelihood = density_from_samples(zeta_samples, zeta_model, support_min=support_min, support_max=support_max)
+    if not np.any(np.isfinite(likelihood) & (likelihood > 0)):
+        # zeta_samples has no support anywhere on the e<=0.95 grid (density
+        # estimate is all-zero/all-NaN) -- caller should exclude this planet
+        # rather than dividing by a zero/NaN norm below.
+        return None
+    # A partial NaN (some grid cells have zeta support, some don't) would
+    # otherwise survive nansum-normalization below and silently poison
+    # e_pdf/e_cdf downstream, since regular array division propagates NaN
+    # cell-by-cell even when the overall norm is finite.
+    likelihood = np.nan_to_num(likelihood, nan=0.0, posinf=0.0, neginf=0.0)
     posterior = likelihood
     if include_transit_prior:
         posterior = posterior * (1.0 + e * np.sin(omega)) / (1.0 - e**2)
     posterior = np.clip(posterior, 0.0, np.inf)
+    posterior = np.nan_to_num(posterior, nan=0.0, posinf=0.0, neginf=0.0)
     norm = posterior.sum()
-    if norm <= 0:
-        posterior[:] = 1.0 / posterior.size
-    else:
-        posterior /= norm
+    if not np.isfinite(norm) or norm <= 0:
+        return None
+    posterior /= norm
     return posterior
 
 
-def density_from_samples(samples: np.ndarray, query: np.ndarray) -> np.ndarray:
+def density_from_samples(
+    samples: np.ndarray,
+    query: np.ndarray,
+    support_min: float | None = None,
+    support_max: float | None = None,
+) -> np.ndarray:
     samples = np.asarray(samples, dtype=float)
     samples = samples[np.isfinite(samples) & (samples > 0)]
     if len(samples) < 30:
         return np.ones_like(query, dtype=float)
-    lo = max(0.05, float(np.nanpercentile(samples, 0.2)) * 0.7)
-    hi = min(6.0, float(np.nanpercentile(samples, 99.8)) * 1.3)
+    q = np.asarray(query, dtype=float)
+    qfinite = q[np.isfinite(q) & (q > 0)]
+    qmin = float(np.nanmin(qfinite)) if len(qfinite) else 0.05
+    qmax = float(np.nanmax(qfinite)) if len(qfinite) else 6.0
+    support_min = qmin if support_min is None or not np.isfinite(support_min) else float(support_min)
+    support_max = qmax if support_max is None or not np.isfinite(support_max) else float(support_max)
+    lo = max(support_min, float(np.nanpercentile(samples, 0.2)) * 0.7)
+    hi = min(support_max, float(np.nanpercentile(samples, 99.8)) * 1.3)
     if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
-        lo, hi = 0.05, 6.0
+        lo, hi = support_min, support_max
+    if not np.isfinite(lo) or not np.isfinite(hi) or hi <= lo:
+        lo, hi = qmin, qmax
     bins = np.geomspace(lo, hi, 360)
     hist, edges = np.histogram(samples, bins=bins, density=True)
     kernel_x = np.arange(-5, 6)

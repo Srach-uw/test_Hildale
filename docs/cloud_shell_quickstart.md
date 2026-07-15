@@ -10,7 +10,7 @@ Before creating the VM:
 
 Local file to upload:
 
-`C:\Users\shres\Documents\Codex\2026-06-29\8\outputs\cloud_missing_batch_ready_for_gcp.zip`
+`cloud_missing_batch_ready_for_gcp.zip`
 
 In Google Cloud Shell:
 

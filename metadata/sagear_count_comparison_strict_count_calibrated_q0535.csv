@@ -1,0 +1,7 @@
+metric,ours,sagear,delta
+thin_singles_planets,1096,1121,-25
+thick_singles_planets,285,275,10
+thin_multi_planets,886,862,24
+thick_multi_planets,207,207,0
+thin_multi_hosts,390,394,-4
+thick_multi_hosts,86,98,-12
