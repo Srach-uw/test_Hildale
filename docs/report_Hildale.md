@@ -1373,3 +1373,33 @@ Changing the maximum runtime requires stopping the VM. The cost-controlled
 default is therefore to let it run, then restart and use the repaired
 FITS-aware runner, which skips every completed result and grants a fresh
 24-hour window.
+
+## 2026-07-13 scientific interim hardening
+
+Two additional diagnostics were completed locally while the factorial VM continued.
+They do not consume cloud compute and do not alter the running matrix.
+
+First, the 31 matched original/reference limb-darkening planets were analyzed with
+target-system clustered bootstrap uncertainty, leave-system-out leverage, impact and
+posterior-width sensitivity cuts, and exploratory parameter correlations. The global
+median change in `e50` remains +0.00168. Removing the highest-leverage system changes
+that median by only -0.00018, requiring impact below 0.8 changes it by -0.00060, and
+1,000 random leave-10%-of-systems trials have a 95th percentile absolute median shift
+of 0.00083. The current thick-multi subgroup remains underpowered because it contains
+only one matched system until K01127 finishes.
+
+Second, the current 710-planet direct posterior population input was tested by treating
+each host system as the resampling unit. Under the printed reciprocal selection mode:
+
+| population | planets / hosts | host-bootstrap e16-e84 | fraction of leave-10%-host trials within 5% | largest one-host shift |
+|---|---:|---:|---:|---:|
+| thin singles | 304 / 304 | 0.313-0.357 | 97.5% | 2.5%, K04921 |
+| thick singles | 108 / 108 | 0.252-0.320 | 83.6% | 8.4%, K04943 |
+| thin multis | 222 / 101 | 0.099-0.139 | 67.6% | 8.8%, K02857 |
+| thick multis | 69 / 28 | 0.072-0.181 | 31.9% | 34.3%, K01992 |
+
+This sharpens the diagnosis. The high thin-single result is not caused by one host, but
+the current multi results, especially thick multis, are not robust to system-level
+dependence. A forward-normalized selection sensitivity produces the same qualitative
+conclusion. The complete synthesis is in
+`<repository-root>\docs\scientific_interim_assessment.md`.

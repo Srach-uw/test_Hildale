@@ -60,6 +60,13 @@ eccentricity is +0.00168, with a bootstrap interval of -0.00103 to +0.00523. The
 absolute change is 0.00604. This is much smaller than the full Table 2 discrepancy, but
 repeatability, cadence, and prior arms are still required before attributing causes.
 
+A complementary host-clustered robustness analysis now treats all planets around one
+star as a correlated unit. Thin singles are comparatively stable: 97.5% of 5,000 random
+leave-10%-of-hosts trials move the mean by less than 5%. Thick singles pass 83.6%, thin
+multis 67.6%, and thick multis 31.9%. Removing K01992 alone changes the current
+thick-multi mean by 34.3%. See `docs/scientific_interim_assessment.md` for the complete
+evidence table and interpretation.
+
 ## Remaining Gates
 
 1. Finish and analyze the repeatability, cadence, and prior validation arms.
@@ -83,5 +90,6 @@ Berger et al. (2020) densities are therefore labeled as a sensitivity. Resolving
 - `metadata/rayleigh_population_fit_transit_selection_manuscript_reciprocal_direct_count_calibrated_q0535.csv`:
   current uniform diagnostic fit.
 - `docs/sagear_diagnosis_report.md`: detailed scientific audit.
+- `docs/scientific_interim_assessment.md`: current evidence synthesis and robustness results.
 - `docs/report_Hildale.md`: chronological project worklog; older entries are superseded by
   later dated findings where they conflict.

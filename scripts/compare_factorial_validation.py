@@ -617,6 +617,12 @@ def summarize_arms(metrics: pd.DataFrame, *, n_bootstrap: int, seed: int) -> pd.
             evidence = "some_shifts_exceed_repeatability_p95_exploratory"
         else:
             evidence = "no_shift_exceeds_repeatability_p95"
+        n_systems = int(finite["koi_target"].nunique())
+        sample_adequacy = (
+            "underpowered_fewer_than_5_systems"
+            if n_systems < 5
+            else "descriptive_targeted_validation_sample"
+        )
         rows.append(
             {
                 "comparison_id": comparison_id,
@@ -627,7 +633,8 @@ def summarize_arms(metrics: pd.DataFrame, *, n_bootstrap: int, seed: int) -> pd.
                 "n_planets_total": len(group),
                 "n_planets_direct_qc_excluded": int(direct_qc.sum()),
                 "n_planets": len(finite),
-                "n_systems": finite["koi_target"].nunique(),
+                "n_systems": n_systems,
+                "sample_adequacy": sample_adequacy,
                 "median_delta": finite["delta"].median(),
                 "median_delta_ci_low": _finite_quantile(signed_bootstrap, 0.025),
                 "median_delta_ci_high": _finite_quantile(signed_bootstrap, 0.975),
@@ -663,6 +670,7 @@ def write_report(path: Path, discovery: pd.DataFrame, summaries: pd.DataFrame, t
         "95th percentile of the available repeat-run shifts for that parameter. The repeat sample is small and",
         "targeted, so these labels are exploratory robustness signals, not p-values, causal claims, or proof that",
         "an analysis choice changes the population-level scientific conclusion.",
+        "Any summary with fewer than five target systems is labeled underpowered and must not be used for subgroup inference.",
         "",
         "## Coverage",
         "",
