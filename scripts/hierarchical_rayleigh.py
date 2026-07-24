@@ -33,6 +33,16 @@ def main() -> None:
     parser.add_argument("--sigma-min", type=float, default=1e-4)
     parser.add_argument("--sigma-max", type=float, default=1.0)
     parser.add_argument("--n-sigma", type=int, default=2000)
+    parser.add_argument(
+        "--outlier-floor",
+        type=float,
+        default=0.0,
+        help=(
+            "Diagnostic Gilbert+2025 modification: add this constant to the "
+            "Rayleigh density before renormalizing. Sagear does not state this "
+            "term, so the canonical default is zero."
+        ),
+    )
     parser.add_argument("--log-sigma-grid", action="store_true", help="Diagnostic only; posterior still uses uniform sigma prior with cell widths.")
     parser.add_argument("--ignore-transit-selection", action="store_true", help="Diagnostic only: omit transit-probability weighting.")
     parser.add_argument(
@@ -63,13 +73,21 @@ def main() -> None:
         help="Diagnostic only: allow posterior products that did not preserve paired ALDERAAN impact samples.",
     )
     parser.add_argument(
+        "--allow-non-dynesty-weights",
+        action="store_true",
+        help=(
+            "Diagnostic only: allow direct posterior products that did not use "
+            "the ALDERAAN/dynesty LN_WT sample weights."
+        ),
+    )
+    parser.add_argument(
         "--allow-missing-qc-manifest",
         action="store_true",
         help="Diagnostic only: allow a summary without deterministic qc_primary_exclude/qc_reasons fields.",
     )
     parser.add_argument("--exclude-kois", default=None, help="Comma-separated kepoi_name values to drop before fitting.")
     parser.add_argument("--out-tag", default=None, help="Suffix for output CSV names.")
-    parser.add_argument("--diagnostics", action="store_true", help="Write leverage, leave-10%-out, and ECDF diagnostics.")
+    parser.add_argument("--diagnostics", action="store_true", help="Write leverage, leave-10%%-out, and ECDF diagnostics.")
     parser.add_argument("--leaveout-trials", type=int, default=10)
     parser.add_argument("--random-seed", type=int, default=20260707)
     parser.add_argument("--min-berger-logg", type=float, default=None, help="Labeled dwarf-sample sensitivity cut.")
@@ -82,6 +100,10 @@ def main() -> None:
 
     if args.summary is None:
         parser.error("--summary is required so a canonical run cannot silently fit a stale posterior product")
+    if not np.isfinite(args.outlier_floor) or not 0.0 <= args.outlier_floor <= 1.0:
+        parser.error("--outlier-floor must be finite and between 0 and 1")
+    if args.outlier_floor > 0.0 and not args.out_tag:
+        parser.error("--outlier-floor is diagnostic and requires an explicit --out-tag")
     summary_path = Path(args.summary)
     if not summary_path.exists():
         raise FileNotFoundError(f"Posterior summary not found: {summary_path}")
@@ -90,6 +112,7 @@ def main() -> None:
         summary,
         allow_mixed_sources=args.allow_mixed_posterior_sources,
         allow_nonpaired_impact=args.allow_nonpaired_impact,
+        allow_non_dynesty_weights=args.allow_non_dynesty_weights,
         allow_missing_qc=args.allow_missing_qc_manifest,
     )
     summary = recompute_grid_support_flags(summary)
@@ -144,6 +167,7 @@ def main() -> None:
     apply_selection = selection_mode != "none"
     rows: list[dict[str, object]] = []
     leverage_rows: list[pd.DataFrame] = []
+    influence_rows: list[pd.DataFrame] = []
     leaveout_rows: list[dict[str, object]] = []
     topk_rows: list[dict[str, object]] = []
     rng = np.random.default_rng(args.random_seed)
@@ -157,19 +181,74 @@ def main() -> None:
             sub, apply_transit_selection=apply_selection, selection_mode=selection_mode
         )
         fit = fit_from_mass_matrix(
-            masses, e_grid, sigmas, apply_transit_selection=apply_selection, selection_mode=selection_mode
+            masses,
+            e_grid,
+            sigmas,
+            apply_transit_selection=apply_selection,
+            selection_mode=selection_mode,
+            outlier_floor=args.outlier_floor,
         )
-        rows.append({"population": label, "n": len(sub), "status": "ok", "selection_mode": selection_mode, **fit})
+        rows.append(
+            {
+                "population": label,
+                "n": len(sub),
+                "status": "ok",
+                "selection_mode": selection_mode,
+                "outlier_floor": args.outlier_floor,
+                **fit,
+            }
+        )
         if args.diagnostics:
-            leverage = per_planet_leverage(sub, masses, e_grid, sigmas, fit, apply_selection, label, selection_mode)
+            leverage = per_planet_leverage(
+                sub,
+                masses,
+                e_grid,
+                sigmas,
+                fit,
+                apply_selection,
+                label,
+                selection_mode,
+                args.outlier_floor,
+            )
             leverage_rows.append(leverage)
+            influence_rows.append(
+                leave_one_planet_influence(
+                    sub,
+                    masses,
+                    e_grid,
+                    sigmas,
+                    apply_selection,
+                    label,
+                    selection_mode,
+                    args.outlier_floor,
+                )
+            )
             leaveout_rows.extend(
                 leaveout_diagnostics(
-                    sub, masses, e_grid, sigmas, apply_selection, label, rng, args.leaveout_trials, selection_mode
+                    sub,
+                    masses,
+                    e_grid,
+                    sigmas,
+                    apply_selection,
+                    label,
+                    rng,
+                    args.leaveout_trials,
+                    selection_mode,
+                    args.outlier_floor,
                 )
             )
             topk_rows.extend(
-                topk_diagnostics(sub, masses, e_grid, sigmas, apply_selection, label, leverage, selection_mode)
+                topk_diagnostics(
+                    sub,
+                    masses,
+                    e_grid,
+                    sigmas,
+                    apply_selection,
+                    label,
+                    leverage,
+                    selection_mode,
+                    args.outlier_floor,
+                )
             )
 
     out = pd.DataFrame(rows)
@@ -193,6 +272,11 @@ def main() -> None:
             leverage_path = output_dir() / f"rayleigh_per_planet_leverage{tag}.csv"
             leverage.to_csv(leverage_path, index=False)
             print(f"Wrote: {leverage_path}")
+        if influence_rows:
+            influence = pd.concat(influence_rows, ignore_index=True)
+            influence_path = output_dir() / f"rayleigh_leave_one_planet_influence{tag}.csv"
+            influence.to_csv(influence_path, index=False)
+            print(f"Wrote: {influence_path}")
         if leaveout_rows:
             leaveout = pd.DataFrame(leaveout_rows)
             leaveout_path = output_dir() / f"rayleigh_leave10out{tag}.csv"
@@ -213,6 +297,7 @@ def validate_summary_contract(
     *,
     allow_mixed_sources: bool = False,
     allow_nonpaired_impact: bool = False,
+    allow_non_dynesty_weights: bool = False,
     allow_missing_qc: bool = False,
 ) -> None:
     required = {"kepoi_name", "disk", "system", "posterior_file"}
@@ -255,6 +340,15 @@ def validate_summary_contract(
             raise ValueError(
                 "Canonical population fit requires paired ALDERAAN impact samples; "
                 f"found impact_mode={impact_modes}."
+            )
+
+    if "nested_weight_mode" in summary.columns:
+        weight_modes = sorted(summary["nested_weight_mode"].dropna().astype(str).str.lower().unique())
+        if weight_modes != ["dynesty"] and not allow_non_dynesty_weights:
+            raise ValueError(
+                "Canonical population fit requires ALDERAAN/dynesty LN_WT sample weights; "
+                f"found nested_weight_mode={weight_modes}. "
+                "Use --allow-non-dynesty-weights only for a labeled diagnostic."
             )
 
 
@@ -319,10 +413,11 @@ def fit_rayleigh(
     sigmas: np.ndarray,
     apply_transit_selection: bool = True,
     selection_mode: str | None = None,
+    outlier_floor: float = 0.0,
 ) -> dict:
     mode = selection_mode_from_legacy(apply_transit_selection, selection_mode)
     masses, e_grid = load_population_masses_from_files(files, apply_transit_selection, mode)
-    return fit_from_mass_matrix(masses, e_grid, sigmas, apply_transit_selection, mode)
+    return fit_from_mass_matrix(masses, e_grid, sigmas, apply_transit_selection, mode, outlier_floor)
 
 
 def load_population_masses(
@@ -410,9 +505,10 @@ def fit_from_mass_matrix(
     sigmas: np.ndarray,
     apply_transit_selection: bool = True,
     selection_mode: str | None = None,
+    outlier_floor: float = 0.0,
 ) -> dict:
     mode = selection_mode_from_legacy(apply_transit_selection, selection_mode)
-    rays, normalizers = rayleigh_grid(e_grid, sigmas, apply_transit_selection, mode)
+    rays, normalizers = rayleigh_grid(e_grid, sigmas, apply_transit_selection, mode, outlier_floor)
     terms = mass_matrix @ rays
     if mode in {"legacy_forward_norm", "manuscript_reciprocal_with_norm"}:
         terms = terms / normalizers
@@ -422,11 +518,21 @@ def fit_from_mass_matrix(
     weights = posterior_weights_from_ll(sigmas, lls)
     sigma_q16, sigma_q50, sigma_q84 = weighted_quantile(sigmas, weights, [0.16, 0.5, 0.84])
     expected_grid = sigmas * np.sqrt(np.pi / 2.0)
-    rays, _ = rayleigh_grid(e_grid, sigmas, apply_transit_selection, mode)
+    rays, _ = rayleigh_grid(e_grid, sigmas, apply_transit_selection, mode, outlier_floor)
     truncated_expected_grid = trapezoid(rays * e_grid[:, None], e_grid, axis=0)
     e_q16, e_q50, e_q84 = weighted_quantile(expected_grid, weights, [0.16, 0.5, 0.84])
     et_q16, et_q50, et_q84 = weighted_quantile(truncated_expected_grid, weights, [0.16, 0.5, 0.84])
-    boundary = bool(best == 0 or best == len(sigmas) - 1 or weights[0] > 0.01 or weights[-1] > 0.01)
+    edge_n = max(1, int(np.ceil(0.01 * len(sigmas))))
+    lower_edge_mass = float(weights[:edge_n].sum())
+    upper_edge_mass = float(weights[-edge_n:].sum())
+    near_lower_edge = bool(best < edge_n)
+    near_upper_edge = bool(best >= len(sigmas) - edge_n)
+    boundary = bool(
+        near_lower_edge
+        or near_upper_edge
+        or lower_edge_mass > 0.01
+        or upper_edge_mass > 0.01
+    )
     return {
         "sigma_rayleigh": sigma_q50,
         "sigma_rayleigh_lo": sigma_q16,
@@ -436,6 +542,10 @@ def fit_from_mass_matrix(
         "expected_e_lo": e_q16,
         "expected_e_hi": e_q84,
         "expected_e_map": expected_grid[best],
+        "expected_e_model": et_q50,
+        "expected_e_model_lo": et_q16,
+        "expected_e_model_hi": et_q84,
+        "expected_e_model_map": truncated_expected_grid[best],
         "expected_e_truncated": et_q50,
         "expected_e_truncated_lo": et_q16,
         "expected_e_truncated_hi": et_q84,
@@ -443,11 +553,17 @@ def fit_from_mass_matrix(
         "ll_max": lls[best],
         "transit_selection_applied": bool(mode != "none"),
         "selection_mode": mode,
+        "outlier_floor": float(outlier_floor),
         "sigma_at_grid_lower_edge": bool(best == 0),
         "sigma_at_grid_upper_edge": bool(best == len(sigmas) - 1),
+        "sigma_near_grid_lower_edge": near_lower_edge,
+        "sigma_near_grid_upper_edge": near_upper_edge,
+        "sigma_map_index": best,
         "boundary_flag": boundary,
         "posterior_mass_at_lower_edge": float(weights[0]),
         "posterior_mass_at_upper_edge": float(weights[-1]),
+        "posterior_mass_in_lower_1pct": lower_edge_mass,
+        "posterior_mass_in_upper_1pct": upper_edge_mass,
     }
 
 
@@ -456,12 +572,16 @@ def rayleigh_grid(
     sigmas: np.ndarray,
     apply_transit_selection: bool,
     selection_mode: str | None = None,
+    outlier_floor: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     mode = selection_mode_from_legacy(apply_transit_selection, selection_mode)
+    if not np.isfinite(outlier_floor) or not 0.0 <= outlier_floor <= 1.0:
+        raise ValueError("outlier_floor must be finite and between 0 and 1")
     rays = []
     normalizers = []
     for sigma in sigmas:
         ray = (e_grid / sigma**2) * np.exp(-(e_grid**2) / (2.0 * sigma**2))
+        ray = ray + outlier_floor
         ray = ray / trapezoid(ray, e_grid)
         rays.append(ray)
         if mode == "legacy_forward_norm":
@@ -484,6 +604,53 @@ def posterior_weights_from_ll(sigmas: np.ndarray, lls: np.ndarray) -> np.ndarray
     if not np.isfinite(total) or total <= 0:
         return np.full(len(sigmas), 1.0 / len(sigmas))
     return raw / total
+
+
+def leave_one_planet_influence(
+    summary: pd.DataFrame,
+    mass_matrix: np.ndarray,
+    e_grid: np.ndarray,
+    sigmas: np.ndarray,
+    apply_transit_selection: bool,
+    population: str,
+    selection_mode: str | None = None,
+    outlier_floor: float = 0.0,
+) -> pd.DataFrame:
+    """Measure each planet's signed effect without refitting the other rows."""
+    mode = selection_mode_from_legacy(apply_transit_selection, selection_mode)
+    rays, normalizers = rayleigh_grid(e_grid, sigmas, apply_transit_selection, mode, outlier_floor)
+    terms = mass_matrix @ rays
+    if mode in {"legacy_forward_norm", "manuscript_reciprocal_with_norm"}:
+        terms = terms / normalizers
+    log_terms = np.log(np.clip(terms, 1e-300, None))
+    full_ll = np.sum(log_terms, axis=0)
+    expected_grid = sigmas * np.sqrt(np.pi / 2.0)
+    full_weights = posterior_weights_from_ll(sigmas, full_ll)
+    full_expected = weighted_quantile(expected_grid, full_weights, [0.5])[0]
+
+    records = []
+    for i in range(len(summary)):
+        weights = posterior_weights_from_ll(sigmas, full_ll - log_terms[i])
+        leave_one_expected = weighted_quantile(expected_grid, weights, [0.5])[0]
+        records.append(
+            {
+                "kepoi_name": summary.iloc[i]["kepoi_name"],
+                "koi_target": summary.iloc[i].get("koi_target", ""),
+                "kepid": summary.iloc[i].get("kepid", np.nan),
+                "disk": summary.iloc[i]["disk"],
+                "system": summary.iloc[i]["system"],
+                "population": population,
+                "e50": summary.iloc[i].get("e50", np.nan),
+                "expected_e_full": full_expected,
+                "expected_e_leave_one_out": leave_one_expected,
+                "fractional_shift_when_removed": (
+                    (leave_one_expected - full_expected) / full_expected
+                    if full_expected
+                    else np.nan
+                ),
+            }
+        )
+    return pd.DataFrame(records)
 
 
 def grid_cell_widths(x: np.ndarray) -> np.ndarray:
@@ -517,9 +684,10 @@ def per_planet_leverage(
     apply_transit_selection: bool,
     population: str,
     selection_mode: str | None = None,
+    outlier_floor: float = 0.0,
 ) -> pd.DataFrame:
     mode = selection_mode_from_legacy(apply_transit_selection, selection_mode)
-    rays, normalizers = rayleigh_grid(e_grid, sigmas, apply_transit_selection, mode)
+    rays, normalizers = rayleigh_grid(e_grid, sigmas, apply_transit_selection, mode, outlier_floor)
     terms = mass_matrix @ rays
     if mode in {"legacy_forward_norm", "manuscript_reciprocal_with_norm"}:
         terms = terms / normalizers
@@ -544,16 +712,17 @@ def leaveout_diagnostics(
     rng: np.random.Generator,
     trials: int,
     selection_mode: str | None = None,
+    outlier_floor: float = 0.0,
 ) -> list[dict[str, object]]:
     rows = []
     n = len(summary)
     remove_n = max(1, int(round(0.10 * n)))
     mode = selection_mode_from_legacy(apply_transit_selection, selection_mode)
-    full = fit_from_mass_matrix(mass_matrix, e_grid, sigmas, apply_transit_selection, mode)
+    full = fit_from_mass_matrix(mass_matrix, e_grid, sigmas, apply_transit_selection, mode, outlier_floor)
     for trial in range(trials):
         drop = set(rng.choice(np.arange(n), size=remove_n, replace=False))
         keep = np.array([i not in drop for i in range(n)])
-        fit = fit_from_mass_matrix(mass_matrix[keep], e_grid, sigmas, apply_transit_selection, mode)
+        fit = fit_from_mass_matrix(mass_matrix[keep], e_grid, sigmas, apply_transit_selection, mode, outlier_floor)
         frac_shift = (fit["expected_e"] - full["expected_e"]) / full["expected_e"] if full["expected_e"] else np.nan
         rows.append(
             {
@@ -579,18 +748,19 @@ def topk_diagnostics(
     population: str,
     leverage: pd.DataFrame,
     selection_mode: str | None = None,
+    outlier_floor: float = 0.0,
 ) -> list[dict[str, object]]:
     rows = []
     mode = selection_mode_from_legacy(apply_transit_selection, selection_mode)
-    full = fit_from_mass_matrix(mass_matrix, e_grid, sigmas, apply_transit_selection, mode)
+    full = fit_from_mass_matrix(mass_matrix, e_grid, sigmas, apply_transit_selection, mode, outlier_floor)
     order = leverage.reset_index().sort_values("delta_loglike_map_minus_min", ascending=False)["index"].to_numpy(int)
-    for k in [0, 1, 3, 5, 10, 20, 50, 100]:
+    for k in [0, 1, 3, 5, 10, 20, 25, 30, 35, 40, 45, 50, 100]:
         if k >= len(summary):
             continue
         keep = np.ones(len(summary), dtype=bool)
         if k:
             keep[order[:k]] = False
-        fit = fit_from_mass_matrix(mass_matrix[keep], e_grid, sigmas, apply_transit_selection, mode)
+        fit = fit_from_mass_matrix(mass_matrix[keep], e_grid, sigmas, apply_transit_selection, mode, outlier_floor)
         frac_shift = (fit["expected_e"] - full["expected_e"]) / full["expected_e"] if full["expected_e"] else np.nan
         rows.append(
             {

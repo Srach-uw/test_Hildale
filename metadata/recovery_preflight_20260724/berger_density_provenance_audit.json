@@ -1,0 +1,17 @@
+{
+  "berger2020_table_rows": 186301,
+  "berger2020_unique_kic": 186301,
+  "berger2020_has_density_columns": true,
+  "berger2018_rows": 177911,
+  "berger2018_has_density_column": false,
+  "inventory_unique_hosts": 1888,
+  "inventory_hosts_with_b20": 1888,
+  "inventory_hosts_with_b18_radius": 1887,
+  "hybrid_density_comparison_n": 1887,
+  "hybrid_delta_logrho_median": 0.0009816992647595502,
+  "hybrid_delta_logrho_p16": -0.03017582959529059,
+  "hybrid_delta_logrho_p84": 0.03016614945131568,
+  "paper_mentions_berger2018_density": true,
+  "paper_mentions_berger2020_metallicity_age": true,
+  "config_density_source": "table2.dat.gz"
+}

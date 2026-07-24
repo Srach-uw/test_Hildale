@@ -1,0 +1,12 @@
+{
+  "inventory": "C:\\Users\\shres\\Desktop\\HILDALE RESEARCH\\sagear_reproduction\\outputs\\sagear2026_planet_inventory_pre_visual_qc.csv",
+  "current_sample": "C:\\Users\\shres\\Desktop\\HILDALE RESEARCH\\sagear_reproduction\\outputs\\canonical_sample_diagnostic.csv",
+  "published_hosts": "C:\\Users\\shres\\Desktop\\HILDALE RESEARCH\\sagear_reproduction\\outputs\\sagear2026_published_kinematic_hosts.csv",
+  "n_published_hosts": 1888,
+  "n_joined_hosts": 1659,
+  "n_missing_current_coordinates": 229,
+  "current_label_agreement": 1400,
+  "inventory_label_agreement": 1659,
+  "coordinate_authority": "published vphi_used_kms, vr_used_kms, vz_used_kms",
+  "warning": "Do not use the direct Angus proxy Toomre panel as a Sagear replication figure."
+}

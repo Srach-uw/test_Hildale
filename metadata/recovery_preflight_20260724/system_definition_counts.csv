@@ -1,0 +1,13 @@
+classifier,system_definition,unknown_system_planets,thin_singles_planets,delta_thin_singles_planets,thin_multi_planets,delta_thin_multi_planets,thin_multi_hosts,delta_thin_multi_hosts,thick_singles_planets,delta_thick_singles_planets,thick_multi_planets,delta_thick_multi_planets,thick_multi_hosts,delta_thick_multi_hosts,l1_error,moved_from_current_planets
+old_astropy,raw_confirmed_candidate_count_gt1,0,1109,-12,860,-2,373,-21,272,-3,233,26,103,5,69,45
+direct,raw_confirmed_candidate_count_gt1,0,1087,-34,856,-6,370,-24,294,19,237,30,106,8,121,45
+old_astropy,koi_count_gt1_catalog,0,1077,-44,892,30,405,11,265,-10,240,33,110,12,140,84
+old_astropy,after_all_cuts_current,0,1146,25,823,-39,336,-58,280,5,225,18,95,-3,148,0
+old_astropy,period_confirmed_candidate_count_gt1,0,1146,25,823,-39,336,-58,280,5,225,18,95,-3,148,0
+direct,after_all_cuts_current,0,1121,0,822,-40,336,-58,305,30,226,19,95,-3,150,0
+direct,period_confirmed_candidate_count_gt1,0,1121,0,822,-40,336,-58,305,30,226,19,95,-3,150,0
+direct,koi_count_gt1_catalog,0,1056,-65,887,25,401,7,286,11,245,38,114,16,162,84
+direct,raw_confirmed_only_count_gt1,640,812,-309,648,-214,264,-130,191,-84,183,-24,77,-21,782,215
+old_astropy,raw_confirmed_only_count_gt1,640,812,-309,649,-213,265,-129,191,-84,182,-25,76,-22,782,215
+direct,period_confirmed_only_count_gt1,647,832,-289,623,-239,240,-154,200,-75,172,-35,68,-30,822,187
+old_astropy,period_confirmed_only_count_gt1,647,834,-287,622,-240,239,-155,198,-77,173,-34,69,-29,822,187

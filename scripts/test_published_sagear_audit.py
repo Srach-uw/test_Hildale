@@ -38,3 +38,26 @@ def test_published_disk_relabel_preserves_pre_cut_multiplicity(tmp_path) -> None
     assert bool(by_kic.loc[100, "multiplicity_recount_disagrees"])
     assert counts["published_relabel_thin_multi_planets"] == 1
     assert counts["published_relabel_multiplicity_recount_disagreements"] == 1
+
+
+def test_published_disk_relabel_accepts_existing_published_columns(tmp_path) -> None:
+    hosts = pd.DataFrame(
+        {
+            "kepid": [100],
+            "disk_published": ["thin"],
+            "p_thick_published": [0.1],
+        }
+    )
+    sample = pd.DataFrame(
+        {
+            "kepid": [100],
+            "kepoi_name": ["K00100.01"],
+            "disk_published": ["thin"],
+            "p_thick_published": [0.1],
+            "system": ["single"],
+        }
+    )
+    sample_path = tmp_path / "sample_with_published_columns.csv"
+    sample.to_csv(sample_path, index=False)
+    relabeled, _ = relabel_planets(hosts, sample_path)
+    assert relabeled.loc[0, "disk"] == "thin"

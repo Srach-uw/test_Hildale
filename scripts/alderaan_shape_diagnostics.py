@@ -184,10 +184,10 @@ def process_target(path: Path, target_rows: pd.DataFrame) -> list[dict[str, obje
                     "e50": row["e50"],
                     "e16": row["e16"],
                     "e84": row["e84"],
-                    "zeta_p16": row["zeta_p16"],
-                    "zeta_median": row["zeta_median"],
-                    "zeta_p84": row["zeta_p84"],
-                    "n_zeta": row["n_zeta"],
+                    "zeta_p16": row.get("zeta_p16", np.nan),
+                    "zeta_median": row.get("zeta_median", np.nan),
+                    "zeta_p84": row.get("zeta_p84", np.nan),
+                    "n_zeta": row.get("n_zeta", np.nan),
                     "koi_model_snr": row.get("koi_model_snr", np.nan),
                     "koi_prad": row.get("koi_prad", np.nan),
                 }
@@ -249,12 +249,18 @@ def make_plots(df: pd.DataFrame, suffix: str = "") -> None:
         return
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.5), constrained_layout=True)
     colors = {("thin", "single"): "#008b8b", ("thick", "single"): "#8b0000", ("thin", "multi"): "#66c2c2", ("thick", "multi"): "#c46a6a"}
+    zeta_available = np.isfinite(pd.to_numeric(df["zeta_median"], errors="coerce")).any()
     for (disk, system), sub in df.groupby(["disk", "system"]):
         label = f"{disk} {system}"
         color = colors.get((disk, system), None)
-        axes[0].hist(sub["zeta_median"], bins=np.linspace(0, 2.5, 80), histtype="step", density=True, color=color, label=label)
+        if zeta_available:
+            axes[0].hist(sub["zeta_median"], bins=np.linspace(0, 2.5, 80), histtype="step", density=True, color=color, label=label)
         axes[1].hist(sub["e50"], bins=np.linspace(0, 0.95, 80), histtype="step", density=True, color=color, label=label)
-        axes[2].scatter(sub["zeta_median"], sub["e50"], s=8, alpha=0.35, color=color, label=label)
+        if zeta_available:
+            axes[2].scatter(sub["zeta_median"], sub["e50"], s=8, alpha=0.35, color=color, label=label)
+    if not zeta_available:
+        axes[0].text(0.5, 0.5, "zeta unavailable\nfor direct posteriors", ha="center", va="center", transform=axes[0].transAxes)
+        axes[2].text(0.5, 0.5, "zeta unavailable\nfor direct posteriors", ha="center", va="center", transform=axes[2].transAxes)
     axes[0].axvline(1.0, color="0.3", lw=1, ls="--")
     axes[0].set_xlabel(r"median $\zeta = T_{obs}/T_{circ}$")
     axes[0].set_ylabel("density")

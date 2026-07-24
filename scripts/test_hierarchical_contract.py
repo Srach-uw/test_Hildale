@@ -17,6 +17,7 @@ def valid_summary() -> pd.DataFrame:
             "qc_reasons": [""],
             "posterior_source": ["alderaan_direct_importance"],
             "impact_mode": ["alderaan"],
+            "nested_weight_mode": ["dynesty"],
         }
     )
 
@@ -34,3 +35,15 @@ def test_mixed_sources_fail_canonical_contract() -> None:
 def test_nonpaired_impact_fails_canonical_contract() -> None:
     with pytest.raises(ValueError, match="paired ALDERAAN"):
         validate_summary_contract(valid_summary().assign(impact_mode="geometric"))
+
+
+def test_equal_nested_weights_fail_canonical_contract() -> None:
+    with pytest.raises(ValueError, match="LN_WT"):
+        validate_summary_contract(valid_summary().assign(nested_weight_mode="equal"))
+
+
+def test_equal_nested_weights_require_explicit_diagnostic_override() -> None:
+    validate_summary_contract(
+        valid_summary().assign(nested_weight_mode="equal"),
+        allow_non_dynesty_weights=True,
+    )

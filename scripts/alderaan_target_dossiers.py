@@ -19,6 +19,7 @@ def main() -> None:
     parser.add_argument(
         "--results-dir",
         required=True,
+        help="Directory containing one <KOI target>-results.fits file per target.",
     )
     parser.add_argument("--max-planets", type=int, default=40)
     args = parser.parse_args()
@@ -91,9 +92,11 @@ def make_planet_dossier(fits_path: Path, flagged_row: pd.Series, summary_row: pd
     e_pdf = posterior["e_pdf"]
 
     fig, axes = plt.subplots(2, 2, figsize=(10, 7.2), constrained_layout=True)
+    zeta_value = pd.to_numeric(pd.Series([flagged_row.get("zeta_median", np.nan)]), errors="coerce").iloc[0]
+    zeta_label = f"{zeta_value:.3f}" if np.isfinite(zeta_value) else "n/a"
     fig.suptitle(
         f"{flagged_row['kepoi_name']} | {flagged_row['disk']} {flagged_row['system']} | "
-        f"e50={flagged_row['e50']:.3f}, zeta={flagged_row['zeta_median']:.3f}, flags={int(flagged_row['n_flags'])}",
+        f"e50={flagged_row['e50']:.3f}, zeta={zeta_label}, flags={int(flagged_row['n_flags'])}",
         fontsize=12,
     )
 

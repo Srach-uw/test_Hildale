@@ -7,7 +7,8 @@ documentation needed to inspect the replication. Large generated products are ex
 
 - `scripts/`: analysis, extraction, diagnostics, tests, and release checks.
 - `cloud/`: resumable ALDERAAN execution helpers and cloud validation scripts.
-- `metadata/`: compact output tables that support documented counts and comparisons.
+- `metadata/`: compact output tables that support documented counts and comparisons,
+  including the July 24 published-host recovery preflight.
 - `reference/`: the published article, machine-readable tables, and source references.
 - `docs/`: current scientific status, audit records, and operational runbooks.
 - `legacy/`: superseded work retained for provenance and excluded from canonical results.
@@ -15,7 +16,8 @@ documentation needed to inspect the replication. Large generated products are ex
 ## Excluded
 
 - Raw Kepler light curves.
-- ALDERAAN result FITS files and posterior sample archives.
+- ALDERAAN result FITS files and posterior sample archives, except the curated 82-fit
+  factorial validation release stored through Git LFS.
 - Virtual environments and downloaded dependency repositories.
 - Cloud result archives and generated run directories.
 - Credentials, private keys, access tokens, and billing information.

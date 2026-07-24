@@ -69,13 +69,18 @@ def relabel_planets(hosts: pd.DataFrame, sample_path: Path) -> tuple[pd.DataFram
         raise ValueError("Planet sample lacks the canonical pre-cut system label")
     planets["kepid"] = pd.to_numeric(planets["kepid"], errors="coerce").astype("Int64")
     published = hosts[["kepid", "disk_published", "p_thick_published"]].copy()
+    # Rename the authoritative columns before merging so samples that already
+    # carry diagnostic published-label columns cannot trigger suffix ambiguity.
+    published = published.rename(
+        columns={"disk_published": "published_disk_authority", "p_thick_published": "published_p_thick_authority"}
+    )
     relabeled = planets.merge(published, on="kepid", how="inner", validate="many_to_one").copy()
     if "disk" in relabeled:
         relabeled = relabeled.rename(columns={"disk": "disk_reconstructed"})
     if "p_thick" in relabeled:
         relabeled = relabeled.rename(columns={"p_thick": "p_thick_reconstructed"})
     relabeled = relabeled.copy()
-    relabeled["disk"] = relabeled["disk_published"]
+    relabeled["disk"] = relabeled["published_disk_authority"]
     # Disk labels come from the published host table, but multiplicity remains
     # the pre-cut architecture carried by the canonical planet sample. Keep an
     # overlap-only recount solely to audit the historical notebook failure mode.

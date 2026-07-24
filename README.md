@@ -9,25 +9,27 @@ Reference article: [doi:10.3847/1538-3881/ae71bf](https://doi.org/10.3847/1538-3
 
 This is an active replication, not a completed reproduction. The sample construction,
 published disk labels, multiplicity bookkeeping, ALDERAAN posterior extraction, and
-population model have been audited separately. The current population estimates remain
-diagnostic because posterior coverage is incomplete and a controlled ALDERAAN validation
-is testing cadence, limb-darkening, prior, and repeatability effects. The complete 82-fit
-factorial result release is included through Git LFS; its comparison analysis has not yet
-been folded into the population result.
+population model have been audited separately. The 82-fit controlled ALDERAAN matrix is
+complete and rules out ordinary cadence, limb-darkening, printed-prior, and sampler-seed
+differences as the main explanation for the discrepancy. The population result remains
+diagnostic because 142 published-host systems, containing 174 population planets, still
+lack a usable local ALDERAAN result.
 
-| population | current fit N | current mean eccentricity (16th-84th) | Sagear N | Sagear mean eccentricity (16th-84th) |
+| population | usable weighted posteriors | current mean eccentricity (16th-84th) | Sagear N | Sagear mean eccentricity (16th-84th) |
 |---|---:|---:|---:|---:|
-| thin singles | 304 | 0.335 (0.319-0.353) | 1121 | 0.022 (0.017-0.029) |
-| thick singles | 108 | 0.288 (0.263-0.315) | 275 | 0.066 (0.045-0.096) |
-| thin multis | 222 | 0.122 (0.108-0.136) | 862 | 0.030 (0.023-0.031) |
-| thick multis | 69 | 0.117 (0.086-0.154) | 207 | 0.033 (0.015-0.065) |
+| thin singles | 1028 | 0.225 (0.218-0.232) | 1121 | 0.022 (0.017-0.029) |
+| thick singles | 256 | 0.195 (0.180-0.211) | 275 | 0.066 (0.045-0.096) |
+| thin multis | 828 | 0.081 (0.075-0.087) | 862 | 0.030 (0.023-0.031) |
+| thick multis | 204 | 0.132 (0.120-0.145) | 207 | 0.033 (0.015-0.065) |
 
 These values do not reproduce Table 2. They should not be interpreted as a physical
 measurement of disk-population eccentricity. The discrepancy is the object of the
 remaining validation work.
 
 See [docs/replication_status.md](docs/replication_status.md) for the current evidence,
-limitations, and acceptance criteria.
+limitations, and acceptance criteria. The July 24 recovery preflight, including the
+published-host reconstruction and target-level recovery manifest, is in
+[`metadata/recovery_preflight_20260724/`](metadata/recovery_preflight_20260724/).
 
 ## Findings That Changed The Replication
 
@@ -68,7 +70,7 @@ optional and billable. Read `docs/gcp_no_charge_safety_checklist.md` before crea
 |---|---|
 | `scripts/` | sample, posterior, population, diagnostic, and validation code |
 | `cloud/` | resumable ALDERAAN and GCP execution helpers |
-| `metadata/` | compact derived tables and validation summaries |
+| `metadata/` | compact derived tables, validation summaries, and the July 24 recovery preflight |
 | `data/alderaan_factorial_validation_20260715/` | 82 completed factorial ALDERAAN result FITS and their provenance, stored with Git LFS |
 | `reference/` | published article, machine-readable tables, and reference material |
 | `docs/` | scientific status, methods audits, runbooks, and historical worklog |

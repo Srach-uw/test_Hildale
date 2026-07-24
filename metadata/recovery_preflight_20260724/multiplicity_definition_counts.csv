@@ -1,0 +1,5 @@
+definition,rows,hosts,matches_published_pre_visual_counts,thin_single,thick_single,thin_multi,thick_multi
+catalog_koi_count,2491,1888,True,1121,275,883,212
+all_catalog_rows,2491,1888,True,1121,275,883,212
+nonfp_all_periods,2491,1888,False,1135,279,869,208
+nonfp_period_1_to_100,2491,1888,False,1169,289,835,198

@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import os
 from pathlib import Path
 
 import numpy as np
@@ -10,48 +9,41 @@ import pandas as pd
 from common import output_dir
 
 
-DATA_ROOT = Path(os.environ.get("HILDALE_DATA_ROOT", Path(__file__).resolve().parents[1]))
-ALDERAAN_ROOT = Path(
-    os.environ.get("ALDERAAN_ROOT", DATA_ROOT / "external" / "alderaan")
-)
-
-CATALOGS = [
-    (
-        "current_cumulative_2026",
-        DATA_ROOT / "cumulative_2026.02.11_22.33.58.csv",
-    ),
-    (
-        "alderaan_cumulative_20240816",
-        ALDERAAN_ROOT / "Catalogs" / "koi_cumulative_exoarchive_20240816.csv",
-    ),
-    (
-        "dr22_mullally_q1_q16",
-        ALDERAAN_ROOT / "Catalogs" / "kepler_q1_q16_dr22_mullally.csv",
-    ),
-    (
-        "dr24_coughlin_q1_q17",
-        ALDERAAN_ROOT / "Catalogs" / "kepler_q1_q17_dr24_coughlin.csv",
-    ),
-    (
-        "dr25_thompson_q1_q17",
-        ALDERAAN_ROOT / "Catalogs" / "kepler_q1_q17_dr25_thompson.csv",
-    ),
-    (
-        "merged_planets_full",
-        DATA_ROOT / "merged_planets_full.csv",
-    ),
+CATALOG_NAMES = [
+    "current_cumulative_2026",
+    "alderaan_cumulative_20240816",
+    "dr22_mullally_q1_q16",
+    "dr24_coughlin_q1_q17",
+    "dr25_thompson_q1_q17",
+    "merged_planets_full",
 ]
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Audit local historical transit-seed recovery for unseeded ALDERAAN planets.")
-    parser.add_argument("--copy-to-external-output", default=None)
+    parser.add_argument("--copy-to-codex-outputs", default=None)
+    parser.add_argument(
+        "--catalog",
+        action="append",
+        default=[],
+        metavar="NAME=PATH",
+        help="Repeatable historical catalog input; supported names: " + ", ".join(CATALOG_NAMES),
+    )
     args = parser.parse_args()
+
+    catalogs = []
+    for item in args.catalog:
+        name, separator, value = item.partition("=")
+        if not separator or not name or not value:
+            raise SystemExit("--catalog must use NAME=PATH")
+        if name not in CATALOG_NAMES:
+            raise SystemExit(f"unknown catalog name: {name}")
+        catalogs.append((name, Path(value)))
 
     out = output_dir()
     unseeded = pd.read_csv(out / "alderaan_unseeded_needed_planets_best.csv")
     rows = []
-    for catalog_name, path in CATALOGS:
+    for catalog_name, path in catalogs:
         if not path.exists():
             continue
         cat = pd.read_csv(path, comment="#")
@@ -125,7 +117,7 @@ def main() -> None:
     audit.to_csv(audit_path, index=False)
     write_markdown(md_path, audit)
 
-    copy_root = Path(args.copy_to_external_output) if args.copy_to_external_output else None
+    copy_root = Path(args.copy_to_codex_outputs) if args.copy_to_codex_outputs else None
     if copy_root:
         copy_root.mkdir(parents=True, exist_ok=True)
         for path in [audit_path, md_path]:

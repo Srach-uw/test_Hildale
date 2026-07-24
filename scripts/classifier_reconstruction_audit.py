@@ -97,9 +97,7 @@ def main() -> None:
         }
         rows.append(row)
 
-        # The sweep replaces the component prior explicitly. Run it once per
-        # likelihood construction instead of duplicating it for both priors.
-        if model != "conditioned" or prior != "equal":
+        if model != "conditioned":
             continue
         ll_low = classified["kinematic_loglike_thin"].to_numpy(float)
         ll_high = classified["kinematic_loglike_thick"].to_numpy(float)

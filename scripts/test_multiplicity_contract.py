@@ -42,6 +42,13 @@ def test_system_definition_diagnostic_does_not_invent_single_label() -> None:
         assign_system(sample, "raw_nonfp", pd.Series({200: "single"}))
 
 
+def test_alternate_definition_can_report_unknown_without_relabeling() -> None:
+    sample = pd.DataFrame({"kepid": [100, 200], "system": ["multi", "single"]})
+    assigned = assign_system(sample, "confirmed_only", pd.Series({100: "multi"}), strict=False)
+    assert assigned.iloc[0] == "multi"
+    assert pd.isna(assigned.iloc[1])
+
+
 def test_unknown_system_completeness_is_qc_excluded() -> None:
     summary = pd.DataFrame(
         {

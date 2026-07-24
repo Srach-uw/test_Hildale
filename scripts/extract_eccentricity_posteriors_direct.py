@@ -39,6 +39,24 @@ EXCLUSION_COLUMNS = [
 ]
 
 
+def direct_result_file_for_target(
+    target: str,
+    results_dir: Path | None,
+    project: Path | None,
+    run_id: str,
+) -> Path:
+    """Resolve both flat exports and ALDERAAN's native nested result layout."""
+    if results_dir is not None:
+        candidates = (
+            results_dir / f"{target}-results.fits",
+            results_dir / target / f"{target}-results.fits",
+            results_dir / run_id / target / f"{target}-results.fits",
+        )
+        return next((path for path in candidates if path.exists()), candidates[0])
+    assert project is not None
+    return project / "Results" / run_id / target / f"{target}-results.fits"
+
+
 def macdougall_rho_star_samp(
     period_s: float | np.ndarray,
     dur14_s: np.ndarray,
@@ -97,6 +115,33 @@ def stellar_density_parameters(
         if invalid_lo:
             err_lo = 0.13 * rho_true
     return rho_true, err_hi, err_lo
+
+
+def adjust_stellar_density(
+    rho_true: float,
+    err_hi: float,
+    err_lo: float,
+    *,
+    offset_dex: float = 0.0,
+    error_scale: float = 1.0,
+) -> tuple[float, float, float]:
+    if not np.isfinite(offset_dex):
+        raise ValueError("density offset must be finite")
+    if not np.isfinite(error_scale) or error_scale <= 0.0:
+        raise ValueError("density error scale must be finite and positive")
+    factor = 10.0**offset_dex
+    return rho_true * factor, err_hi * factor * error_scale, err_lo * factor * error_scale
+
+
+def nested_sample_weights(log_weights: np.ndarray, mode: str) -> np.ndarray:
+    log_weights = np.asarray(log_weights, dtype=float)
+    if mode == "dynesty":
+        return normalize_dynesty_weights(log_weights)
+    if mode == "equal":
+        if len(log_weights) == 0:
+            raise ValueError("cannot assign equal weights to zero nested samples")
+        return np.full(len(log_weights), 1.0 / len(log_weights))
+    raise ValueError(f"Unknown nested weight mode: {mode}")
 
 
 def density_log_likelihood(
@@ -163,6 +208,46 @@ def weighted_posterior_grid(
     return posterior
 
 
+def resampled_posterior_grid(
+    eccentricity: np.ndarray,
+    omega: np.ndarray,
+    weights: np.ndarray,
+    e_grid: np.ndarray,
+    omega_grid: np.ndarray,
+    *,
+    n_draws: int,
+    rng: np.random.Generator,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Convert importance weights into literal equal-weight posterior draws.
+
+    Gilbert's published post-model description says that weighted samples are
+    converted to unweighted samples before downstream analysis.  Keep this
+    operation explicit instead of silently treating the raw nested rows as
+    equal-weight draws.
+    """
+    if n_draws <= 0:
+        raise ValueError("n_draws must be positive")
+    eccentricity = np.asarray(eccentricity, dtype=float)
+    omega = np.mod(np.asarray(omega, dtype=float), 2.0 * np.pi)
+    weights = np.asarray(weights, dtype=float)
+    valid = np.isfinite(eccentricity) & np.isfinite(omega) & np.isfinite(weights) & (weights > 0.0)
+    if not valid.any():
+        raise ValueError("cannot resample an empty importance posterior")
+    weights = weights[valid]
+    weights /= weights.sum()
+    indices = rng.choice(weights.size, size=n_draws, replace=True, p=weights)
+    e_draws = eccentricity[valid][indices]
+    omega_draws = omega[valid][indices]
+    posterior = weighted_posterior_grid(
+        e_draws,
+        omega_draws,
+        np.ones(n_draws, dtype=float),
+        e_grid,
+        omega_grid,
+    )
+    return posterior, e_draws, omega_draws
+
+
 def direct_importance_posterior(
     ror: np.ndarray,
     impact: np.ndarray,
@@ -179,6 +264,8 @@ def direct_importance_posterior(
     omega_grid: np.ndarray,
     density_error_mode: str,
     seed: int,
+    posterior_sampling_mode: str = "weighted_grid",
+    density_sampling_mode: str = "fixed_central",
 ) -> dict[str, object]:
     """Pair ALDERAAN rows, draw uniform (e, omega), and importance reweight."""
     ror = np.asarray(ror, dtype=float)
@@ -200,7 +287,28 @@ def direct_importance_posterior(
         eccentricity,
         omega,
     )
-    loglike = density_log_likelihood(rho_model, rho_true, err_hi, err_lo, density_error_mode)
+    if density_sampling_mode == "fixed_central":
+        rho_reference = np.full(n_proposals, rho_true, dtype=float)
+        sigma_reference = None
+    elif density_sampling_mode == "draw_gaussian":
+        sigma_draw = 0.5 * (err_hi + err_lo)
+        rho_reference = rng.normal(rho_true, sigma_draw, size=n_proposals)
+        sigma_reference = sigma_draw
+    elif density_sampling_mode == "draw_split_normal":
+        standard_draw = rng.normal(0.0, 1.0, size=n_proposals)
+        upper = standard_draw >= 0.0
+        sigma_reference = np.where(upper, err_hi, err_lo)
+        rho_reference = rho_true + np.where(
+            upper,
+            np.abs(standard_draw) * err_hi,
+            -np.abs(standard_draw) * err_lo,
+        )
+    else:
+        raise ValueError(f"Unknown density sampling mode: {density_sampling_mode}")
+    if density_sampling_mode == "fixed_central":
+        loglike = density_log_likelihood(rho_model, rho_true, err_hi, err_lo, density_error_mode)
+    else:
+        loglike = -0.5 * ((rho_model - rho_reference) / sigma_reference) ** 2
     valid = np.isfinite(loglike) & np.isfinite(rho_model) & (rho_model > 0.0)
     if not valid.any():
         raise ValueError("no finite positive MacDougall density proposals")
@@ -212,10 +320,27 @@ def direct_importance_posterior(
     importance_weights /= weight_sum
     e_valid = eccentricity[valid]
     omega_valid = omega[valid]
-    posterior = weighted_posterior_grid(e_valid, omega_valid, importance_weights, e_grid, omega_grid)
+    if posterior_sampling_mode == "weighted_grid":
+        posterior = weighted_posterior_grid(e_valid, omega_valid, importance_weights, e_grid, omega_grid)
+        posterior_e = e_valid
+    elif posterior_sampling_mode == "unweighted_resample":
+        posterior, posterior_e, _ = resampled_posterior_grid(
+            e_valid,
+            omega_valid,
+            importance_weights,
+            e_grid,
+            omega_grid,
+            n_draws=n_proposals,
+            rng=rng,
+        )
+    else:
+        raise ValueError(f"Unknown posterior sampling mode: {posterior_sampling_mode}")
     if posterior.sum() <= 0.0:
         raise ValueError("weighted posterior grid has zero mass")
-    quantiles = weighted_quantile(e_valid, importance_weights, [0.16, 0.5, 0.84])
+    if posterior_sampling_mode == "weighted_grid":
+        quantiles = weighted_quantile(e_valid, importance_weights, [0.16, 0.5, 0.84])
+    else:
+        quantiles = np.quantile(posterior_e, [0.16, 0.5, 0.84])
     return {
         "posterior": posterior,
         "e_pdf": posterior.sum(axis=1),
@@ -225,6 +350,8 @@ def direct_importance_posterior(
         "valid_proposal_fraction": float(valid.mean()),
         "nested_ess": float(1.0 / np.sum(nested_weights**2)),
         "importance_ess": float(1.0 / np.sum(importance_weights**2)),
+        "posterior_sampling_mode": posterior_sampling_mode,
+        "density_sampling_mode": density_sampling_mode,
     }
 
 
@@ -334,6 +461,12 @@ def process_target(
     period_tol: float,
     min_importance_ess: float,
     allow_density_error_fallback: bool,
+    nested_weight_mode: str = "dynesty",
+    posterior_sampling_mode: str = "weighted_grid",
+    density_sampling_mode: str = "fixed_central",
+    density_error_scale: float = 1.0,
+    density_offset_dex: float = 0.0,
+    density_source: str = "berger2020_table2",
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     with fits.open(results_file, memmap=False) as hdul:
         if "SAMPLES" not in hdul:
@@ -342,7 +475,7 @@ def process_target(
         fit_planets = read_alderaan_planets(hdul)
     if "LN_WT" not in samples:
         return [], [_exclusion(row, results_file, "fits", "missing LN_WT column") for _, row in planets.iterrows()]
-    nested_weights = normalize_dynesty_weights(samples["LN_WT"].to_numpy(float))
+    nested_weights = nested_sample_weights(samples["LN_WT"].to_numpy(float), nested_weight_mode)
     matches = match_planets_by_period(planets, fit_planets, period_tol)
     matched = {match[0] for match in matches}
     summaries: list[dict[str, object]] = []
@@ -363,6 +496,13 @@ def process_target(
                 planet,
                 allow_missing_error_fallback=allow_density_error_fallback,
             )
+            rho_true, err_hi, err_lo = adjust_stellar_density(
+                rho_true,
+                err_hi,
+                err_lo,
+                offset_dex=density_offset_dex,
+                error_scale=density_error_scale,
+            )
             if not np.isfinite(rho_true) or rho_true <= 0.0:
                 raise ValueError("invalid stellar density")
             result = direct_importance_posterior(
@@ -379,7 +519,20 @@ def process_target(
                 e_grid=e_grid,
                 omega_grid=omega_grid,
                 density_error_mode=density_error_mode,
-                seed=stable_seed("macdougall-direct", planet.get("kepoi_name"), n_proposals, e_max, density_error_mode),
+                posterior_sampling_mode=posterior_sampling_mode,
+                density_sampling_mode=density_sampling_mode,
+                seed=stable_seed(
+                    "macdougall-direct",
+                    planet.get("kepoi_name"),
+                    n_proposals,
+                    e_max,
+                    density_error_mode,
+                    nested_weight_mode,
+                    posterior_sampling_mode,
+                    density_sampling_mode,
+                    density_error_scale,
+                    density_offset_dex,
+                ),
             )
         except (ValueError, FloatingPointError) as exc:
             excluded.append(_exclusion(planet, results_file, "importance", str(exc)))
@@ -400,6 +553,12 @@ def process_target(
             proposal_e_prior=f"Uniform(0,{e_max:g})",
             proposal_omega_prior="Uniform(-pi/2,3pi/2)",
             density_error_mode=density_error_mode,
+            nested_weight_mode=nested_weight_mode,
+            posterior_sampling_mode=posterior_sampling_mode,
+            density_sampling_mode=density_sampling_mode,
+            density_error_scale=density_error_scale,
+            density_offset_dex=density_offset_dex,
+            density_source=density_source,
             no_zeta_kde=True,
             posterior_source="alderaan_direct_importance",
             impact_mode="alderaan",
@@ -435,6 +594,12 @@ def process_target(
                 "formalism": FORMALISM,
                 "include_transit_prior": False,
                 "density_error_mode": density_error_mode,
+                "nested_weight_mode": nested_weight_mode,
+                "posterior_sampling_mode": posterior_sampling_mode,
+                "density_sampling_mode": density_sampling_mode,
+                "density_error_scale": density_error_scale,
+                "density_offset_dex": density_offset_dex,
+                "density_source": density_source,
                 "e_max": e_max,
                 "nested_sample_count": len(samples),
                 "nested_ess": result["nested_ess"],
@@ -446,7 +611,7 @@ def process_target(
                 "qc_importance_ess_low": low_ess,
                 "qc_primary_exclude": low_ess,
                 "qc_reasons": qc_reasons,
-                "qc_manifest_version": "direct_importance_v1",
+                "qc_manifest_version": "direct_importance_v2",
                 "zeta_median": np.nan,
                 "zeta_p16": np.nan,
                 "zeta_p84": np.nan,
@@ -473,6 +638,30 @@ def _add_density(sample: pd.DataFrame, berger: pd.DataFrame) -> pd.DataFrame:
     return merged
 
 
+def load_density_source(
+    cfg: dict[str, object],
+    source: str,
+    sample_path: str | Path | None = None,
+) -> pd.DataFrame:
+    """Load one explicit stellar-density provenance branch."""
+    if source == "berger2020_table2":
+        return read_berger_table2(cfg)
+    if source != "berger2018_kg":
+        raise ValueError(f"Unknown density source: {source}")
+    path = Path(sample_path) if sample_path else root_path(cfg, "berger2018_kg_density_sample")
+    if path is None or not path.exists():
+        raise FileNotFoundError(
+            "Berger-2018 density sample not found; pass --density-sample explicitly "
+            "or build it with build_berger2018_kg_density_sample.py"
+        )
+    frame = pd.read_csv(path, low_memory=False)
+    required = {"kepid", "rho_log", "rho_log_upper", "rho_log_lower"}
+    missing = sorted(required.difference(frame.columns))
+    if missing:
+        raise ValueError(f"Density sample is missing required columns: {', '.join(missing)}")
+    return frame[["kepid", "rho_log", "rho_log_upper", "rho_log_lower"]].copy()
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Exact MacDougall-style direct importance extractor for ALDERAAN samples.")
     parser.add_argument("--config", default=None)
@@ -493,6 +682,43 @@ def main() -> None:
     )
     parser.add_argument("--density-error-mode", choices=["symmetric-average", "split"], default="symmetric-average")
     parser.add_argument(
+        "--nested-weight-mode",
+        choices=["dynesty", "equal"],
+        default="dynesty",
+        help="Diagnostic equal treats all nested-sampling rows equally; canonical default uses dynesty LN_WT.",
+    )
+    parser.add_argument(
+        "--posterior-sampling-mode",
+        choices=["weighted_grid", "unweighted_resample"],
+        default="weighted_grid",
+        help=(
+            "weighted_grid integrates importance weights directly; "
+            "unweighted_resample performs the source-described sampling-importance-resampling step."
+        ),
+    )
+    parser.add_argument(
+        "--density-sampling-mode",
+        choices=["fixed_central", "draw_gaussian", "draw_split_normal"],
+        default="fixed_central",
+        help=(
+            "fixed_central applies the catalog-density likelihood directly; "
+            "draw_gaussian samples a symmetric linear-density prior; "
+            "draw_split_normal preserves asymmetric upper/lower density errors."
+        ),
+    )
+    parser.add_argument(
+        "--density-error-scale",
+        type=float,
+        default=1.0,
+        help="Diagnostic multiplicative scale on both published absolute density errors.",
+    )
+    parser.add_argument(
+        "--density-offset-dex",
+        type=float,
+        default=0.0,
+        help="Diagnostic additive shift in log10 stellar density; absolute errors shift with the same factor.",
+    )
+    parser.add_argument(
         "--allow-density-error-fallback",
         action="store_true",
         help="Diagnostic only: replace missing density errors with 13%% instead of excluding the planet.",
@@ -505,6 +731,17 @@ def main() -> None:
         help="Flag (do not silently delete) posterior rows with smaller direct-importance ESS.",
     )
     parser.add_argument("--max-targets", type=int, default=None)
+    parser.add_argument(
+        "--density-source",
+        choices=["berger2020_table2", "berger2018_kg"],
+        default="berger2020_table2",
+        help="Explicit stellar-density provenance; the paper-aligned Berger-2018 branch is opt-in until compared.",
+    )
+    parser.add_argument(
+        "--density-sample",
+        default=None,
+        help="CSV with kepid,rho_log,rho_log_upper,rho_log_lower for --density-source berger2018_kg.",
+    )
     args = parser.parse_args()
     if not 0.0 < args.e_max < 1.0:
         parser.error("--e-max must be strictly between 0 and 1")
@@ -512,6 +749,10 @@ def main() -> None:
         parser.error("--n-proposals must be positive")
     if args.min_importance_ess <= 0:
         parser.error("--min-importance-ess must be positive")
+    if not np.isfinite(args.density_error_scale) or args.density_error_scale <= 0.0:
+        parser.error("--density-error-scale must be finite and positive")
+    if not np.isfinite(args.density_offset_dex):
+        parser.error("--density-offset-dex must be finite")
 
     cfg = load_config(args.config)
     sample_path = Path(args.sample) if args.sample else output_dir() / "canonical_sample_replication.csv"
@@ -521,7 +762,9 @@ def main() -> None:
             "classifier reconstruction and write outputs/canonical_sample_replication.csv. The old "
             "canonical_sample_diagnostic.csv is intentionally not consumed implicitly."
         )
-    sample = _add_density(pd.read_csv(sample_path), read_berger_table2(cfg))
+    density = load_density_source(cfg, args.density_source, args.density_sample)
+    sample = _add_density(pd.read_csv(sample_path), density)
+    sample = sample.assign(_density_source=args.density_source)
     out_dir = output_dir() / args.posterior_subdir
     out_dir.mkdir(parents=True, exist_ok=True)
     flat_results_dir = Path(args.results_dir) if args.results_dir else None
@@ -541,7 +784,7 @@ def main() -> None:
     exclusions: list[dict[str, object]] = []
     for target in targets:
         target_planets = sample[sample["koi_target"].astype(str) == target].sort_values("koi_period").reset_index(drop=True)
-        results_file = result_file_for_target(target, flat_results_dir, project, run_id)
+        results_file = direct_result_file_for_target(target, flat_results_dir, project, run_id)
         if not results_file.exists():
             exclusions.extend(
                 _exclusion(row, results_file, "discovery", "ALDERAAN results file not found")
@@ -560,6 +803,12 @@ def main() -> None:
             period_tol=args.period_tol,
             min_importance_ess=args.min_importance_ess,
             allow_density_error_fallback=args.allow_density_error_fallback,
+            nested_weight_mode=args.nested_weight_mode,
+            posterior_sampling_mode=args.posterior_sampling_mode,
+            density_sampling_mode=args.density_sampling_mode,
+            density_error_scale=args.density_error_scale,
+            density_offset_dex=args.density_offset_dex,
+            density_source=args.density_source,
         )
         summaries.extend(target_summary)
         exclusions.extend(target_excluded)

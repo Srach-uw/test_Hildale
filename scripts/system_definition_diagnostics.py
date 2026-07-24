@@ -44,7 +44,10 @@ def main() -> None:
     moved_rows = []
     for label, sample in samples:
         for def_name, system_by_kepid in definitions.items():
-            assigned = assign_system(sample, def_name, system_by_kepid)
+            # Some alternate definitions intentionally omit candidate-only
+            # hosts. Keep those rows explicit as unknown so the comparison
+            # can finish; canonical labels still use strict=True elsewhere.
+            assigned = assign_system(sample, def_name, system_by_kepid, strict=False)
             rows.append(count_row(label, def_name, sample, assigned))
             moved_rows.extend(moved_planets(label, def_name, sample, assigned))
 
@@ -83,20 +86,27 @@ def count_to_system(df: pd.DataFrame) -> pd.Series:
     return pd.Series(np.where(counts > 1, "multi", "single"), index=counts.index)
 
 
-def assign_system(sample: pd.DataFrame, def_name: str, system_by_kepid: pd.Series | None) -> pd.Series:
+def assign_system(
+    sample: pd.DataFrame,
+    def_name: str,
+    system_by_kepid: pd.Series | None,
+    *,
+    strict: bool = True,
+) -> pd.Series:
     if system_by_kepid is None:
         return sample["system"].astype(str)
     out = sample["kepid"].map(system_by_kepid)
-    if out.isna().any():
+    if out.isna().any() and strict:
         missing = sorted(sample.loc[out.isna(), "kepid"].astype(int).unique())
         raise ValueError(
             f"System definition {def_name} lacks multiplicity for KIC identifiers: {missing[:10]}"
         )
-    return out.astype(str)
+    return out.astype("string")
 
 
 def count_row(classifier: str, definition: str, sample: pd.DataFrame, system: pd.Series) -> dict[str, object]:
     row: dict[str, object] = {"classifier": classifier, "system_definition": definition}
+    row["unknown_system_planets"] = int(system.isna().sum())
     for disk in ["thin", "thick"]:
         for sys_label, macro in [("single", "singles"), ("multi", "multi")]:
             sub = sample[(sample["disk"] == disk) & (system == sys_label)]
