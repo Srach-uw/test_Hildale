@@ -49,6 +49,12 @@ published-host reconstruction and target-level recovery manifest, is in
 5. The Berger et al. (2018) stellar-density construction used in the article is not fully
    specified by the public catalog. Berger et al. (2020) densities are therefore a labeled
    sensitivity, not a silent substitute.
+6. Reconstructing the published hosts before transit-fit QC gives 2,491 planets. The
+   final paper count of 2,465 therefore implies 26 removals, or 1.04%, consistent with
+   the reported visual rejection of less than 2%. Category arithmetic constrains the
+   removals to 21 thin multis and 5 thick multis, but the public host table does not
+   identify the individual planets. See
+   [`metadata/recovery_preflight_20260724/visual_qc_contract/`](metadata/recovery_preflight_20260724/visual_qc_contract/).
 
 ## Reproduce The Audits
 

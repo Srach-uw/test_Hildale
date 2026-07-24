@@ -14,6 +14,9 @@ report or filename.
   publication results and should be interpreted with `docs/sagear_diagnosis_report.md`.
 - Count and Toomre summaries record historical reconstruction branches and are retained
   for provenance rather than promoted as canonical inputs.
+- `recovery_preflight_20260724/visual_qc_contract/` records the tested 2,491-to-2,465
+  count contract and a sensitivity-only ranking of plausible final fit rejections. The
+  ranking is not an author-confirmed rejection list and must not be used as one.
 
 Large catalogs, ALDERAAN FITS files, posterior grids, and light curves are deliberately
 excluded from Git. A final result release should include a machine-readable run manifest

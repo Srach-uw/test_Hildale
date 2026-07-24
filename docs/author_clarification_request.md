@@ -8,7 +8,10 @@ planet-level numerical replication.
 1. Could you share the final planet-level analysis table containing KIC, KOI, period,
    single/multi label, and transit-fit QC inclusion? Table 1 fixes host membership and
    disk labels, but it does not identify the 2,465 individual planets or the visually
-   rejected/nonconvergent fits.
+   rejected/nonconvergent fits. Our published-host reconstruction contains 2,491
+   planets before visual QC, so the final count implies 26 removals: 21 thin-disk
+   multi planets and 5 thick-disk multi planets, with no count-implied single-planet
+   removals. Could you confirm those category totals and provide the 26 KOI IDs?
 2. The methods state that stellar densities are from Berger et al. (2018), while that
    catalog provides radii rather than the homogeneous density column available in
    Berger et al. (2020). Which exact table/columns or mass-radius calculation produced
