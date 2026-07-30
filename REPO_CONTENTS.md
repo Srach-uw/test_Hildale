@@ -13,6 +13,7 @@ Sagear et al. (2026) replication.
 - `reference/`: the article, machine-readable tables, and cited source material.
 - `docs/`: current scientific status, focused method audits, and runbooks.
 - `legacy/`: superseded early analysis, clearly separated from canonical work.
+- `CITATION.cff`: citation metadata for the repository and source article.
 
 ## Excluded
 

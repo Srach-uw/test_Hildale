@@ -99,6 +99,11 @@ git lfs install
 git lfs pull
 ```
 
+## Citation
+
+Citation metadata for this repository and the source article are provided in
+[`CITATION.cff`](CITATION.cff). GitHub can render this file as APA or BibTeX.
+
 ## Scientific Boundary
 
 The repository supports reproducibility and diagnosis. A match obtained by

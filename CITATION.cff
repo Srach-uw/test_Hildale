@@ -1,0 +1,39 @@
+cff-version: 1.2.0
+message: "If you use this replication code, please cite this repository and the source article."
+title: "Hildale Sagear Replication"
+type: software
+authors:
+  - family-names: "Rach"
+    given-names: "Shreshth"
+repository-code: "https://github.com/Srach-uw/test_Hildale"
+url: "https://github.com/Srach-uw/test_Hildale"
+keywords:
+  - exoplanets
+  - orbital eccentricity
+  - Kepler
+  - Galactic disks
+  - ALDERAAN
+references:
+  - type: article
+    title: "The Orbital Eccentricities of Planets in the Kinematic Thin and Thick Galactic Disks"
+    authors:
+      - family-names: "Sagear"
+        given-names: "Sheila"
+      - family-names: "Ballard"
+        given-names: "Sarah"
+      - family-names: "Daniel"
+        given-names: "Kathryne J."
+      - family-names: "Price-Whelan"
+        given-names: "Adrian M."
+      - family-names: "Hyman"
+        given-names: "Soley O."
+      - family-names: "Gilbert"
+        given-names: "Gregory J."
+      - family-names: "Lam"
+        given-names: "Christopher"
+    doi: "10.3847/1538-3881/ae71bf"
+    journal: "The Astronomical Journal"
+    volume: 172
+    issue: 1
+    start: 42
+    year: 2026
