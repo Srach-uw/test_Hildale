@@ -73,17 +73,35 @@ def radius_fractional_uncertainty(
     return ror16, ror50, ror84, float(frac)
 
 
+def build_result_index(*roots: Path) -> dict[str, list[Path]]:
+    index: dict[str, list[Path]] = {}
+    seen: set[Path] = set()
+    for root in roots:
+        if not root.exists():
+            continue
+        for path in root.rglob("*-results.fits"):
+            resolved = path.resolve()
+            if resolved in seen or path.stat().st_size <= 0:
+                continue
+            seen.add(resolved)
+            target = path.name.removesuffix("-results.fits")
+            index.setdefault(target, []).append(resolved)
+    return index
+
+
 def result_file(
     target: str,
-    source: str,
-    archive_dir: Path,
-    cloud_dir: Path,
-) -> Path | None:
-    if source == "original_alderaan_archive":
-        candidate = archive_dir / f"{target}-results.fits"
-        return candidate if candidate.exists() else None
-    matches = list(cloud_dir.rglob(f"{target}-results.fits"))
-    return matches[0] if matches else None
+    result_index: dict[str, list[Path]],
+) -> tuple[Path | None, bool, int]:
+    matches = result_index.get(target, [])
+    if not matches:
+        return None, False, 0
+    if len(matches) == 1:
+        return matches[0], False, 1
+    sizes = {path.stat().st_size for path in matches}
+    # Prefer the largest product and record the decision in the audit ledger.
+    selected = sorted(matches, key=lambda path: (-path.stat().st_size, str(path)))[0]
+    return selected, len(sizes) > 1, len(matches)
 
 
 def audit(
@@ -93,16 +111,20 @@ def audit(
     radius_errors: pd.DataFrame,
 ) -> pd.DataFrame:
     radius_lookup = radius_errors.set_index("kepid")
+    result_index = build_result_index(archive_dir, cloud_dir)
     rows: list[dict] = []
     grouped = summary.groupby(["koi_target", "transit_fit_source"], sort=True)
     for (target, source), planets in grouped:
-        path = result_file(str(target), str(source), archive_dir, cloud_dir)
+        path, conflicting_duplicates, candidate_count = result_file(
+            str(target), result_index
+        )
         if path is None:
             for _, planet in planets.iterrows():
                 rows.append(
                     {
                         "kepoi_name": planet["kepoi_name"],
                         "raw_result_file": "",
+                        "raw_result_candidate_count": 0,
                         "gilbert_qc_available": False,
                         "gilbert_qc_reason": "raw_result_missing",
                     }
@@ -120,6 +142,9 @@ def audit(
                 base = {
                     "kepoi_name": planet["kepoi_name"],
                     "raw_result_file": str(path.resolve()),
+                    "raw_result_candidate_count": candidate_count,
+                    "raw_result_selection_rule": "largest_nonempty_then_path",
+                    "raw_result_conflicting_duplicates": conflicting_duplicates,
                 }
                 if ror_col not in names or impact_col not in names or duration_col not in names:
                     rows.append(

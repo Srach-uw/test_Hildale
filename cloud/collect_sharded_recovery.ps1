@@ -26,13 +26,17 @@ foreach ($worker in $workers) {
         --zone=$($worker.Zone) `
         --format="value(status)").Trim()
     Assert-NativeSuccess "describe $($worker.Name)"
-    if ($state -eq "TERMINATED") {
-        gcloud.cmd compute instances start $worker.Name `
-            --project=$ProjectId `
-            --zone=$($worker.Zone) | Out-Host
-        Assert-NativeSuccess "start $($worker.Name)"
-        Start-Sleep -Seconds 60
+    if ($state -ne "TERMINATED") {
+        throw (
+            "Refusing to collect shard $($worker.Id) while $($worker.Name) is $state. " +
+            "Wait for the runner to finish and stop before collecting its final archive."
+        )
     }
+    gcloud.cmd compute instances start $worker.Name `
+        --project=$ProjectId `
+        --zone=$($worker.Zone) | Out-Host
+    Assert-NativeSuccess "start $($worker.Name)"
+    Start-Sleep -Seconds 60
 
     $archiveName = "alderaan_shard_$($worker.Id)_results.tar.gz"
     gcloud.cmd compute scp `
@@ -67,12 +71,14 @@ if ($archives.Count -ne 2) {
     throw "Expected two verified archives, found $($archives.Count)."
 }
 
-$repo = Split-Path -Parent $MyInvocation.MyCommand.Path
+$projectRoot = Split-Path -Parent $PSScriptRoot
+$merger = Join-Path $projectRoot "scripts\merge_sharded_recovery_archives.py"
+$targets = Join-Path $PSScriptRoot "recovery_142\targets_missing_launchable.csv"
 $merged = Join-Path $destination "alderaan_results_published_inventory_missing_merged.tar.gz"
 $staging = Join-Path $destination "merged_staging"
-& python (Join-Path $repo "merge_sharded_recovery_archives.py") `
+& python $merger `
     @archives `
-    --targets (Join-Path $repo "cloud_published_inventory_missing_batch\targets_missing_launchable.csv") `
+    --targets $targets `
     --staging $staging `
     --output $merged
 if ($LASTEXITCODE -ne 0) {

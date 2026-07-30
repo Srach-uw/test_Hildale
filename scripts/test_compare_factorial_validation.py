@@ -82,11 +82,15 @@ def write_result(path: Path, duration_offset: float, ror_offset: float = 0.0) ->
         fits.Column(name="ROR_0", format="D", array=ror),
         fits.Column(name="IMPACT_0", format="D", array=impact),
         fits.Column(name="DUR14_0", format="D", array=duration),
+        fits.Column(name="C0_0", format="D", array=np.zeros(count)),
+        fits.Column(name="C1_0", format="D", array=np.zeros(count)),
     ]
     sample_hdu = fits.BinTableHDU.from_columns(sample_columns, name="SAMPLES")
+    transit_index = np.arange(5)
     transit_columns = [
-        fits.Column(name="INDEX", format="K", array=np.arange(5)),
-        fits.Column(name="TTIME", format="D", array=np.arange(5) * PERIOD_DAYS),
+        fits.Column(name="INDEX", format="K", array=transit_index),
+        fits.Column(name="TTIME", format="D", array=transit_index * PERIOD_DAYS),
+        fits.Column(name="MODEL", format="D", array=transit_index * PERIOD_DAYS),
         fits.Column(name="OUT_FLAG", format="K", array=np.zeros(5, dtype=int)),
     ]
     transit_hdu = fits.BinTableHDU.from_columns(transit_columns, name="TTIMES_00")

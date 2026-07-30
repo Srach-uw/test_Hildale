@@ -1,26 +1,27 @@
 # Repository Contents
 
-This repository contains source code, compact metadata, reference material, and audit
-documentation needed to inspect the replication. Large generated products are excluded.
+This repository contains the code and compact evidence needed to inspect the
+Sagear et al. (2026) replication.
 
 ## Included
 
-- `scripts/`: analysis, extraction, diagnostics, tests, and release checks.
-- `cloud/`: resumable ALDERAAN execution helpers and cloud validation scripts.
-- `metadata/`: compact output tables that support documented counts and comparisons,
-  including the July 24 published-host recovery preflight.
-- `reference/`: the published article, machine-readable tables, and source references.
-- `docs/`: current scientific status, audit records, and operational runbooks.
-- `legacy/`: superseded work retained for provenance and excluded from canonical results.
+- `scripts/`: analysis code, diagnostics, tests, and release checks.
+- `cloud/`: ALDERAAN runner, recovery, packaging, and collection utilities.
+- `metadata/`: compact derived tables with provenance.
+- `data/alderaan_factorial_validation_20260715/`: the curated 82-fit validation
+  release stored through Git LFS.
+- `reference/`: the article, machine-readable tables, and cited source material.
+- `docs/`: current scientific status, focused method audits, and runbooks.
+- `legacy/`: superseded early analysis, clearly separated from canonical work.
 
 ## Excluded
 
 - Raw Kepler light curves.
-- ALDERAAN result FITS files and posterior sample archives, except the curated 82-fit
-  factorial validation release stored through Git LFS.
-- Virtual environments and downloaded dependency repositories.
-- Cloud result archives and generated run directories.
-- Credentials, private keys, access tokens, and billing information.
+- Full eccentricity-posterior archives.
+- Cloud recovery archives and generated run directories.
+- Virtual environments, caches, and temporary files.
+- Credentials, billing data, and personal filesystem paths.
+- Private chronological research logs.
 
-The exclusions are enforced by `.gitignore`. The tracked release surface is additionally
-checked by `scripts/check_professor_release.py`.
+The exclusions are enforced by `.gitignore` and
+`scripts/check_professor_release.py`.

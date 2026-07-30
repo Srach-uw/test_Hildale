@@ -1,0 +1,9 @@
+metric,value
+planets_compared,2465
+median_absolute_delta_e50,1.177164720145285e-07
+percentile_90_absolute_delta_e50,1.8875328453349382e-06
+percentile_95_absolute_delta_e50,4.657266343616166e-06
+percentile_99_absolute_delta_e50,4.3397094265496096e-05
+maximum_absolute_delta_e50,0.00043176011958317995
+planets_with_absolute_delta_e50_above_0.01,0
+maximum_qc_population_delta,1.2e-05

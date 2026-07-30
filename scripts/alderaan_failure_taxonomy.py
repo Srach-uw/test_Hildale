@@ -16,6 +16,14 @@ import pandas as pd
 
 
 RULES = (
+    (
+        "no_transit_quarter_control_flow",
+        re.compile(r"bad operand type for unary ~: 'NoneType'", re.I),
+    ),
+    (
+        "celerite_fallback_control_flow",
+        re.compile(r"NameError: name 'detrend' is not defined", re.I),
+    ),
     ("celerite_linalg", re.compile(r"LinAlgError|failed to factorize|celerite2", re.I)),
     ("low_quality_transits", re.compile(r"over 50% of transits|low quality", re.I)),
     ("limb_darkening", re.compile(r"LD_U1|LD_U2|limb.?dark", re.I)),

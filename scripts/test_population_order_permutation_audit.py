@@ -1,15 +1,15 @@
 import pandas as pd
 
-from population_order_permutation_audit import PUBLISHED_ORDER, audit
+from population_order_permutation_audit import PUBLISHED, PUBLISHED_ORDER, audit
 
 
 def test_identity_is_best_for_published_values() -> None:
     frame = pd.DataFrame(
         {
             "population": PUBLISHED_ORDER,
-            "expected_e": [0.066, 0.022, 0.033, 0.030],
-            "expected_e_lo": [0.045, 0.017, 0.015, 0.023],
-            "expected_e_hi": [0.096, 0.029, 0.065, 0.031],
+            "expected_e": [PUBLISHED[name][0] for name in PUBLISHED_ORDER],
+            "expected_e_lo": [PUBLISHED[name][1] for name in PUBLISHED_ORDER],
+            "expected_e_hi": [PUBLISHED[name][2] for name in PUBLISHED_ORDER],
         }
     )
     result = audit(frame)

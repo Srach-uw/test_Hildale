@@ -44,7 +44,7 @@ not estimates for the full Kepler population.
 | Same configuration, different sampler seed | 9 / 8 | +0.00071 | -0.00108 to +0.00276 | 0.00108 | Empirical repeatability reference |
 
 For comparison, the current thin-single diagnostic mean eccentricity is 0.335
-versus 0.022 in Sagear Table 2. A panel-wide change at the scale measured here
+versus 0.022 in Sagear Table 3. A panel-wide change at the scale measured here
 cannot reconcile that difference.
 
 ## Individual-System Sensitivity
@@ -69,7 +69,7 @@ discarding a population or changing the canonical configuration by themselves.
 ## Decision Record
 
 1. Do not claim that limb darkening, cadence treatment, printed priors, or
-   nested-sampling randomness resolves the current Table 2 discrepancy.
+   nested-sampling randomness resolves the current Table 3 discrepancy.
 2. Do not select a new full-run configuration from this targeted panel alone.
    A scientific choice can follow the published methods, but the panel does
    not establish a population-level correction.

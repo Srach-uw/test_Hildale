@@ -10,8 +10,8 @@ import pandas as pd
 
 PUBLISHED = {
     "thick_singles": (0.066, 0.045, 0.096),
-    "thin_singles": (0.022, 0.017, 0.029),
     "thick_multis": (0.033, 0.015, 0.065),
+    "thin_singles": (0.022, 0.017, 0.029),
     "thin_multis": (0.030, 0.023, 0.031),
 }
 PUBLISHED_ORDER = list(PUBLISHED)
@@ -37,19 +37,22 @@ def score_permutation(frame: pd.DataFrame, source_order: tuple[str, ...]) -> dic
     paper_lo = np.array([PUBLISHED[name][1] for name in PUBLISHED_ORDER])
     paper_hi = np.array([PUBLISHED[name][2] for name in PUBLISHED_ORDER])
     overlap = (highs >= paper_lo) & (lows <= paper_hi)
-    return {
+    row = {
         "source_order": "|".join(source_order),
         "target_order": "|".join(PUBLISHED_ORDER),
+        "assignment": "|".join(
+            f"{target}<-{source}" for target, source in zip(PUBLISHED_ORDER, source_order)
+        ),
         "interval_overlaps": int(overlap.sum()),
         "rmse": float(np.sqrt(np.mean((values - paper) ** 2))),
         "mean_absolute_error": float(np.mean(np.abs(values - paper))),
         "max_absolute_error": float(np.max(np.abs(values - paper))),
-        "thick_singles_value": values[0],
-        "thin_singles_value": values[1],
-        "thick_multis_value": values[2],
-        "thin_multis_value": values[3],
         "overlap_flags": "|".join("yes" if value else "no" for value in overlap),
     }
+    for index, target in enumerate(PUBLISHED_ORDER):
+        row[f"{target}_assigned_source"] = source_order[index]
+        row[f"{target}_value"] = values[index]
+    return row
 
 
 def audit(frame: pd.DataFrame) -> pd.DataFrame:
@@ -105,8 +108,8 @@ def main() -> None:
     lines.extend(
         [
             "",
-            "The published target order is `thick_singles | thin_singles |",
-            "thick_multis | thin_multis`. A best permutation that differs from the",
+            "The literal published Table 3 order is `thick_singles | thick_multis |",
+            "thin_singles | thin_multis`. A best permutation that differs from the",
             "identity indicates a possible downstream result-array assignment issue,",
             "but cannot distinguish an author-side bug from an ordering mistake in",
             "this reconstruction without the original population code.",

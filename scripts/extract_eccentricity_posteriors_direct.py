@@ -253,7 +253,7 @@ def direct_importance_posterior(
     impact: np.ndarray,
     dur14_days: np.ndarray,
     nested_weights: np.ndarray,
-    period_days: float,
+    period_days: float | np.ndarray,
     rho_true: float,
     err_hi: float,
     err_lo: float,
@@ -277,10 +277,17 @@ def direct_importance_posterior(
     nested_weights = nested_weights / nested_weights.sum()
     rng = np.random.default_rng(seed)
     sample_idx = rng.choice(len(ror), size=n_proposals, replace=True, p=nested_weights)
+    period_days = np.asarray(period_days, dtype=float)
+    if period_days.ndim == 0:
+        proposal_period_days = np.full(n_proposals, float(period_days))
+    else:
+        if len(period_days) != len(ror):
+            raise ValueError("Row-specific PERIOD must remain paired with ALDERAAN samples")
+        proposal_period_days = period_days[sample_idx]
     eccentricity = rng.uniform(0.0, e_max, size=n_proposals)
     omega = rng.uniform(-0.5 * np.pi, 1.5 * np.pi, size=n_proposals)
     rho_model = macdougall_rho_star_samp(
-        period_days * DAY_S,
+        proposal_period_days * DAY_S,
         dur14_days[sample_idx] * DAY_S,
         ror[sample_idx],
         impact[sample_idx],
@@ -385,6 +392,45 @@ def robust_period_regression(
     return float(slope) if np.isfinite(slope) and slope > 0.0 else np.nan
 
 
+def paired_period_samples(
+    samples: pd.DataFrame,
+    hdul: fits.HDUList,
+    planet_index: int,
+) -> np.ndarray:
+    """Reconstruct ALDERAAN's row-paired period from C1 and the transit model."""
+    c0_name = f"C0_{planet_index}"
+    c1_name = f"C1_{planet_index}"
+    ttimes_name = f"TTIMES_{planet_index:02d}"
+    if c0_name not in samples or c1_name not in samples or ttimes_name not in hdul:
+        raise ValueError("missing C0/C1 or TTIMES data for paired period reconstruction")
+    data = hdul[ttimes_name].data
+    names = set(data.names or [])
+    if not {"INDEX", "MODEL"}.issubset(names):
+        raise ValueError("TTIMES data are missing INDEX or MODEL")
+    index = np.asarray(data["INDEX"], dtype=float)
+    model = np.asarray(data["MODEL"], dtype=float)
+    valid = np.isfinite(index) & np.isfinite(model)
+    index = index[valid]
+    model = model[valid]
+    if len(index) < 2 or np.ptp(index) <= 0.0 or index[-1] == 0.0:
+        raise ValueError("invalid TTIMES data for paired period reconstruction")
+    centered_index = index - index[-1] // 2
+    legx = centered_index / (index[-1] / 2.0)
+    x_centered = index - np.mean(index)
+    denominator = np.sum(x_centered**2)
+    base_period = np.sum(x_centered * model) / denominator
+    c0_slope = np.sum(x_centered) / denominator
+    c1_slope = np.sum(x_centered * legx) / denominator
+    periods = (
+        base_period
+        + samples[c0_name].to_numpy(float) * c0_slope
+        + samples[c1_name].to_numpy(float) * c1_slope
+    )
+    if not np.isfinite(periods).all() or np.any(periods <= 0.0):
+        raise ValueError("paired ALDERAAN period samples are invalid")
+    return periods
+
+
 def read_alderaan_planets(hdul: fits.HDUList) -> list[dict[str, float]]:
     npl = int(hdul[0].header.get("NPL", 0))
     planets: list[dict[str, float]] = []
@@ -467,12 +513,17 @@ def process_target(
     density_error_scale: float = 1.0,
     density_offset_dex: float = 0.0,
     density_source: str = "berger2020_table2",
+    period_sampling_mode: str = "paired_alderaan",
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     with fits.open(results_file, memmap=False) as hdul:
         if "SAMPLES" not in hdul:
             return [], [_exclusion(row, results_file, "fits", "missing SAMPLES HDU") for _, row in planets.iterrows()]
         samples = _sample_frame(hdul["SAMPLES"].data)
         fit_planets = read_alderaan_planets(hdul)
+        paired_periods = {
+            index: paired_period_samples(samples, hdul, index)
+            for index in range(int(hdul[0].header.get("NPL", 0)))
+        } if period_sampling_mode == "paired_alderaan" else {}
     if "LN_WT" not in samples:
         return [], [_exclusion(row, results_file, "fits", "missing LN_WT column") for _, row in planets.iterrows()]
     nested_weights = nested_sample_weights(samples["LN_WT"].to_numpy(float), nested_weight_mode)
@@ -505,12 +556,19 @@ def process_target(
             )
             if not np.isfinite(rho_true) or rho_true <= 0.0:
                 raise ValueError("invalid stellar density")
+            period_input: float | np.ndarray
+            if period_sampling_mode == "paired_alderaan":
+                period_input = paired_periods[alderaan_index]
+            elif period_sampling_mode == "static_koi":
+                period_input = float(planet["koi_period"])
+            else:
+                raise ValueError(f"Unknown period sampling mode: {period_sampling_mode}")
             result = direct_importance_posterior(
                 samples[required[0]].to_numpy(float),
                 samples[required[1]].to_numpy(float),
                 samples[required[2]].to_numpy(float),
                 nested_weights,
-                float(planet["koi_period"]),
+                period_input,
                 rho_true,
                 err_hi,
                 err_lo,
@@ -559,6 +617,13 @@ def process_target(
             density_error_scale=density_error_scale,
             density_offset_dex=density_offset_dex,
             density_source=density_source,
+            period_sampling_mode=period_sampling_mode,
+            paired_period_p16=float(np.quantile(paired_periods[alderaan_index], 0.16))
+            if period_sampling_mode == "paired_alderaan" else float(planet["koi_period"]),
+            paired_period_p50=float(np.quantile(paired_periods[alderaan_index], 0.50))
+            if period_sampling_mode == "paired_alderaan" else float(planet["koi_period"]),
+            paired_period_p84=float(np.quantile(paired_periods[alderaan_index], 0.84))
+            if period_sampling_mode == "paired_alderaan" else float(planet["koi_period"]),
             no_zeta_kde=True,
             posterior_source="alderaan_direct_importance",
             impact_mode="alderaan",
@@ -600,6 +665,13 @@ def process_target(
                 "density_error_scale": density_error_scale,
                 "density_offset_dex": density_offset_dex,
                 "density_source": density_source,
+                "period_sampling_mode": period_sampling_mode,
+                "paired_period_p16": float(np.quantile(paired_periods[alderaan_index], 0.16))
+                if period_sampling_mode == "paired_alderaan" else float(planet["koi_period"]),
+                "paired_period_p50": float(np.quantile(paired_periods[alderaan_index], 0.50))
+                if period_sampling_mode == "paired_alderaan" else float(planet["koi_period"]),
+                "paired_period_p84": float(np.quantile(paired_periods[alderaan_index], 0.84))
+                if period_sampling_mode == "paired_alderaan" else float(planet["koi_period"]),
                 "e_max": e_max,
                 "nested_sample_count": len(samples),
                 "nested_ess": result["nested_ess"],
@@ -725,6 +797,12 @@ def main() -> None:
     )
     parser.add_argument("--period-tol", type=float, default=0.01)
     parser.add_argument(
+        "--period-sampling-mode",
+        choices=["paired_alderaan", "static_koi"],
+        default="paired_alderaan",
+        help="Use ALDERAAN's row-paired ephemeris posterior (canonical) or one catalog period (diagnostic).",
+    )
+    parser.add_argument(
         "--min-importance-ess",
         type=float,
         default=100.0,
@@ -809,6 +887,7 @@ def main() -> None:
             density_error_scale=args.density_error_scale,
             density_offset_dex=args.density_offset_dex,
             density_source=args.density_source,
+            period_sampling_mode=args.period_sampling_mode,
         )
         summaries.extend(target_summary)
         exclusions.extend(target_excluded)

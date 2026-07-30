@@ -35,13 +35,33 @@ def result_target(path: Path) -> str:
     return path.name[: -len(suffix)]
 
 
+def expected_target_set(expected_targets: pd.DataFrame) -> set[str]:
+    if "koi_target" not in expected_targets:
+        raise ValueError("target table is missing required koi_target column")
+    targets = expected_targets["koi_target"].astype(str).str.strip()
+    if targets.eq("").any():
+        raise ValueError("target table contains blank koi_target values")
+    if targets.duplicated().any():
+        duplicates = sorted(targets[targets.duplicated(keep=False)].unique())
+        raise ValueError(f"target table contains duplicate koi_target values: {duplicates}")
+    return set(targets)
+
+
+def validate_result_layout(result: Path, run_id: str, target: str) -> None:
+    expected_tail = ("Results", run_id, target, result.name)
+    if result.parts[-4:] != expected_tail:
+        raise ValueError(
+            f"result is not under Results/{run_id}/{target}: {result}"
+        )
+
+
 def merge_archives(
     archives: list[Path],
     expected_targets: pd.DataFrame,
     staging: Path,
     run_id: str,
 ) -> pd.DataFrame:
-    expected = set(expected_targets["koi_target"].astype(str))
+    expected = expected_target_set(expected_targets)
     seen: dict[str, dict[str, object]] = {}
     staging.mkdir(parents=True, exist_ok=True)
     results_out = staging / "Results" / run_id
@@ -63,6 +83,7 @@ def merge_archives(
                 if result.stat().st_size == 0:
                     continue
                 target = result_target(result)
+                validate_result_layout(result, run_id, target)
                 if target not in expected:
                     raise ValueError(f"unexpected result target {target} in {archive}")
                 if target in seen:

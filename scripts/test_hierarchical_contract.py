@@ -18,6 +18,14 @@ def valid_summary() -> pd.DataFrame:
             "posterior_source": ["alderaan_direct_importance"],
             "impact_mode": ["alderaan"],
             "nested_weight_mode": ["dynesty"],
+            "formalism": ["direct_post_model_importance"],
+            "density_source": ["berger2020_table2"],
+            "density_sampling_mode": ["draw_split_normal"],
+            "density_error_mode": ["asymmetric"],
+            "posterior_sampling_mode": ["weighted_importance"],
+            "period_sampling_mode": ["paired_alderaan"],
+            "e_max": [0.95],
+            "include_transit_prior": [False],
         }
     )
 
@@ -47,3 +55,11 @@ def test_equal_nested_weights_require_explicit_diagnostic_override() -> None:
         valid_summary().assign(nested_weight_mode="equal"),
         allow_non_dynesty_weights=True,
     )
+
+
+def test_mixed_density_sources_fail_canonical_contract() -> None:
+    summary = pd.concat(
+        [valid_summary(), valid_summary().assign(density_source="berger2018_kg")]
+    )
+    with pytest.raises(ValueError, match="cannot mix method provenance"):
+        validate_summary_contract(summary)

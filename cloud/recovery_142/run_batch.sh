@@ -55,18 +55,12 @@ python validate_bundle.py --targets "$TARGET_CSV" --catalog "$CATALOG_SOURCE"
 # spend compute only on targets that still lack a valid result.
 PENDING_FILE="$PROJECT_DIR/pending_${RUN_ID}.csv"
 : > "$PENDING_FILE"
-while IFS=, read -r target_index target kepid rest; do
-  if [ "$target_index" = "target_index" ]; then
-    continue
-  fi
-  target="${target//$'\r'/}"
-  kepid="${kepid//$'\r'/}"
-  [ -n "$target" ] && [ -n "$kepid" ] || continue
+while IFS=, read -r target kepid; do
   result="$PROJECT_DIR/Results/$RUN_ID/$target/$target-results.fits"
   if [ ! -s "$result" ]; then
     printf '%s,%s\n' "$target" "$kepid" >> "$PENDING_FILE"
   fi
-done < "$TARGET_CSV"
+done < <(python "$BUNDLE_DIR/target_pairs.py" "$TARGET_CSV")
 
 PENDING_COUNT="$(wc -l < "$PENDING_FILE")"
 RUN_STAMP="$(date -u +%Y%m%dT%H%M%SZ)"

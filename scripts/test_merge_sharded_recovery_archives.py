@@ -9,13 +9,18 @@ import pytest
 from merge_sharded_recovery_archives import merge_archives, safe_extract, write_tar
 
 
-def make_archive(root: Path, name: str, targets: list[str]) -> Path:
+def make_archive(
+    root: Path,
+    name: str,
+    targets: list[str],
+    run_id: str = "sagear_published_inventory_missing",
+) -> Path:
     payload = root / f"{name}_payload"
     for target in targets:
         result = (
             payload
             / "Results"
-            / "sagear_published_inventory_missing"
+            / run_id
             / target
             / f"{target}-results.fits"
         )
@@ -59,5 +64,34 @@ def test_duplicate_target_across_archives_is_fatal(tmp_path: Path) -> None:
             [first, second],
             expected_targets=expected,
             staging=tmp_path / "staging",
+            run_id="sagear_published_inventory_missing",
+        )
+
+
+def test_target_table_must_be_unique_and_nonblank(tmp_path: Path) -> None:
+    archive = make_archive(tmp_path, "one", ["K00001"])
+    with pytest.raises(ValueError, match="duplicate koi_target"):
+        merge_archives(
+            [archive],
+            expected_targets=pd.DataFrame({"koi_target": ["K00001", "K00001"]}),
+            staging=tmp_path / "duplicates",
+            run_id="sagear_published_inventory_missing",
+        )
+    with pytest.raises(ValueError, match="blank koi_target"):
+        merge_archives(
+            [archive],
+            expected_targets=pd.DataFrame({"koi_target": ["K00001", " "]}),
+            staging=tmp_path / "blank",
+            run_id="sagear_published_inventory_missing",
+        )
+
+
+def test_result_from_a_different_run_is_fatal(tmp_path: Path) -> None:
+    archive = make_archive(tmp_path, "wrong_run", ["K00001"], run_id="other_run")
+    with pytest.raises(ValueError, match="not under Results/sagear_published_inventory_missing/K00001"):
+        merge_archives(
+            [archive],
+            expected_targets=pd.DataFrame({"koi_target": ["K00001"]}),
+            staging=tmp_path / "wrong_run",
             run_id="sagear_published_inventory_missing",
         )

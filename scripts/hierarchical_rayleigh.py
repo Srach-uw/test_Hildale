@@ -328,6 +328,41 @@ def validate_summary_contract(
                 f"found posterior_source={sources}. Fit each source separately or rerun all targets uniformly."
             )
 
+    if not allow_mixed_sources:
+        method_fields = [
+            "formalism",
+            "density_source",
+            "density_sampling_mode",
+            "density_error_mode",
+            "posterior_sampling_mode",
+            "period_sampling_mode",
+            "e_max",
+            "include_transit_prior",
+        ]
+        missing_method_fields = sorted(set(method_fields) - set(summary.columns))
+        if missing_method_fields:
+            raise ValueError(
+                "Canonical population fit requires complete method provenance; "
+                f"missing fields: {missing_method_fields}. "
+                "Use --allow-mixed-posterior-sources only for a labeled legacy diagnostic."
+            )
+        for field in method_fields:
+            values = summary[field].dropna().astype(str).str.strip()
+            if len(values) != len(summary) or values.eq("").any():
+                raise ValueError(f"Canonical population fit has missing {field} provenance")
+            unique = sorted(values.str.lower().unique())
+            if len(unique) != 1:
+                raise ValueError(
+                    "Canonical population fit cannot mix method provenance; "
+                    f"found {field}={unique}."
+                )
+        transit_prior = summary["include_transit_prior"].astype("boolean")
+        if transit_prior.isna().any() or transit_prior.any():
+            raise ValueError(
+                "Canonical population fit requires include_transit_prior=False "
+                "to avoid double-counting transit selection."
+            )
+
     if "impact_mode" not in summary.columns:
         if not allow_nonpaired_impact:
             raise ValueError(
@@ -580,9 +615,35 @@ def rayleigh_grid(
     rays = []
     normalizers = []
     for sigma in sigmas:
-        ray = (e_grid / sigma**2) * np.exp(-(e_grid**2) / (2.0 * sigma**2))
-        ray = ray + outlier_floor
-        ray = ray / trapezoid(ray, e_grid)
+        if not np.isfinite(sigma) or sigma <= 0:
+            raise ValueError("Rayleigh scales must be finite and positive")
+        positive = e_grid > 0
+        log_ray = np.full_like(e_grid, -np.inf, dtype=float)
+        log_ray[positive] = (
+            np.log(e_grid[positive])
+            - 2.0 * np.log(sigma)
+            - (e_grid[positive] ** 2) / (2.0 * sigma**2)
+        )
+        finite = np.isfinite(log_ray)
+        if not finite.any():
+            raise ValueError(
+                f"Rayleigh density has no support on the supplied e grid at sigma={sigma}"
+            )
+        # The arbitrary log offset cancels during normalization and prevents
+        # narrow distributions from underflowing to an all-zero grid.
+        ray = np.zeros_like(e_grid, dtype=float)
+        ray[finite] = np.exp(log_ray[finite] - np.max(log_ray[finite]))
+        if outlier_floor:
+            # Preserve the requested floor relative to the analytic Rayleigh
+            # amplitude, whose maximum is exp(-1/2) / sigma.
+            scaled_floor = outlier_floor * sigma * np.exp(0.5)
+            ray = ray + scaled_floor
+        area = trapezoid(ray, e_grid)
+        if not np.isfinite(area) or area <= 0:
+            raise ValueError(
+                f"Rayleigh density cannot be normalized at sigma={sigma}"
+            )
+        ray = ray / area
         rays.append(ray)
         if mode == "legacy_forward_norm":
             normalizers.append(trapezoid(ray / (1.0 - e_grid**2), e_grid))

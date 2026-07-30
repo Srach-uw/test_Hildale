@@ -64,4 +64,4 @@ same planets and systems. The result should be interpreted as follows:
    on independent controls before changing any full-catalog configuration.
 3. Neither outcome substitutes for the missing Berger et al. (2018) density
    construction or Sagear's final visual-QC inclusion list. Those remain the
-   gating provenance questions for an exact Table 2 replication.
+   gating provenance questions for an exact Table 3 replication.

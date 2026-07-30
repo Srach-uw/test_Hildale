@@ -4,6 +4,8 @@
     "koi_catalog": "cumulative_2026.02.11_22.33.58.csv",
     "gaia_kepler_fits": "kepler_dr3_good.fits",
     "berger_table2": "table2.dat.gz",
+    "berger2018_kg_density_sample": "outputs/sagear2026_sample_berger2018_kg_logg_radius.csv",
+    "berger2018_revised_table": "reference/data/berger2018_table1.dat.gz",
     "berger2018_stellar": "data/berger2018_table1_min.tsv",
     "sagear2026_kinematic_hosts": "reference/data/sagear2026_table1_kinematic_hosts_mrt.txt",
     "sagear2026_transit_priors": "reference/data/sagear2026_table2_transit_priors_ascii.txt",

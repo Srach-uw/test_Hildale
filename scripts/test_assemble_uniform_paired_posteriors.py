@@ -19,7 +19,12 @@ def row(name: str, path: Path, e50: float) -> dict[str, object]:
         "impact_mode": "alderaan",
         "formalism": "direct",
         "include_transit_prior": False,
+        "density_source": "berger2020_table2",
+        "density_sampling_mode": "draw_split_normal",
         "density_error_mode": "symmetric-average",
+        "posterior_sampling_mode": "weighted_importance",
+        "period_sampling_mode": "paired_alderaan",
+        "nested_weight_mode": "dynesty",
         "e_max": 0.95,
         "qc_primary_exclude": False,
         "qc_reasons": "",
@@ -52,3 +57,20 @@ def test_geometric_summary_is_rejected(tmp_path: Path) -> None:
     summary["impact_mode"] = "geometric"
     with pytest.raises(ValueError, match="not uniformly paired-impact"):
         validate_summary(summary, "archive")
+
+
+def test_cross_source_density_mixture_is_rejected(tmp_path: Path) -> None:
+    posterior = tmp_path / "posterior.npz"
+    posterior.touch()
+    archive = pd.DataFrame([row("K00001.01", posterior, 0.1)])
+    new = pd.DataFrame(
+        [row("K00002.01", posterior, 0.2) | {"density_source": "berger2018_kg"}]
+    )
+    sample = pd.DataFrame(
+        [
+            {"kepoi_name": "K00001.01", "kepid": 1, "koi_target": "K00001", "koi_period": 10.0, "disk": "thin", "system": "single"},
+            {"kepoi_name": "K00002.01", "kepid": 2, "koi_target": "K00002", "koi_period": 20.0, "disk": "thin", "system": "single"},
+        ]
+    )
+    with pytest.raises(ValueError, match="uniform density_source"):
+        assemble(archive, new, sample)

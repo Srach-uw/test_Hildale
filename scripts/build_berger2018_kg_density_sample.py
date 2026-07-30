@@ -20,6 +20,23 @@ from astropy.table import Table
 LOGG_SUN = 4.438
 
 
+def density_with_asymmetric_errors(
+    logg: pd.Series,
+    logg_err: pd.Series,
+    radius: pd.Series,
+    radius_err_upper: pd.Series,
+    radius_err_lower: pd.Series,
+) -> tuple[pd.Series, pd.Series, pd.Series]:
+    """Return density and positive upper/lower errors in solar-density units."""
+    rho = 10.0 ** (logg - LOGG_SUN) / radius
+    rho_hi_bound = 10.0 ** (logg + logg_err - LOGG_SUN) / (radius - radius_err_lower)
+    rho_lo_bound = 10.0 ** (logg - logg_err - LOGG_SUN) / (radius + radius_err_upper)
+    err_hi = rho_hi_bound - rho
+    err_lo = rho - rho_lo_bound
+    valid = (rho > 0) & (err_hi > 0) & (err_lo > 0)
+    return rho.where(valid), err_hi.where(valid), err_lo.where(valid)
+
+
 def read_kg(path: Path) -> pd.DataFrame:
     with fits.open(path, memmap=False) as hdul:
         frame = Table(hdul[1].data).to_pandas()
@@ -55,12 +72,18 @@ def main() -> None:
     radius = pd.to_numeric(out["berger2018_kg_radius"], errors="coerce")
     radius_hi = pd.to_numeric(out["berger2018_kg_radius_err_upper"], errors="coerce")
     radius_lo = pd.to_numeric(out["berger2018_kg_radius_err_lower"], errors="coerce")
-    rho = 10.0 ** (logg - LOGG_SUN) / radius
-    rho_hi = 10.0 ** (logg + logg_err - LOGG_SUN) / (radius - radius_lo)
-    rho_lo = 10.0 ** (logg - logg_err - LOGG_SUN) / (radius + radius_hi)
+    rho, rho_err_hi, rho_err_lo = density_with_asymmetric_errors(
+        logg,
+        logg_err,
+        radius,
+        radius_hi,
+        radius_lo,
+    )
     out["rho_log"] = np.log10(rho.where(rho > 0))
-    out["rho_log_upper"] = np.log10(rho_hi.where(rho_hi > 0)) - out["rho_log"]
-    out["rho_log_lower"] = out["rho_log"] - np.log10(rho_lo.where(rho_lo > 0))
+    # The eccentricity extractor expects log10 of the positive absolute error,
+    # matching the Berger 2020 machine-readable density convention.
+    out["rho_log_upper"] = np.log10(rho_err_hi.where(rho_err_hi > 0))
+    out["rho_log_lower"] = np.log10(rho_err_lo.where(rho_err_lo > 0))
     out["berger2018_density_source"] = "MAST_KG_RADII_logg_radius"
     out["berger2018_density_available"] = out[["rho_log", "rho_log_upper", "rho_log_lower"]].notna().all(axis=1)
     Path(args.out).parent.mkdir(parents=True, exist_ok=True)

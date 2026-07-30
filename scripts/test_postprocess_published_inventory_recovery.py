@@ -6,6 +6,7 @@ import pytest
 from postprocess_published_inventory_recovery import (
     coverage_status,
     find_results_dir,
+    project_root_for_script,
     safe_extract,
 )
 
@@ -51,3 +52,22 @@ def test_safe_extract_rejects_path_traversal(tmp_path: Path) -> None:
         handle.addfile(member, io.BytesIO(payload))
     with pytest.raises(ValueError, match="escapes destination"):
         safe_extract(archive, tmp_path / "out")
+
+
+def test_failure_taxonomy_uses_discovered_results_dir() -> None:
+    source = Path(__file__).with_name("postprocess_published_inventory_recovery.py")
+    text = source.read_text(encoding="utf-8")
+    assert "str(results_dir)," in text
+    assert "str(results_root)," not in text
+
+
+def test_project_root_supports_repository_and_root_level_layouts(tmp_path: Path) -> None:
+    repository_script = tmp_path / "repo" / "scripts" / "postprocess.py"
+    repository_script.parent.mkdir(parents=True)
+    repository_script.touch()
+    assert project_root_for_script(repository_script) == tmp_path / "repo"
+
+    root_level_script = tmp_path / "research" / "postprocess.py"
+    root_level_script.parent.mkdir(parents=True)
+    root_level_script.touch()
+    assert project_root_for_script(root_level_script) == tmp_path / "research"

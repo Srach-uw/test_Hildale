@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 set -euo pipefail
+
+if [ "${CONDA_DEFAULT_ENV:-}" != "alderaan" ]; then
+  source "$HOME/miniforge3/etc/profile.d/conda.sh"
+  conda activate alderaan
+fi
+
 RUN_ID="${RUN_ID:-sagear_missing}"
 PROJECT_DIR="${PROJECT_DIR:-$PWD/alderaan_project}"
+TARGET_CSV="${TARGET_CSV:-targets_missing_launchable.csv}"
 OUT="alderaan_results_${RUN_ID}_$(date +%Y%m%d_%H%M%S).tar.gz"
 set +e
 bash summarize_progress.sh
@@ -23,7 +30,6 @@ pwd_items=()
 for item in \
   logs \
   provenance \
-  targets_missing_launchable.csv \
   sagear_missing_catalog.csv \
   published_inventory_missing_population_rows.csv \
   published_inventory_missing_full_system_inventory.csv \
@@ -33,6 +39,7 @@ for item in \
 do
   [ -e "$PWD/$item" ] && pwd_items+=("$item")
 done
+[ -e "$PWD/$TARGET_CSV" ] && pwd_items+=("$TARGET_CSV")
 [ -e "$PWD/shard_id.txt" ] && pwd_items+=("shard_id.txt")
 
 tar -czf "$OUT" \

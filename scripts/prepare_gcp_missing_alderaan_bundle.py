@@ -19,7 +19,7 @@ def main() -> None:
     parser.add_argument("--run-id", default="sagear_missing")
     parser.add_argument("--jobs", type=int, default=30)
     parser.add_argument("--shards", type=int, default=4)
-    parser.add_argument("--copy-to-codex-outputs", default=None)
+    parser.add_argument("--copy-to-output-dir", default=None)
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -51,7 +51,7 @@ def main() -> None:
     write_readme(out_dir, args.run_id, args.jobs, targets, catalog)
     write_manifest(manifest_path, args.run_id, args.jobs, targets, catalog, queue)
 
-    copy_root = Path(args.copy_to_codex_outputs) if args.copy_to_codex_outputs else None
+    copy_root = Path(args.copy_to_output_dir) if args.copy_to_output_dir else None
     if copy_root:
         copy_root.mkdir(parents=True, exist_ok=True)
         for path in [targets_path, catalog_path, expanded_path, manifest_path]:

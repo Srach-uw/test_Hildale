@@ -11,7 +11,8 @@ report or filename.
   `scripts/classifier_reconstruction_audit.py`. Published Table 1 labels supersede
   these reconstructions for primary inference.
 - `rayleigh_population_fit_*.csv` are diagnostic population fits. They are not final
-  publication results and should be interpreted with `docs/sagear_diagnosis_report.md`.
+  publication results and should be interpreted with
+  `docs/replication_status.md`.
 - Count and Toomre summaries record historical reconstruction branches and are retained
   for provenance rather than promoted as canonical inputs.
 - `recovery_preflight_20260724/visual_qc_contract/` records the tested 2,491-to-2,465

@@ -34,6 +34,12 @@ outputs/eccentricity_posteriors*/
 outputs/alderaan_results*/
 outputs/*large*
 scripts/outputs/
+cloud/recovery_results/
+tmp/
+
+# Private project records
+**/report_Hildale.md
+**/RECOVERY_LIVE_CHECKPOINT.md
 
 # The curated 82-file factorial ALDERAAN release is intentionally versioned via Git LFS.
 !data/alderaan_factorial_validation_20260715/results/**/*.fits

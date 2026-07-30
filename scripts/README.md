@@ -186,7 +186,7 @@ Key outputs:
 - `sagear_reproduction/outputs/catalog_diagnostics_summary.csv`
 - `sagear_reproduction/outputs/catalog_diagnostics_missing_by_population.csv`
 - `sagear_reproduction/outputs/catalog_diagnostics_radius_comparison.png`
-- `sagear_reproduction/outputs/sagear_diagnosis_report.md`
+- `docs/replication_status.md`
 
 ## Important Current Gaps
 

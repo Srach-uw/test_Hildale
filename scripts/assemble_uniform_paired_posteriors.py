@@ -90,8 +90,25 @@ def validate_summary(summary: pd.DataFrame, label: str) -> None:
     transit_prior = summary["include_transit_prior"].astype("boolean")
     if transit_prior.isna().any() or transit_prior.any():
         raise ValueError(f"{label} summary must have include_transit_prior=False for every row")
-    for column in ["posterior_source", "formalism", "density_error_mode", "e_max"]:
-        values = summary[column].dropna().astype(str).unique()
+    method_columns = [
+        "posterior_source",
+        "formalism",
+        "density_source",
+        "density_sampling_mode",
+        "density_error_mode",
+        "posterior_sampling_mode",
+        "period_sampling_mode",
+        "nested_weight_mode",
+        "e_max",
+    ]
+    missing_method_columns = sorted(set(method_columns) - set(summary.columns))
+    if missing_method_columns:
+        raise ValueError(f"{label} summary is missing method provenance: {missing_method_columns}")
+    for column in method_columns:
+        values = summary[column].dropna().astype(str).str.strip()
+        if len(values) != len(summary) or values.eq("").any():
+            raise ValueError(f"{label} summary has missing {column} provenance")
+        values = values.unique()
         if len(values) != 1:
             raise ValueError(f"{label} summary mixes {column}: {sorted(values)}")
     missing_files = [p for p in summary["posterior_file"].astype(str) if not Path(p).is_file()]
@@ -205,6 +222,23 @@ def assemble(
     )
 
     merged = pd.concat([archive, new], ignore_index=True, sort=False)
+    for column in [
+        "formalism",
+        "density_source",
+        "density_sampling_mode",
+        "density_error_mode",
+        "posterior_sampling_mode",
+        "period_sampling_mode",
+        "nested_weight_mode",
+        "e_max",
+        "include_transit_prior",
+    ]:
+        values = merged[column].dropna().astype(str).str.strip()
+        if len(values) != len(merged) or values.eq("").any() or values.str.lower().nunique() != 1:
+            raise ValueError(
+                "Archive and recovery summaries do not share one uniform "
+                f"{column} contract: {sorted(values.unique())}"
+            )
     merged = (
         merged.sort_values(["kepoi_name", "_source_rank"])
         .drop_duplicates("kepoi_name", keep="last")

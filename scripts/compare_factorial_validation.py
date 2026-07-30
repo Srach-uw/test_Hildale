@@ -324,6 +324,7 @@ def extract_all_arms(
     density_error_mode: str,
     period_tol: float,
     min_importance_ess: float,
+    density_sampling_mode: str = "fixed_central",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     shape_rows: list[dict[str, object]] = []
     direct_rows: list[dict[str, object]] = []
@@ -350,6 +351,7 @@ def extract_all_arms(
                 n_proposals=n_proposals,
                 e_max=e_max,
                 density_error_mode=density_error_mode,
+                density_sampling_mode=density_sampling_mode,
                 period_tol=period_tol,
                 min_importance_ess=min_importance_ess,
                 allow_density_error_fallback=False,
@@ -708,6 +710,7 @@ def run_analysis(
     n_bootstrap: int,
     seed: int,
     allow_incomplete: bool = False,
+    density_sampling_mode: str = "fixed_central",
 ) -> dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     target_sets = read_target_sets(metadata_root)
@@ -742,6 +745,7 @@ def run_analysis(
             n_proposals=n_proposals,
             e_max=e_max,
             density_error_mode=density_error_mode,
+            density_sampling_mode=density_sampling_mode,
             period_tol=period_tol,
             min_importance_ess=min_importance_ess,
         )
@@ -815,6 +819,12 @@ def build_parser() -> argparse.ArgumentParser:
         choices=["symmetric-average", "split"],
         default="symmetric-average",
     )
+    parser.add_argument(
+        "--density-sampling-mode",
+        choices=["fixed_central", "draw_gaussian", "draw_split_normal"],
+        default="fixed_central",
+        help="Use draw_gaussian to reproduce the published Gilbert importance-sampling description.",
+    )
     parser.add_argument("--period-tol", type=float, default=0.01)
     parser.add_argument(
         "--min-importance-ess",
@@ -870,6 +880,7 @@ def main(argv: list[str] | None = None) -> int:
             n_proposals=args.n_proposals,
             e_max=args.e_max,
             density_error_mode=args.density_error_mode,
+            density_sampling_mode=args.density_sampling_mode,
             period_tol=args.period_tol,
             min_importance_ess=args.min_importance_ess,
             e_grid_size=e_grid_size,

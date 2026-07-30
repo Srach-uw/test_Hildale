@@ -21,7 +21,7 @@ CATALOG_NAMES = [
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Audit local historical transit-seed recovery for unseeded ALDERAAN planets.")
-    parser.add_argument("--copy-to-codex-outputs", default=None)
+    parser.add_argument("--copy-to-output-dir", default=None)
     parser.add_argument(
         "--catalog",
         action="append",
@@ -117,7 +117,7 @@ def main() -> None:
     audit.to_csv(audit_path, index=False)
     write_markdown(md_path, audit)
 
-    copy_root = Path(args.copy_to_codex_outputs) if args.copy_to_codex_outputs else None
+    copy_root = Path(args.copy_to_output_dir) if args.copy_to_output_dir else None
     if copy_root:
         copy_root.mkdir(parents=True, exist_ok=True)
         for path in [audit_path, md_path]:

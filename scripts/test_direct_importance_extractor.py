@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
+from astropy.io import fits
 
 from extract_eccentricity_posteriors_direct import (
     DAY_S,
@@ -10,10 +12,34 @@ from extract_eccentricity_posteriors_direct import (
     direct_importance_posterior,
     macdougall_rho_star_samp,
     nested_sample_weights,
+    paired_period_samples,
     resampled_posterior_grid,
     weighted_posterior_grid,
     weighted_quantile,
 )
+
+
+def test_paired_period_samples_match_alderaan_polyfit() -> None:
+    index = np.arange(12, dtype=float)
+    model = 100.0 + 9.75 * index
+    c0 = np.array([-0.02, 0.0, 0.03])
+    c1 = np.array([-0.04, 0.01, 0.05])
+    samples = pd.DataFrame({"C0_0": c0, "C1_0": c1})
+    columns = [
+        fits.Column(name="INDEX", format="D", array=index),
+        fits.Column(name="MODEL", format="D", array=model),
+    ]
+    hdul = fits.HDUList(
+        [fits.PrimaryHDU(), fits.BinTableHDU.from_columns(columns, name="TTIMES_00")]
+    )
+    got = paired_period_samples(samples, hdul, 0)
+    centered = index - index[-1] // 2
+    legx = centered / (index[-1] / 2.0)
+    expected = []
+    for row_c0, row_c1 in zip(c0, c1):
+        ephem = model + row_c0 + row_c1 * legx
+        expected.append(np.polynomial.polynomial.polyfit(index, ephem, 1)[1])
+    np.testing.assert_allclose(got, expected, rtol=0.0, atol=1e-13)
 
 
 def test_berger2018_density_source_requires_explicit_columns(tmp_path) -> None:

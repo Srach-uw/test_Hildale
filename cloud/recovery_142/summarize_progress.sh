@@ -26,12 +26,7 @@ MISSING_RESULTS=0
 INCONSISTENT=0
 OTHER=0
 
-while IFS=, read -r target_index target kepid rest; do
-  if [ "$target_index" = "target_index" ]; then
-    continue
-  fi
-  target="${target//$'\r'/}"
-  [ -n "$target" ] || continue
+while IFS=, read -r target kepid; do
   TOTAL=$((TOTAL + 1))
   result="$PROJECT_DIR/Results/$RUN_ID/$target/$target-results.fits"
   status_file="$PROJECT_DIR/status/$target.status"
@@ -58,7 +53,7 @@ while IFS=, read -r target_index target kepid rest; do
     esac
   fi
   printf '%s,%s,%s,%s\n' "$target" "$result_present" "${status:-none}" "$outcome" >> "$MANIFEST_FILE"
-done < "$TARGET_CSV"
+done < <(python "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/target_pairs.py" "$TARGET_CSV")
 
 INCOMPLETE=$((TOTAL - COMPLETE))
 {

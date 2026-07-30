@@ -13,6 +13,17 @@ def test_missing_lightcurve_is_distinct():
     assert classify("No long-cadence FITS downloaded") == "missing_lightcurve"
 
 
+def test_recoverable_detrending_control_flow_failures_are_explicit():
+    assert (
+        classify("TypeError: bad operand type for unary ~: 'NoneType'")
+        == "no_transit_quarter_control_flow"
+    )
+    assert (
+        classify("NameError: name 'detrend' is not defined")
+        == "celerite_fallback_control_flow"
+    )
+
+
 def test_successful_result_overrides_recovered_celerite_warning(tmp_path):
     logs = tmp_path / "logs"
     status = tmp_path / "status"

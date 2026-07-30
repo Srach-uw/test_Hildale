@@ -2,8 +2,10 @@ import numpy as np
 import pandas as pd
 
 from gilbert_postfit_qc_audit import (
+    build_result_index,
     catalog_density_solar,
     radius_fractional_uncertainty,
+    result_file,
     weighted_fraction,
 )
 
@@ -36,3 +38,38 @@ def test_catalog_density_prefers_direct_solar_value() -> None:
 def test_catalog_density_falls_back_to_log_value() -> None:
     row = pd.Series({"rho_true_solar": np.nan, "rho_log": -0.3})
     assert np.isclose(catalog_density_solar(row), 10**-0.3)
+
+
+def test_result_index_falls_back_across_roots(tmp_path) -> None:
+    archive = tmp_path / "archive"
+    project = tmp_path / "project" / "nested"
+    archive.mkdir()
+    project.mkdir(parents=True)
+    result = project / "K00001-results.fits"
+    result.write_bytes(b"result")
+
+    index = build_result_index(archive, tmp_path / "project")
+    found, conflict, count = result_file("K00001", index)
+
+    assert found == result.resolve()
+    assert conflict is False
+    assert count == 1
+
+
+def test_result_file_prefers_largest_duplicate(tmp_path) -> None:
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    first.mkdir()
+    second.mkdir()
+    small = first / "K00001-results.fits"
+    large = second / "K00001-results.fits"
+    small.write_bytes(b"a")
+    large.write_bytes(b"larger")
+
+    found, conflict, count = result_file(
+        "K00001", build_result_index(first, second)
+    )
+
+    assert found == large.resolve()
+    assert conflict is True
+    assert count == 2

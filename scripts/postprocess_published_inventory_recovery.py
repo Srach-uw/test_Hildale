@@ -30,6 +30,12 @@ BRANCHES = {
 }
 
 
+def project_root_for_script(script_path: Path) -> Path:
+    """Return the project root for root-level and repository ``scripts`` layouts."""
+    script_dir = script_path.resolve().parent
+    return script_dir.parent if script_dir.name == "scripts" else script_dir
+
+
 def sha256(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -177,11 +183,16 @@ def main() -> None:
     parser.add_argument("--n-proposals", type=int, default=150_000)
     args = parser.parse_args()
 
-    root = Path(__file__).resolve().parent
+    script_dir = Path(__file__).resolve().parent
+    project_root = project_root_for_script(Path(__file__))
     archive = args.archive.resolve()
     if not archive.is_file():
         raise FileNotFoundError(archive)
-    work = (root / args.work_dir).resolve() if not args.work_dir.is_absolute() else args.work_dir.resolve()
+    work = (
+        (project_root / args.work_dir).resolve()
+        if not args.work_dir.is_absolute()
+        else args.work_dir.resolve()
+    )
     extracted = work / "extracted"
     products = work / "products"
     extracted.mkdir(parents=True, exist_ok=True)
@@ -200,9 +211,9 @@ def main() -> None:
         marker.write_text(archive_hash + "\n", encoding="ascii")
 
     results_dir, recovered_fits = find_results_dir(extracted)
-    sample = (root / args.sample).resolve()
-    recovery_sample = (root / args.recovery_sample).resolve()
-    queue = (root / args.queue).resolve()
+    sample = (project_root / args.sample).resolve()
+    recovery_sample = (project_root / args.recovery_sample).resolve()
+    queue = (project_root / args.queue).resolve()
     for required in (sample, recovery_sample, queue):
         if not required.is_file():
             raise FileNotFoundError(required)
@@ -212,17 +223,17 @@ def main() -> None:
     if len(log_roots) == 1:
         command = [
             sys.executable,
-            str(root / "alderaan_failure_taxonomy.py"),
+            str(script_dir / "alderaan_failure_taxonomy.py"),
             "--logs",
             str(log_roots[0]),
             "--results-root",
-            str(results_root),
+            str(results_dir),
             "--output",
             str(products / "alderaan_failure_taxonomy.csv"),
         ]
         if len(status_roots) == 1:
             command.extend(["--status-root", str(status_roots[0])])
-        run(command, root)
+        run(command, project_root)
 
     branch_tables: dict[str, pd.DataFrame] = {}
     branch_merged: dict[str, Path] = {}
@@ -237,7 +248,7 @@ def main() -> None:
         run(
             [
                 sys.executable,
-                str(root / "extract_eccentricity_posteriors_direct.py"),
+                str(script_dir / "extract_eccentricity_posteriors_direct.py"),
                 "--sample",
                 str(recovery_sample),
                 "--results-dir",
@@ -261,7 +272,7 @@ def main() -> None:
                 "--density-source",
                 "berger2020_table2",
             ],
-            root,
+            project_root,
         )
 
         merged = branch_dir / "exact_inventory_summary.csv"
@@ -269,11 +280,11 @@ def main() -> None:
         merged_coverage = branch_dir / "exact_inventory_coverage.csv"
         manifest = branch_dir / "exact_inventory_manifest.csv"
         overlap = branch_dir / "overlap_audit.csv"
-        base = (root / str(config["base"])).resolve()
+        base = (project_root / str(config["base"])).resolve()
         run(
             [
                 sys.executable,
-                str(root / "assemble_uniform_paired_posteriors.py"),
+                str(script_dir / "assemble_uniform_paired_posteriors.py"),
                 "--archive",
                 str(base),
                 "--new",
@@ -293,7 +304,7 @@ def main() -> None:
                 "--overlap-out",
                 str(overlap),
             ],
-            root,
+            project_root,
         )
         table, _ = coverage_status(sample, merged, queue)
         table.to_csv(branch_dir / "completion_gate.csv", index=False)
@@ -309,7 +320,7 @@ def main() -> None:
         for branch, merged in branch_merged.items():
             command = [
                 sys.executable,
-                str(root / "hierarchical_rayleigh.py"),
+                str(script_dir / "hierarchical_rayleigh.py"),
                 "--summary",
                 str(merged),
                 "--selection-mode",
@@ -320,7 +331,7 @@ def main() -> None:
             ]
             if BRANCHES[branch]["allow_non_dynesty"]:
                 command.append("--allow-non-dynesty-weights")
-            run(command, root)
+            run(command, project_root)
 
     report = products / "published_inventory_recovery_status.md"
     write_status_report(

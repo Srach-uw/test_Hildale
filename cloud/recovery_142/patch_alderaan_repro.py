@@ -1,9 +1,11 @@
 """Apply the minimal, idempotent ALDERAAN patches required by this project.
 
 The patches do not change the transit model or priors. They make the unused
-validation import optional and seed NumPy plus dynesty through the
-ALDERAAN_SEED environment variable so the detrending, synthetic-noise, and
-transit-fit stages are reproducible.
+validation import optional, seed NumPy plus dynesty through the ALDERAAN_SEED
+environment variable, and repair two upstream detrending control-flow errors:
+quarters with no modelled transits are excluded rather than indexed with an
+undefined outlier mask, and the documented SHOTerm fallback calls the local
+function rather than an undefined module name.
 """
 
 from __future__ import annotations
@@ -34,13 +36,44 @@ def seed_numpy(path: Path) -> None:
     )
 
 
-def main() -> None:
-    parser = argparse.ArgumentParser()
-    parser.add_argument("repo")
-    args = parser.parse_args()
-    repo = Path(args.repo).resolve()
+def patch_detrend_control_flow(detrend_script: Path, detrend_module: Path) -> None:
+    replace_once(
+        detrend_script,
+        "    for j, q in enumerate(quarters):\n"
+        "        if all_dtype[q] == \"long\":\n"
+        "            use = lc.quarter == q\n"
+        "            good_cadno_lc.append(lc.cadno[use][~bad[j]])\n\n"
+        "        if all_dtype[q] == \"short\":\n"
+        "            use = sc.quarter == q\n"
+        "            good_cadno_sc.append(sc.cadno[use][~bad[j]])\n",
+        "    for j, q in enumerate(quarters):\n"
+        "        # ALDERAAN_NO_TRANSIT_QUARTER_GUARD: a refined ephemeris can\n"
+        "        # leave a covered quarter without a transit model. Exclude that\n"
+        "        # quarter rather than applying a nonexistent outlier mask.\n"
+        "        if bad[j] is None:\n"
+        "            continue\n\n"
+        "        if all_dtype[q] == \"long\":\n"
+        "            use = lc.quarter == q\n"
+        "            good_cadno_lc.append(lc.cadno[use][~bad[j]])\n\n"
+        "        if all_dtype[q] == \"short\":\n"
+        "            use = sc.quarter == q\n"
+        "            good_cadno_sc.append(sc.cadno[use][~bad[j]])\n",
+        "ALDERAAN_NO_TRANSIT_QUARTER_GUARD",
+    )
+    replace_once(
+        detrend_module,
+        "            litecurve = detrend.flatten_with_gp(\n",
+        "            # ALDERAAN_SHOTERM_FALLBACK: this module already owns the helper.\n"
+        "            litecurve = flatten_with_gp(\n",
+        "ALDERAAN_SHOTERM_FALLBACK",
+    )
 
-    detrend = repo / "bin" / "detrend_and_estimate_ttvs.py"
+
+def _apply_reproducibility_patches(
+    detrend: Path,
+    analyze: Path,
+    fit: Path,
+) -> None:
     replace_once(
         detrend,
         "from alderaan.validate import remove_known_transits, inject_synthetic_transits",
@@ -48,8 +81,6 @@ def main() -> None:
         "except ImportError:\n    remove_known_transits = inject_synthetic_transits = None",
         "remove_known_transits = inject_synthetic_transits = None",
     )
-    analyze = repo / "bin" / "analyze_autocorrelated_noise.py"
-    fit = repo / "bin" / "fit_transit_shape_simultaneous_nested.py"
     for script in (detrend, analyze, fit):
         seed_numpy(script)
 
@@ -81,7 +112,30 @@ def main() -> None:
             1,
         )
     fit.write_text(text, encoding="utf-8")
+
+
+def apply_patches(repo: Path) -> None:
+    detrend = repo / "bin" / "detrend_and_estimate_ttvs.py"
+    detrend_module = repo / "alderaan" / "detrend.py"
+    analyze = repo / "bin" / "analyze_autocorrelated_noise.py"
+    fit = repo / "bin" / "fit_transit_shape_simultaneous_nested.py"
+    replace_once(
+        detrend,
+        "from alderaan.validate import remove_known_transits, inject_synthetic_transits",
+        "try:\n    from alderaan.validate import remove_known_transits, inject_synthetic_transits\n"
+        "except ImportError:\n    remove_known_transits = inject_synthetic_transits = None",
+        "remove_known_transits = inject_synthetic_transits = None",
+    )
+    patch_detrend_control_flow(detrend, detrend_module)
+    _apply_reproducibility_patches(detrend, analyze, fit)
     print(f"Patched ALDERAAN reproducibly at {repo}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("repo")
+    args = parser.parse_args()
+    apply_patches(Path(args.repo).resolve())
 
 
 if __name__ == "__main__":
