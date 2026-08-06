@@ -45,6 +45,10 @@ def synthetic_near_circular_mass(
         return np.sum(
             posterior / transit_probability_weight(e_grid, omega_grid), axis=1
         )
+    if selection_mode == "legacy_forward_norm":
+        return np.sum(
+            posterior * transit_probability_weight(e_grid, omega_grid), axis=1
+        )
     if selection_mode == "none":
         return posterior.sum(axis=1)
     raise ValueError(f"unsupported diagnostic selection mode: {selection_mode}")
@@ -53,7 +57,7 @@ def synthetic_near_circular_mass(
 def run_bounds(
     summary: pd.DataFrame,
     scales: list[float],
-    selection_mode: str = "manuscript_reciprocal",
+    selection_mode: str = "legacy_forward_norm",
 ) -> pd.DataFrame:
     sigmas = np.linspace(1e-4, 1.0, 2000)
     rows: list[dict[str, object]] = []
@@ -178,10 +182,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--summary",
-        default=(
-            "outputs/eccentricity_posterior_summary_equal_nested_"
-            "published_inventory_pre_visual_qc.csv"
-        ),
+        required=True,
+        help="Explicit posterior summary; stale or equal-weight defaults are refused.",
+    )
+    parser.add_argument(
+        "--selection-mode",
+        choices=["legacy_forward_norm", "manuscript_reciprocal", "none"],
+        default="legacy_forward_norm",
     )
     parser.add_argument(
         "--scales",
@@ -196,7 +203,7 @@ def main() -> None:
 
     scales = [float(value) for value in args.scales.split(",")]
     summary = pd.read_csv(args.summary)
-    frame = run_bounds(summary, scales)
+    frame = run_bounds(summary, scales, selection_mode=args.selection_mode)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     frame.to_csv(out, index=False)

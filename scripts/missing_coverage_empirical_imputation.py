@@ -16,9 +16,24 @@ from hierarchical_rayleigh import (
 from missing_coverage_extreme_bound import PAPER_COUNTS, PAPER_EXPECTED_E
 
 
+def population_log_terms(
+    masses: np.ndarray,
+    densities: np.ndarray,
+    normalizers: np.ndarray,
+    selection_mode: str,
+) -> np.ndarray:
+    terms = masses @ densities
+    if selection_mode in {
+        "legacy_forward_norm",
+        "manuscript_reciprocal_with_norm",
+    }:
+        terms = terms / normalizers
+    return np.log(np.clip(terms, 1e-300, None))
+
+
 def duplicate_analog_results(
     summary: pd.DataFrame,
-    selection_mode: str = "manuscript_reciprocal",
+    selection_mode: str = "legacy_forward_norm",
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     sigmas = np.linspace(1e-4, 1.0, 2000)
     expected_grid = sigmas * np.sqrt(np.pi / 2.0)
@@ -36,14 +51,19 @@ def duplicate_analog_results(
             apply_transit_selection=True,
             selection_mode=selection_mode,
         )
-        rays, _ = rayleigh_grid(
+        rays, normalizers = rayleigh_grid(
             e_grid,
             sigmas,
             apply_transit_selection=True,
             selection_mode=selection_mode,
             outlier_floor=0.0,
         )
-        log_terms = np.log(np.clip(masses @ rays, 1e-300, None))
+        log_terms = population_log_terms(
+            masses,
+            rays,
+            normalizers,
+            selection_mode,
+        )
         full_ll = log_terms.sum(axis=0)
         n_missing = PAPER_COUNTS[population] - len(sub)
         paper_value = PAPER_EXPECTED_E[population]
@@ -148,10 +168,18 @@ def main() -> None:
     )
     parser.add_argument(
         "--summary",
-        default=(
-            "outputs/eccentricity_posterior_summary_equal_nested_"
-            "published_inventory_pre_visual_qc.csv"
-        ),
+        required=True,
+        help="Explicit posterior summary; stale or equal-weight defaults are refused.",
+    )
+    parser.add_argument(
+        "--selection-mode",
+        choices=[
+            "legacy_forward_norm",
+            "manuscript_reciprocal",
+            "manuscript_reciprocal_with_norm",
+            "none",
+        ],
+        default="legacy_forward_norm",
     )
     parser.add_argument(
         "--out",
@@ -159,7 +187,10 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    summary, details = duplicate_analog_results(pd.read_csv(args.summary))
+    summary, details = duplicate_analog_results(
+        pd.read_csv(args.summary),
+        selection_mode=args.selection_mode,
+    )
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     summary.to_csv(out, index=False)

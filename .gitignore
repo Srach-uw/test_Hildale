@@ -43,6 +43,9 @@ tmp/
 
 # The curated 82-file factorial ALDERAAN release is intentionally versioned via Git LFS.
 !data/alderaan_factorial_validation_20260715/results/**/*.fits
+!data/alderaan_combined_confirmation_20260806/results/**/*.fits
+data/alderaan_combined_confirmation_20260806/logs/
+data/alderaan_combined_confirmation_20260806/SHA256SUMS.txt
 
 # OS/editor
 .DS_Store

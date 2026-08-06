@@ -25,14 +25,21 @@ FORBIDDEN = {
 }
 
 
-def tracked_files() -> list[Path]:
-    output = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT, text=False)
-    return [ROOT / item.decode("utf-8") for item in output.split(b"\0") if item]
+def release_candidate_files() -> list[Path]:
+    output = subprocess.check_output(
+        ["git", "ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+        cwd=ROOT,
+        text=False,
+    )
+    names = sorted(
+        {item.decode("utf-8") for item in output.split(b"\0") if item}
+    )
+    return [ROOT / name for name in names]
 
 
 def scan() -> list[str]:
     findings: list[str] = []
-    for path in tracked_files():
+    for path in release_candidate_files():
         if not path.is_file():
             continue
         if path.name.lower() in {"report_hildale.md", "recovery_live_checkpoint.md"}:

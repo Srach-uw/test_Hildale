@@ -1,0 +1,9 @@
+d1e26e450aaf7920975e75649c97c7c97fb1b2092db2ab6ed6933ef9eaed12f7  ./results/K00064-results.fits
+7a340d0f03bea9de102db552ae6a04e65cb0713b6fcee449391169570b561be2  ./results/K00283-results.fits
+d42dabaf71e3b8ca472042a15a503e54a7e3970942f022164fc39001970d724e  ./results/K00319-results.fits
+bf1bccd95c79656ff7225c29b03e00741d7d911fe1de5c9361bd3d6553ab87ca  ./results/K00680-results.fits
+b23f8c6b227a12aa85b0b2b7c6083aaa31a422e1a8f94a67977bb60ddce967d3  ./results/K00716-results.fits
+fa0df80cd6ad02d26858bb643cd3a9a89ca358e6f9728e562a33ba00a38aa071  ./results/K01001-results.fits
+3ff7c2d8ff62ef8c7b52c24e3c9b30e73d110acf616d2887f25dd6b5086a0fb7  ./results/K01299-results.fits
+032dd86ae0b7f5a104b4c48bdbe537a3d839c004d89d4923d92002c0ae7392dc  ./results/K02533-results.fits
+325fdaf2dd6b4a3aec3c8bade95f6e056de4ac59c1240889b3de05f9d2d9a263  ./results/K02712-results.fits

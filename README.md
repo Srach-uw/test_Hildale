@@ -37,6 +37,8 @@ See [docs/replication_status.md](docs/replication_status.md) for the scientific
 interpretation and remaining information gaps. Compact evidence for the current
 reconstruction is in
 [`metadata/public_reconstruction_20260727/`](metadata/public_reconstruction_20260727/).
+The [documentation guide](docs/README.md) separates current conclusions from
+historical audits and cloud runbooks.
 
 ## Main Findings
 
@@ -52,15 +54,24 @@ reconstruction is in
 4. Dynesty nested points must be weighted with `LN_WT`. Equal weighting is kept
    only as an explicitly invalid diagnostic because it produced a misleading
    numerical coincidence.
-5. The completed 82-fit validation matrix shows that cadence, limb darkening,
-   printed transit priors, and sampler seed do not explain the population-wide
-   discrepancy.
-6. A direct audit of 2,124 planets with available weighted ALDERAAN fits finds
-   median absolute circular-density disagreements of 0.154-0.196 dex across the
-   four populations. The corresponding posterior widths are 0.598-0.675 dex.
+5. The completed 82-fit validation matrix and a separate nine-system combined
+   confirmation show that the tested cadence, limb-darkening, printed-prior,
+   and sampler-seed choices do not explain the population-wide discrepancy.
+   In the combined arm, the median paired eccentricity shift is `+0.00042`
+   across 13 planets.
+6. A direct audit of all 2,465 reconstructed planets finds median absolute
+   circular-density disagreements of 0.159-0.225 dex across the four
+   populations. The corresponding posterior widths are 0.611-0.712 dex.
    This localizes the mismatch upstream of the population fit without yet
    identifying a single cause.
-7. The remaining high-value unknowns are the exact stellar-density product, the
+7. Broad impact-parameter posteriors are common and broaden the inferred
+   circular density. High inferred eccentricity also persists in the
+   exploratory narrower-impact subset: after removing five primary-QC
+   failures, its 114 thin singles give a forward-normalized hierarchical mean
+   of 0.333 (0.317-0.350), compared with 0.022 in the paper. Because selection
+   uses a posterior property, this is a diagnostic rather than an unbiased
+   population estimate.
+8. The remaining high-value unknowns are the exact stellar-density product, the
    final rejected-planet list, the released or intermediate `(e, omega)`
    posteriors, and the population-export convention used for Table 3.
 

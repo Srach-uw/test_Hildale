@@ -51,17 +51,52 @@ JOBS=6 nohup bash run_combined_confirmation.sh > combined_confirmation.log 2>&1 
 The runner is resumable. It writes results under
 `projects/paper_priors_reference_lcsc/` and skips an already completed target.
 
-## Acceptance Rule
+## Result
 
 Compare this arm only with the already completed `reference_lcsc` arm for the
-same planets and systems. The result should be interpreted as follows:
+same planets and systems. This contrast estimates the paper-prior effect
+conditional on reference limb darkening and LC+SC. It is not, by itself, a
+factorial difference-in-differences interaction estimate because the available
+paper-prior baseline arm uses a different eight-target set.
 
-1. If the combined arm is close to `reference_lcsc` at the affected systems,
-   the printed-prior interaction is not a credible explanation for the
-   population discrepancy.
-2. If it changes the affected systems materially, record the result as a
-   target-level posterior-construction sensitivity and repeat the comparison
-   on independent controls before changing any full-catalog configuration.
-3. Neither outcome substitutes for the missing Berger et al. (2018) density
-   construction or Sagear's final visual-QC inclusion list. Those remain the
-   gating provenance questions for an exact Table 3 replication.
+All nine systems completed with exit code 0. The matched comparison contains
+13 planets and no direct-posterior QC exclusions.
+
+| parameter | median signed change | median absolute change |
+|---|---:|---:|
+| eccentricity | +0.00042 | 0.01135 |
+| zeta | -0.00019 | 0.00982 |
+| impact parameter | -0.00144 | 0.00740 |
+| transit duration (hr) | -0.00454 | 0.01110 |
+| radius ratio | +0.000017 | 0.000037 |
+
+Five of 13 eccentricity shifts exceed the 95th percentile of the available
+repeat-run shifts, showing that the prior patch can matter for individual
+difficult systems. The shifts are not coherent in sign, however, and their
+median is near zero. This combined configuration therefore does not explain
+the population-wide discrepancy.
+
+The conclusion remains conditional on this targeted system set. This is a
+narrow configuration check, not a replacement population study. It also does
+not substitute for the exact Berger et al. (2018) density construction or
+Sagear's final visual-QC inclusion list.
+
+The immutable FITS release is
+`data/alderaan_combined_confirmation_20260806/`; compact regenerated results are
+in `metadata/combined_confirmation_20260806/`.
+
+Regenerate the comparison from the two immutable releases:
+
+```powershell
+python scripts/compare_factorial_validation.py `
+  --validation-root data/alderaan_factorial_validation_20260715/results `
+  --combined-validation-root data/alderaan_combined_confirmation_20260806 `
+  --include-combined-confirmation `
+  --metadata-root data/alderaan_factorial_validation_20260715/provenance/target_sets `
+  --inventory data/alderaan_factorial_validation_20260715/provenance/input_catalogs/full_system_inventory.csv `
+  --run-contract metadata/factorial_validation_20260715/arm_run_contract.csv `
+  --sample <live-sagear-reproduction>/outputs/canonical_sample_old_astropy_rawcc.csv `
+  --config <live-sagear-reproduction>/config.json `
+  --output-dir <output-directory> `
+  --n-proposals 150000 --bootstrap-replicates 10000 --seed 20260715
+```

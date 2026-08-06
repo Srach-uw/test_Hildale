@@ -18,3 +18,18 @@ def test_near_circular_mass_is_finite_and_low_e() -> None:
     assert np.all(np.isfinite(mass))
     assert np.all(mass >= 0)
     assert np.argmax(mass) <= 2
+
+
+def test_near_circular_mass_supports_generative_selection() -> None:
+    e_grid = np.linspace(0.0, 0.95, 300)
+    omega_grid = np.linspace(-np.pi, np.pi, 240, endpoint=False)
+    mass = synthetic_near_circular_mass(
+        e_grid,
+        omega_grid,
+        scale=0.005,
+        selection_mode="legacy_forward_norm",
+    )
+    assert mass.shape == e_grid.shape
+    assert np.all(np.isfinite(mass))
+    assert np.all(mass >= 0)
+    assert mass.sum() > 0

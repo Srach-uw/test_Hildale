@@ -69,11 +69,19 @@ reproduces the paper.
   arXiv v1 reciprocal rule is not used as a validated scientific estimator.
 - Fixed, Gaussian, and split-normal density sensitivities do not recover
   Table 3.
-- The 82-fit experiment rules out ordinary cadence, limb-darkening,
-  printed-prior, and sampler-seed differences as the main explanation.
+- The 82-fit experiment and nine-system combined confirmation show that the
+  tested cadence, limb-darkening, printed-prior, and sampler-seed differences
+  are not the main explanation. The combined arm changes median eccentricity
+  by only +0.00042 across 13 matched planets, although several individual
+  systems move more than the small repeat-run threshold.
 - Removing the most influential planets cannot reproduce the thin-single value.
-- The paired ALDERAAN circular-density audit contains 2,124 planets and places
+- The paired ALDERAAN circular-density audit contains all 2,465 planets and places
   the disagreement in the transit-shape and density inputs before hierarchy.
+- Impact-parameter uncertainty contributes to broad density posteriors. In an
+  exploratory narrower-impact subset, 114 thin singles remain after five
+  primary-QC failures are removed and give a forward-normalized hierarchical
+  mean eccentricity of 0.333 (0.317-0.350). This selected subset is diagnostic
+  rather than an unbiased population estimate.
 
 ## Remaining Information Gaps
 

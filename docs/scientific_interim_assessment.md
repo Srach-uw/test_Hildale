@@ -10,12 +10,15 @@ contract have removed two major upstream ambiguities. The remaining mismatch is 
 on the eccentricity posteriors and the target-level quality decisions that created
 Sagear et al.'s final posterior sample.
 
-The current uniformly processed 710-planet subset remains much more eccentric than the
-published result. The discrepancy is not explained by limb darkening, transit-selection
-weighting, the reconstructed disk classifier, or a small number of thin-single systems.
-The complete factorial validation now quantifies short-cadence, prior, and
-nested-sampling effects. These tested choices do not create a panel-wide shift large
-enough to explain the discrepancy.
+The July uniformly processed diagnostic began with 710 planets and retained
+703 across the four hierarchy cells after its deterministic exclusions. That
+historical subset remains much more eccentric than the published result; it is
+not the current 2,465-planet reconstruction. The individual factorial arms
+quantify short-cadence, limb-darkening, prior, and nested-sampling effects.
+None creates a panel-wide shift large enough to explain the discrepancy on its
+own. The closest-to-paper combined arm is also complete: its 13 matched planets
+have a median eccentricity shift of +0.00042, so it does not supply the missing
+population-wide shift.
 
 ## Published Ground Truth
 
@@ -99,12 +102,12 @@ and next decisions.
 | Wrong reconstructed Toomre classifier | Real historical problem; solved for the primary analysis by the published host table. |
 | Recounting multiplicity after cuts | Real historical bug; solved. It would mislabel 45 current planet rows. |
 | Synthetic geometric impact samples | Real posterior bug; solved for the uniform direct subset by preserving paired ALDERAAN samples. |
-| Limb-darkening prior centers | Measurable for individual systems, but the partial median shift is far too small to explain thin singles. |
+| Limb-darkening prior centers | Measurable for individual systems, but the completed single-factor median shift is far too small to explain thin singles. |
 | Transit-selection convention | Not the solution. The printed reciprocal rule lowers the current means only modestly and fails a generative injection test. |
 | Berger 2018 versus 2020 density | Still not exactly reproducible. Radius-based 2018-like shifts are generally too small and inconsistent in direction to remove the high-e tail. |
 | A few thin-single outliers | Not sufficient. Thin singles remain high under host-level resampling and top-leverage removal. |
 | Hidden convergence or visual vetting | Still plausible and not publicly identifiable because the final planet and rejected-fit tables are unavailable. |
-| ALDERAAN cadence, priors, and run stochasticity | Measured in the complete matrix. They affect some individual fits but do not explain the panel-wide discrepancy. |
+| ALDERAAN cadence, priors, and run stochasticity | Measured in the complete matrix and nine-system combined confirmation. They affect some individual fits but do not explain the panel-wide discrepancy. |
 
 ## Circular-Density Diagnostic
 
@@ -115,22 +118,54 @@ compares the weighted circular-density posterior inferred from `T14`,
 
 | population | planets | median signed delta log10 rho | median absolute delta | median posterior width |
 |---|---:|---:|---:|---:|
-| thin singles | 889 | +0.095 | 0.196 | 0.660 |
-| thick singles | 218 | +0.109 | 0.188 | 0.675 |
-| thin multis | 824 | -0.019 | 0.154 | 0.609 |
-| thick multis | 193 | -0.054 | 0.168 | 0.598 |
+| thin singles | 1,109 | +0.085 | 0.225 | 0.698 |
+| thick singles | 269 | +0.080 | 0.217 | 0.712 |
+| thin multis | 878 | -0.024 | 0.159 | 0.622 |
+| thick multis | 209 | -0.064 | 0.183 | 0.611 |
 
 The single-planet samples show a positive signed shift, while both multi-planet
 samples are near zero or slightly negative. All four groups have broad
 circular-density posteriors. This confirms that the disagreement is already
-present in the transit-shape and stellar-density inputs. It does not establish
-that impact-parameter uncertainty alone is responsible: narrow and broad
-posteriors both contain discrepant systems, so target-level fit quality and the
-unpublished rejection contract remain live explanations.
+present in the transit-shape and stellar-density inputs.
+
+The raw weighted FITS allow a second, population-wide test of impact-parameter
+uncertainty. Using `b84 - b16 <= 0.4` as an exploratory constrained threshold:
+
+| population | constrained / broad N | constrained median absolute delta | broad median absolute delta | constrained / broad median e50 |
+|---|---:|---:|---:|---:|
+| thin singles | 119 / 990 | 0.268 | 0.219 | 0.297 / 0.297 |
+| thick singles | 18 / 251 | 0.191 | 0.221 | 0.258 / 0.290 |
+| thin multis | 66 / 812 | 0.156 | 0.160 | 0.230 / 0.237 |
+| thick multis | 14 / 195 | 0.558 | 0.167 | 0.385 / 0.242 |
+
+Broad impact posteriors increase circular-density uncertainty for most groups.
+A hierarchy fit to the constrained subsets provides a diagnostic comparison:
+
+| population | constrained N | forward-normalized mean e | arXiv-v1 reciprocal sensitivity | paper mean e |
+|---|---:|---:|---:|---:|
+| thin singles | 114 | 0.333 (0.317-0.350) | 0.403 (0.375-0.436) | 0.022 |
+| thick singles | 18 | 0.312 (0.276-0.356) | 0.349 (0.297-0.424) | 0.066 |
+| thin multis | 61 | 0.214 (0.195-0.236) | 0.236 (0.212-0.265) | 0.030 |
+| thick multis | 14 | 0.248 (0.193-0.308) | 0.361 (0.259-0.602) | 0.033 |
+
+This subset is selected on a posterior property and is therefore neither an
+unbiased population sample nor a replacement population measurement. High
+inferred eccentricity persists among planets with narrower impact posteriors,
+so simple posterior broadening alone is not supported as the full explanation.
+Five thin-single and five thin-multi constrained rows fail the primary
+importance-sampling QC and are excluded from the hierarchy table. The selection
+can still interact with transit geometry or fit quality, and the thick-multi
+cell has only 14 planets and is especially uncertain.
+
+Target-level fit quality, the adopted density construction, and the unpublished
+rejection contract therefore remain live explanations.
 
 The compact result and generating script are
 `metadata/public_reconstruction_20260727/photoeccentric_density_audit.csv` and
-`scripts/photoeccentric_density_audit.py`.
+`scripts/photoeccentric_density_audit.py`. The impact-width stratification is
+`metadata/public_reconstruction_20260727/photoeccentric_impact_width_audit.csv`.
+The corresponding hierarchy sensitivity is
+`metadata/public_reconstruction_20260727/rayleigh_impact_constrained_sensitivity.csv`.
 
 ## Scientific Versus Literal Replication
 

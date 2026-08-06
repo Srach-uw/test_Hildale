@@ -188,31 +188,30 @@ Key outputs:
 - `sagear_reproduction/outputs/catalog_diagnostics_radius_comparison.png`
 - `docs/replication_status.md`
 
-## Important Current Gaps
+## Current Status
 
-The local folder now has Furlan+2017 and an APOGEE DR17 Kepler crossmatch. The current strict audit still does not reproduce Sagear's disk counts:
+The count and classifier discussion that originally followed this heading
+described the superseded 2,474-planet reconstruction. It is retained in the
+dated July audit documents, not as current guidance.
 
-- strict APOGEE-calibrated pooled GMM currently gives `94` thick singles and `61` thick multi planets, far below Sagear's `275` and `207`.
-- forced diagnostic all-Angus GMM gives `1121` thin singles, `305` thick singles, `822` thin multi planets, and `226` thick multi planets. This is much closer, but still not Sagear-equivalent.
+The public reconstruction now contains exactly 2,465 planets and uses the
+published host labels directly:
 
-The sample audit now includes two important cuts that were missing from the first pass:
+- 1,109 thin singles;
+- 269 thick singles;
+- 878 thin multis;
+- 209 thick multis.
 
-- `berger_teff < 6500`, matching the paper's FGKM sample description.
-- Berger+2018 `Bin=0`, a likely resolved-companion/binary exclusion inherited from the stellar catalog.
+Multiplicity is frozen from the full eligible system before planet-level fit
+cuts. The direct extractor preserves paired ALDERAAN transit-shape and period
+samples and applies dynesty weights. The canonical hierarchy uses the
+forward transit probability with population normalization; manuscript
+reciprocal modes remain explicit sensitivities rather than defaults.
 
-Together these reduce the pre-ALDERAAN sample to `2474` planets, close to Sagear's `2465`.
-
-The remaining blockers for a faithful Sagear sample/classification match are:
-
-- the exact Sagear GMM implementation/convention used to turn APOGEE high/low-alpha calibration into `P_thick`;
-- ALDERAAN convergence/results outputs for the final posterior-quality cut.
-
-Additional diagnostics now indicate:
-
-- Berger+2018 availability is not the remaining sample-count culprit: after the new cuts, all `2474` diagnostic planet rows match the downloaded Berger+2018 table.
-- Current-vs-Berger+2018 stellar radii are typically within a few percent, so catalog radius differences are unlikely to explain the large thin-single eccentricity discrepancy by themselves.
-- The old `e_photo` thin-single median is close to Sagear, but its mean is elevated by a short-period/high-impact tail; this is exactly what the ALDERAAN validation batch should test.
-- `extract_eccentricity_posteriors.py` now leaves individual `e,omega` posteriors without a geometric transit prior by default, and `hierarchical_rayleigh.py` applies the reciprocal transit-probability correction over the joint posterior grid.
-- Sagear's manuscript macros are internally inconsistent: disk-total planet macros sum to `2474`, while subgroup/all-planets macros sum to `2465`. The current corrected sample lands at `2474`, so this 9-planet discrepancy should not be overfit without external clarification.
-
-Until the classifier convention and ALDERAAN outputs are resolved, the audit remains non-Sagear-equivalent.
+The current blocker is not the old 2,474-versus-2,465 count ambiguity. The
+full 2,465-planet circular-density audit localizes the discrepancy upstream of
+the population fit, while the remaining missing provenance is the exact
+stellar-density input, final visual-QC exclusions, planet-level posterior
+export, and Table 3 population implementation. See
+`docs/replication_status.md` and
+`metadata/public_reconstruction_20260727/README.md` for current numbers.

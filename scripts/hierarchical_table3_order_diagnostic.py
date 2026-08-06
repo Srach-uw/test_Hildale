@@ -66,12 +66,38 @@ def model_density(model: str, e: np.ndarray, x: np.ndarray) -> tuple[np.ndarray,
     raise ValueError(model)
 
 
-def fit_model(masses: np.ndarray, e: np.ndarray, model: str, starts: list[np.ndarray]) -> dict:
+def population_normalizer(
+    density: np.ndarray,
+    e: np.ndarray,
+    selection_mode: str,
+) -> float:
+    if selection_mode == "legacy_forward_norm":
+        return max(
+            float(trapezoid(density / np.clip(1.0 - e**2, 1e-12, None), e)),
+            1e-300,
+        )
+    if selection_mode in {"none", "manuscript_reciprocal"}:
+        return 1.0
+    raise ValueError(f"Unknown selection mode: {selection_mode}")
+
+
+def fit_model(
+    masses: np.ndarray,
+    e: np.ndarray,
+    model: str,
+    starts: list[np.ndarray],
+    selection_mode: str,
+) -> dict:
     # Each row is a planet's posterior mass over e after the same omega
     # selection correction used by the Rayleigh implementation.
     def objective(x: np.ndarray) -> float:
         f, _, _ = model_density(model, e, x)
-        terms = np.clip(masses @ f, 1e-300, None)
+        terms = (masses @ f) / population_normalizer(
+            f,
+            e,
+            selection_mode,
+        )
+        terms = np.clip(terms, 1e-300, None)
         return float(-np.log(terms).sum())
 
     bounds = {
@@ -100,7 +126,12 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--summary", required=True)
     ap.add_argument("--tag", required=True)
-    ap.add_argument("--selection-mode", choices=["none", "manuscript_reciprocal"], default="manuscript_reciprocal")
+    ap.add_argument(
+        "--selection-mode",
+        choices=["legacy_forward_norm", "none", "manuscript_reciprocal"],
+        required=True,
+        help="Choose explicitly; manuscript_reciprocal is a literal sensitivity only.",
+    )
     ap.add_argument("--allow-non-dynesty-weights", action="store_true")
     ap.add_argument("--allow-nonpaired-impact", action="store_true")
     ap.add_argument("--allow-mixed-posterior-sources", action="store_true")
@@ -125,7 +156,13 @@ def main() -> None:
         sub = summary[(summary.disk == disk) & (summary.system == system)].reset_index(drop=True)
         masses, e = load_population_masses(sub, args.selection_mode != "none", args.selection_mode)
         for model in ("beta", "monotonic_beta", "half_gaussian"):
-            fit = fit_model(masses, e, model, starts_for(model))
+            fit = fit_model(
+                masses,
+                e,
+                model,
+                starts_for(model),
+                args.selection_mode,
+            )
             fit["comparison_value"] = fit["sigma"] if model == "half_gaussian" else fit["mean_e"]
             rows.append({"population": label, "n": len(sub), "model": model, "selection_mode": args.selection_mode, **fit})
 

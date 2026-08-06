@@ -1,0 +1,18 @@
+packaged_utc=2026-08-06T20:45:24Z
+run_id=sagear_validation_paper_priors_reference_lcsc
+alderaan_commit_expected=7443dff16b7f9092e14a6f0cc1f8948d457c9e0b
+cadence_mode=both
+catalog_source=sagear_ld_reference_catalog.csv
+seed_offset=0
+jobs=6
+target_count=9
+targets=K00064,K00283,K00319,K00680,K00716,K01001,K01299,K02533,K02712
+paper_prior_repo_head=7443dff16b7f9092e14a6f0cc1f8948d457c9e0b
+paper_prior_repo_status_begin
+ M alderaan/dynesty_helpers.py
+ M bin/detrend_and_estimate_ttvs.py
+ M bin/fit_transit_shape_simultaneous_nested.py
+paper_prior_repo_status_end
+runner_repo_head=7443dff16b7f9092e14a6f0cc1f8948d457c9e0b
+hostname=alderaan-factorial-a
+uname=Linux alderaan-factorial-a 6.8.0-1063-gcp #69~22.04.1-Ubuntu SMP Tue Jun 30 15:12:15 UTC 2026 x86_64 x86_64 x86_64 GNU/Linux

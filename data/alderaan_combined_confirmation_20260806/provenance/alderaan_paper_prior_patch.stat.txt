@@ -1,0 +1,4 @@
+ alderaan/dynesty_helpers.py                  | 4 ++--
+ bin/detrend_and_estimate_ttvs.py             | 5 ++++-
+ bin/fit_transit_shape_simultaneous_nested.py | 5 +++++
+ 3 files changed, 11 insertions(+), 3 deletions(-)

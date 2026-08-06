@@ -1,0 +1,61 @@
+diff --git a/alderaan/dynesty_helpers.py b/alderaan/dynesty_helpers.py
+index e25a414..3f9e67b 100644
+--- a/alderaan/dynesty_helpers.py
++++ b/alderaan/dynesty_helpers.py
+@@ -113,8 +113,8 @@ def prior_transform(uniform_hypercube, num_planets, durations):
+ 
+     # 5*num_planets (+2) parameters: {C0, C1, r, b, T14}...{q1,q2}
+     for npl in range(num_planets):
+-        x_[5 * npl + 0] = norm_ppf(u_[0 + npl * 5], 0.0, 0.1)
+-        x_[5 * npl + 1] = norm_ppf(u_[1 + npl * 5], 0.0, 0.1)
++        x_[5 * npl + 0] = norm_ppf(u_[0 + npl * 5], 0.0, 1.0)
++        x_[5 * npl + 1] = norm_ppf(u_[1 + npl * 5], 0.0, 1.0)
+         x_[5 * npl + 2] = loguniform_ppf(u_[2 + npl * 5], 1e-5, 0.99)
+         x_[5 * npl + 3] = uniform_ppf(u_[3 + npl * 5], 0.0, 1 + x_[5 * npl + 2])
+         x_[5 * npl + 4] = loguniform_ppf(u_[4 + npl * 5], scit, 3 * durations[npl])
+diff --git a/bin/detrend_and_estimate_ttvs.py b/bin/detrend_and_estimate_ttvs.py
+index 485cc42..b94a456 100644
+--- a/bin/detrend_and_estimate_ttvs.py
++++ b/bin/detrend_and_estimate_ttvs.py
+@@ -189,7 +189,10 @@ from alderaan.plotting import (
+     plot_folded_transit,
+ )
+ from alderaan.utils import boxcar_smooth, bin_data, LS_estimator
+-from alderaan.validate import remove_known_transits, inject_synthetic_transits
++try:
++    from alderaan.validate import remove_known_transits, inject_synthetic_transits
++except ImportError:
++    remove_known_transits = inject_synthetic_transits = None
+ from alderaan.Planet import Planet
+ 
+ 
+diff --git a/bin/fit_transit_shape_simultaneous_nested.py b/bin/fit_transit_shape_simultaneous_nested.py
+index af8a0ba..f553dd7 100644
+--- a/bin/fit_transit_shape_simultaneous_nested.py
++++ b/bin/fit_transit_shape_simultaneous_nested.py
+@@ -596,6 +596,9 @@ def main():
+     ptform_args = (NPL, DURS)
+     chk_file = os.path.join(RESULTS_DIR, f"{TARGET}-dynesty.checkpoint")
+ 
++    seed_text = os.environ.get("ALDERAAN_SEED")
++    RSTATE = np.random.default_rng(int(seed_text)) if seed_text is not None else None
++
+     USE_MULTIPRO = False
+ 
+     if USE_MULTIPRO:
+@@ -609,6 +612,7 @@ def main():
+                 bound="multi",
+                 sample="rwalk",
+                 pool=pool,
++                rstate=RSTATE,
+             )
+             sampler.run_nested(
+                 checkpoint_file=chk_file, checkpoint_every=60, print_progress=VERBOSE
+@@ -622,6 +626,7 @@ def main():
+             ndim,
+             bound="multi",
+             sample="rwalk",
++            rstate=RSTATE,
+             logl_args=logl_args,
+             ptform_args=ptform_args,
+         )

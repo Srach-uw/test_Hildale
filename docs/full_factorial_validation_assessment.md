@@ -97,6 +97,7 @@ python scripts/compare_factorial_validation.py `
   --validation-root data/alderaan_factorial_validation_20260715 `
   --metadata-root data/alderaan_factorial_validation_20260715/provenance/target_sets `
   --inventory data/alderaan_factorial_validation_20260715/provenance/input_catalogs/full_system_inventory.csv `
+  --run-contract metadata/factorial_validation_20260715/arm_run_contract.csv `
   --sample <live-sagear-reproduction>/outputs/canonical_sample_old_astropy_rawcc.csv `
   --config <live-sagear-reproduction>/config.json `
   --output-dir <output-directory> `
