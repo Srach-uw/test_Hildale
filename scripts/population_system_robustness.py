@@ -143,7 +143,7 @@ def analyze_population(
 def run(
     summary: pd.DataFrame,
     *,
-    selection_mode: str = "manuscript_reciprocal",
+    selection_mode: str = "legacy_forward_norm",
     trials: int = 1000,
     seed: int = 20260713,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
@@ -184,7 +184,16 @@ def run(
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--summary", required=True)
-    parser.add_argument("--selection-mode", default="manuscript_reciprocal")
+    parser.add_argument(
+        "--selection-mode",
+        choices=[
+            "legacy_forward_norm",
+            "manuscript_reciprocal",
+            "manuscript_reciprocal_with_norm",
+            "none",
+        ],
+        default="legacy_forward_norm",
+    )
     parser.add_argument("--trials", type=int, default=1000)
     parser.add_argument("--seed", type=int, default=20260713)
     parser.add_argument("--out-tag", default="system_robustness")

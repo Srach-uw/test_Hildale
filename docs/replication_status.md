@@ -1,6 +1,6 @@
 # Replication Status
 
-Updated: 2026-07-31
+Updated: 2026-08-07
 
 ## Bottom Line
 
@@ -28,9 +28,9 @@ The total is exact, but individual planet membership in the paper's final
 post-fit rejection set is unavailable. Count-matched and adversarial-removal
 tests do not account for the full eccentricity difference.
 
-## Current Public-Data Fit
+## Current Literal-Replication Fit
 
-The canonical sensitivity uses:
+The reported literal sensitivity uses:
 
 - published host labels;
 - multiplicity assigned before planet-level cuts;
@@ -38,7 +38,8 @@ The canonical sensitivity uses:
 - dynesty `LN_WT` weights;
 - fixed Berger et al. (2020) density;
 - direct MacDougall-style post-model importance sampling;
-- manuscript transit-selection normalization;
+- the arXiv v1 reciprocal transit-selection rule, retained only as a literal
+  replication sensitivity;
 - deterministic posterior QC.
 
 | Population | All N | All mean eccentricity | QC N | QC mean eccentricity | Paper |
@@ -62,12 +63,17 @@ reproduces the paper.
   change shifts the population values by at most `1.2e-5`.
 - Nested rows use `LN_WT`. Equal raw-row weighting is rejected.
 - The hierarchy requires homogeneous provenance and rejects a mixed archive.
-- The hierarchy reproduces the archived M-dwarf Rayleigh benchmark.
+- Nonzero-eccentricity round trips test the MacDougall equation's sign,
+  angular units, and velocity factor.
+- The generative forward-normalized hierarchy passes synthetic recovery; the
+  arXiv v1 reciprocal rule is not used as a validated scientific estimator.
 - Fixed, Gaussian, and split-normal density sensitivities do not recover
   Table 3.
 - The 82-fit experiment rules out ordinary cadence, limb-darkening,
   printed-prior, and sampler-seed differences as the main explanation.
 - Removing the most influential planets cannot reproduce the thin-single value.
+- The paired ALDERAAN circular-density audit contains 2,124 planets and places
+  the disagreement in the transit-shape and density inputs before hierarchy.
 
 ## Remaining Information Gaps
 

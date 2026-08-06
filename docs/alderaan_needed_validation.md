@@ -1,5 +1,8 @@
 # ALDERAAN Needed Manifest Validation
 
+> Historical artifact (2026-07-04). This validates the superseded 2,474-row
+> launch manifest and is not the current 2,465-planet reconstruction.
+
 ## Pass/Fail Checks
 
 | check                                      |   value | passed   | note                                                                         |

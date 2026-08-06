@@ -94,6 +94,96 @@ def test_exact_macdougall_equation_sanity() -> None:
     )
 
 
+def exact_duration_days_eccentric(
+    period_days: float,
+    rho_solar: float,
+    ror: float,
+    impact: float,
+    eccentricity: float,
+    omega_rad: float,
+) -> float:
+    """Invert Equation 3 for a specified stellar density."""
+    period_s = period_days * DAY_S
+    a_over_r_sq = (
+        rho_solar * RHO_SUN_KG_M3 * G_SI * period_s**2 / (3.0 * np.pi)
+    ) ** (2.0 / 3.0)
+    chord_sq = (1.0 + ror) ** 2 - impact**2
+    velocity_factor = (1.0 + eccentricity * np.sin(omega_rad)) / np.sqrt(
+        1.0 - eccentricity**2
+    )
+    sine = np.sqrt(chord_sq / (a_over_r_sq - impact**2))
+    return period_days * np.arcsin(sine) / (np.pi * velocity_factor)
+
+
+def test_macdougall_roundtrip_at_nonzero_eccentricity() -> None:
+    period_days = 12.3
+    rho_true = 1.27
+    ror = 0.041
+    impact = 0.37
+    for eccentricity, omega_rad in [
+        (0.30, np.pi / 2.0),
+        (0.30, -np.pi / 2.0),
+        (0.50, 0.7),
+        (0.20, -1.1),
+        (0.75, 2.9),
+    ]:
+        duration_days = exact_duration_days_eccentric(
+            period_days,
+            rho_true,
+            ror,
+            impact,
+            eccentricity,
+            omega_rad,
+        )
+        recovered = macdougall_rho_star_samp(
+            period_days * DAY_S,
+            np.array([duration_days * DAY_S]),
+            np.array([ror]),
+            np.array([impact]),
+            np.array([eccentricity]),
+            np.array([omega_rad]),
+        )[0]
+        assert np.isclose(recovered, rho_true, rtol=1e-11, atol=0.0)
+
+
+def test_macdougall_omega_is_in_radians() -> None:
+    args = (
+        12.3 * DAY_S,
+        np.array([0.31 * DAY_S]),
+        np.array([0.041]),
+        np.array([0.37]),
+        np.array([0.4]),
+    )
+    as_radians = macdougall_rho_star_samp(*args, np.array([np.pi / 2.0]))[0]
+    as_degrees = macdougall_rho_star_samp(
+        *args,
+        np.array([np.pi / 2.0 * np.pi / 180.0]),
+    )[0]
+    assert np.isfinite(as_radians) and np.isfinite(as_degrees)
+    assert not np.isclose(as_radians, as_degrees, rtol=1e-3)
+
+
+def test_macdougall_velocity_factor_sign() -> None:
+    args = (
+        12.3 * DAY_S,
+        np.array([0.31 * DAY_S]),
+        np.array([0.041]),
+        np.array([0.37]),
+        np.array([0.4]),
+    )
+    positive_sine = macdougall_rho_star_samp(*args, np.array([np.pi / 2.0]))[0]
+    negative_sine = macdougall_rho_star_samp(*args, np.array([-np.pi / 2.0]))[0]
+    circular = macdougall_rho_star_samp(
+        12.3 * DAY_S,
+        np.array([0.31 * DAY_S]),
+        np.array([0.041]),
+        np.array([0.37]),
+        np.array([0.0]),
+        np.array([0.0]),
+    )[0]
+    assert positive_sine < circular < negative_sine
+
+
 def test_weighted_quantiles() -> None:
     values = np.array([0.0, 1.0, 2.0, 3.0])
     weights = np.array([1.0, 1.0, 6.0, 2.0])

@@ -1,6 +1,6 @@
 # Scientific Interim Assessment
 
-Updated: 2026-07-15
+Updated: 2026-08-07
 
 ## Executive Finding
 
@@ -106,10 +106,38 @@ and next decisions.
 | Hidden convergence or visual vetting | Still plausible and not publicly identifiable because the final planet and rejected-fit tables are unavailable. |
 | ALDERAAN cadence, priors, and run stochasticity | Measured in the complete matrix. They affect some individual fits but do not explain the panel-wide discrepancy. |
 
+## Circular-Density Diagnostic
+
+The July 27 posterior ledger permits a direct check using paired ALDERAAN
+transit samples rather than DR25 point estimates. For each planet, the audit
+compares the weighted circular-density posterior inferred from `T14`,
+`Rp/Rstar`, and impact parameter with the adopted stellar density.
+
+| population | planets | median signed delta log10 rho | median absolute delta | median posterior width |
+|---|---:|---:|---:|---:|
+| thin singles | 889 | +0.095 | 0.196 | 0.660 |
+| thick singles | 218 | +0.109 | 0.188 | 0.675 |
+| thin multis | 824 | -0.019 | 0.154 | 0.609 |
+| thick multis | 193 | -0.054 | 0.168 | 0.598 |
+
+The single-planet samples show a positive signed shift, while both multi-planet
+samples are near zero or slightly negative. All four groups have broad
+circular-density posteriors. This confirms that the disagreement is already
+present in the transit-shape and stellar-density inputs. It does not establish
+that impact-parameter uncertainty alone is responsible: narrow and broad
+posteriors both contain discrepant systems, so target-level fit quality and the
+unpublished rejection contract remain live explanations.
+
+The compact result and generating script are
+`metadata/public_reconstruction_20260727/photoeccentric_density_audit.csv` and
+`scripts/photoeccentric_density_audit.py`.
+
 ## Scientific Versus Literal Replication
 
-For literal replication, `manuscript_reciprocal` remains the comparison mode because it
-matches the published analysis description. For a generative population analysis,
+For literal replication, `manuscript_reciprocal` remains a labeled sensitivity because
+it follows the hierarchy equation preserved in the arXiv v1 source comments. That
+equation is not printed in the final journal PDF and fails the repository's
+uninformative-data normalization check. For a generative population analysis,
 `legacy_forward_norm` is the defensible transit-selection model and recovers an injected
 intrinsic Rayleigh distribution more accurately. Both results must be reported and must
 not be blended into one headline number.

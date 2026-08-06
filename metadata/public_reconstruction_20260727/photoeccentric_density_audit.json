@@ -1,0 +1,42 @@
+{
+  "input_rows": 2124,
+  "valid_rows": 2124,
+  "populations": [
+    {
+      "population": "thick_multi",
+      "n": 193,
+      "median_delta_log10_rho": -0.053618748978271256,
+      "median_abs_delta_log10_rho": 0.1683512204880795,
+      "median_rho_circular_width_dex": 0.5977847655513243,
+      "median_planet_e50": 0.2355155291920733,
+      "mean_planet_e50": 0.29648328769197263
+    },
+    {
+      "population": "thick_single",
+      "n": 218,
+      "median_delta_log10_rho": 0.10918327198994715,
+      "median_abs_delta_log10_rho": 0.18758178815704404,
+      "median_rho_circular_width_dex": 0.6751119033062831,
+      "median_planet_e50": 0.2784526343808632,
+      "mean_planet_e50": 0.3341937267268023
+    },
+    {
+      "population": "thin_multi",
+      "n": 824,
+      "median_delta_log10_rho": -0.018945577395327665,
+      "median_abs_delta_log10_rho": 0.1535926157504921,
+      "median_rho_circular_width_dex": 0.6092527601494644,
+      "median_planet_e50": 0.2325172750017861,
+      "mean_planet_e50": 0.2851017053732173
+    },
+    {
+      "population": "thin_single",
+      "n": 889,
+      "median_delta_log10_rho": 0.09533274916812415,
+      "median_abs_delta_log10_rho": 0.19576633199661558,
+      "median_rho_circular_width_dex": 0.6598926996616046,
+      "median_planet_e50": 0.2859064188725733,
+      "mean_planet_e50": 0.3328635903274948
+    }
+  ]
+}

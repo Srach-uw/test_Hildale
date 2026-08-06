@@ -48,11 +48,11 @@ def main() -> None:
     parser.add_argument(
         "--selection-mode",
         choices=SELECTION_MODES,
-        default="manuscript_reciprocal",
+        default="legacy_forward_norm",
         help=(
-            "Transit-selection convention. legacy_forward_norm reproduces the older pipeline; "
-            "manuscript_reciprocal follows the commented Sagear HBM equation using 1/p_transit; "
-            "none omits transit selection."
+            "Transit-selection convention. legacy_forward_norm is the validated "
+            "generative default; manuscript_reciprocal follows the commented "
+            "arXiv v1 equation as a literal sensitivity; none omits selection."
         ),
     )
     parser.add_argument("--exclude-zeta-outside-grid-support", action="store_true", help="Drop rows whose zeta median/p16/p84 is outside e<=0.95 support.")
@@ -104,6 +104,11 @@ def main() -> None:
         parser.error("--outlier-floor must be finite and between 0 and 1")
     if args.outlier_floor > 0.0 and not args.out_tag:
         parser.error("--outlier-floor is diagnostic and requires an explicit --out-tag")
+    if args.selection_mode.startswith("manuscript_") and not args.out_tag:
+        parser.error(
+            "manuscript selection modes are literal sensitivities and require "
+            "an explicit --out-tag"
+        )
     summary_path = Path(args.summary)
     if not summary_path.exists():
         raise FileNotFoundError(f"Posterior summary not found: {summary_path}")
