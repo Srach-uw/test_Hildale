@@ -10,33 +10,35 @@ Reference article:
 ## Status
 
 This repository does not reproduce the population eccentricities reported in
-the paper. It does reproduce the published planet inventory, preserves the
-paper's host classifications and pre-cut multiplicity labels, and constructs a
-uniform public-data posterior set for all 2,465 planets.
+the paper. It recovers a 2,465-planet public-data inventory, preserves the
+published host classifications and pre-cut multiplicity labels, and constructs
+a uniform posterior set. The total matches the paper, but the four population
+counts do not, so the final planet membership is not exact.
 
-The table below uses the literal public-data sensitivity: paired ALDERAAN
-transit-shape samples, dynesty `LN_WT` weights, row-paired period samples,
-fixed Berger et al. (2020) stellar densities, and the reciprocal selection rule
-preserved in the arXiv v1 source comments. The validated generative default is
-the forward-normalized selection model; neither convention resolves the
-discrepancy.
+The valid public-data branch keeps paired ALDERAAN transit-shape samples and
+uses dynesty `LN_WT` weights. Its Rayleigh means are 0.234, 0.246, 0.141, and
+0.171 for thick singles, thin singles, thick multis, and thin multis. These are
+well above the paper's 0.066, 0.022, 0.033, and 0.030. Equal raw-row weighting
+moves some values toward the paper but reverses the reported model comparison:
+it favors a half-Gaussian rather than Rayleigh. That branch is retained only as
+a diagnostic.
 
-| Population | Public-data N | QC N | QC mean eccentricity | Paper N | Paper mean eccentricity |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Thin singles | 1,109 | 1,104 | 0.232 (0.225-0.239) | 1,121 | 0.022 (0.017-0.029) |
-| Thick singles | 269 | 268 | 0.208 (0.194-0.223) | 275 | 0.066 (0.045-0.096) |
-| Thin multis | 878 | 873 | 0.094 (0.088-0.103) | 862 | 0.030 (0.023-0.031) |
-| Thick multis | 209 | 209 | 0.133 (0.121-0.147) | 207 | 0.033 (0.015-0.065) |
+An independent control using Gilbert et al.'s released small-planet catalog
+and the same real ALDERAAN archive recovers a Beta mean of 0.0487 for all small
+planets and 0.0684 for observed singles, consistent with the corresponding
+published values near 0.05 and 0.073. This shows that the extraction and
+hierarchical machinery can recover an external published result; it does not
+identify Sagear et al.'s unreleased analysis choices.
 
-These values are diagnostic. They are not an independent astrophysical
-measurement. The remaining disagreement is upstream of the population grid and
-cannot be resolved from the public products alone with the checks completed so
-far.
+All values in this repository are replication diagnostics, not a new
+astrophysical measurement.
 
 See [docs/replication_status.md](docs/replication_status.md) for the scientific
 interpretation and remaining information gaps. Compact evidence for the current
 reconstruction is in
-[`metadata/public_reconstruction_20260727/`](metadata/public_reconstruction_20260727/).
+[`metadata/public_reconstruction_20260727/`](metadata/public_reconstruction_20260727/),
+with the final control and weighting audits in
+[`metadata/final_forensic_20260808/`](metadata/final_forensic_20260808/).
 The [documentation guide](docs/README.md) separates current conclusions from
 historical audits and cloud runbooks.
 
@@ -51,9 +53,9 @@ historical audits and cloud runbooks.
    not a claim about the final 2,465-row inventory.
 3. ALDERAAN duration, radius-ratio, impact-parameter, and period samples must
    remain paired. The extractor now enforces this contract.
-4. Dynesty nested points must be weighted with `LN_WT`. Equal weighting is kept
-   only as an explicitly invalid diagnostic because it produced a misleading
-   numerical coincidence.
+4. Dynesty nested points must be weighted with `LN_WT`. Equal weighting partly
+   approaches the paper's means but fails its model ordering, so the numerical
+   resemblance is not accepted as a replication.
 5. The completed 82-fit validation matrix and a separate nine-system combined
    confirmation show that the tested cadence, limb-darkening, printed-prior,
    and sampler-seed choices do not explain the population-wide discrepancy.
@@ -71,9 +73,13 @@ historical audits and cloud runbooks.
    of 0.333 (0.317-0.350), compared with 0.022 in the paper. Because selection
    uses a posterior property, this is a diagnostic rather than an unbiased
    population estimate.
-8. The remaining high-value unknowns are the exact stellar-density product, the
-   final rejected-planet list, the released or intermediate `(e, omega)`
-   posteriors, and the population-export convention used for Table 3.
+8. Applying Gilbert's full post-fit quality cuts to the Sagear sample does not
+   recover Table 3. The same cuts do recover Gilbert's published small-planet
+   result from the real ALDERAAN archive, providing a positive control.
+9. The remaining high-value unknowns are the exact stellar-density and radius
+   products, the final rejected-planet list, the intermediate `(e, omega)`
+   posteriors, the nested-point resampling convention, and the population-fit
+   implementation used for Table 3.
 
 ## Reproduce the Checks
 

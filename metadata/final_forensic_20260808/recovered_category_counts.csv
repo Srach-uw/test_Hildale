@@ -1,0 +1,5 @@
+disk,system,recovered_count,paper_final_count,difference
+thick,single,269,275,-6
+thin,single,1109,1121,-12
+thick,multi,209,207,2
+thin,multi,878,862,16

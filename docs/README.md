@@ -9,6 +9,7 @@ Start with these files:
 | `full_factorial_validation_assessment.md` | Results from the completed 82-fit validation matrix |
 | `combined_configuration_confirmation.md` | Completed nine-system combined configuration check |
 | `author_clarification_request.md` | Reproduction products that are not available publicly |
+| `../metadata/final_forensic_20260808/README.md` | Final Gilbert control, residual, QC, and weighting evidence |
 
 Operational runbooks are retained for reproducibility:
 

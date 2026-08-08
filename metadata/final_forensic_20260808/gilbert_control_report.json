@@ -1,0 +1,22 @@
+{
+  "control_definition": "Gilbert released catalog, small planets 0.5-3.5 R_earth, intersected with final Sagear ALDERAAN inventory",
+  "gilbert_catalog_rows": 3729,
+  "gilbert_small_prefit_rows": 1512,
+  "sagear_intersection_prefit_rows": 1261,
+  "sagear_intersection_postfit_rows": 1164,
+  "postfit_exclusions": {
+    "exclude_qc_unavailable": 0,
+    "exclude_grazing": 90,
+    "exclude_planet_radius_precision": 29,
+    "exclude_density_asymmetry": 6,
+    "exclude_importance_viability": 91
+  },
+  "primary_selection_mode": "manuscript_reciprocal",
+  "source_basis": "Gilbert utils/models.py subtracts log(detection_prior) per posterior sample",
+  "published_comparators": {
+    "Gilbert2025_small_planets_mean_e": 0.05,
+    "Gilbert2026_small_planet_observed_singles_mean_e": 0.073,
+    "Gilbert2026_small_planet_multis_qualitative": "lower than singles; exact values depend on multiplicity bin"
+  },
+  "scope_warning": "This is a real-posterior intersection control, not Gilbert's full disk-agnostic sample."
+}

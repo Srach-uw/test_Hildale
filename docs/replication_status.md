@@ -1,14 +1,14 @@
 # Replication Status
 
-Updated: 2026-08-07
+Updated: 2026-08-08
 
 ## Bottom Line
 
 The public-data pipeline now has a usable ALDERAAN result for every planet in
 the reconstructed 2,465-planet inventory. The sample, multiplicity, posterior,
-and population-fit contracts have been checked independently. The resulting
-Rayleigh eccentricities remain substantially above Sagear et al. (2026)
-Table 3.
+and population-fit contracts have been checked independently. A real-data
+Gilbert control recovers its published small-planet eccentricity scale, while
+the Sagear Rayleigh eccentricities remain substantially above Table 3.
 
 This is a failed public-data replication, not evidence that the paper's
 astrophysical conclusion is wrong. Several inputs required for an exact
@@ -28,9 +28,9 @@ The total is exact, but individual planet membership in the paper's final
 post-fit rejection set is unavailable. Count-matched and adversarial-removal
 tests do not account for the full eccentricity difference.
 
-## Current Literal-Replication Fit
+## Current Weighted Diagnostic
 
-The reported literal sensitivity uses:
+The primary public-data diagnostic uses:
 
 - published host labels;
 - multiplicity assigned before planet-level cuts;
@@ -42,16 +42,22 @@ The reported literal sensitivity uses:
   replication sensitivity;
 - deterministic posterior QC.
 
-| Population | All N | All mean eccentricity | QC N | QC mean eccentricity | Paper |
-| --- | ---: | ---: | ---: | ---: | ---: |
-| Thin singles | 1,109 | 0.249 (0.242-0.257) | 1,104 | 0.232 (0.225-0.239) | 0.022 |
-| Thick singles | 269 | 0.234 (0.220-0.249) | 268 | 0.208 (0.194-0.223) | 0.066 |
-| Thin multis | 878 | 0.183 (0.176-0.190) | 873 | 0.094 (0.088-0.103) | 0.030 |
-| Thick multis | 209 | 0.133 (0.121-0.147) | 209 | 0.133 (0.121-0.147) | 0.033 |
+| Population | Reconstructed N | Weighted Rayleigh mean | Paper N | Paper mean |
+| --- | ---: | ---: | ---: | ---: |
+| Thin singles | 1,109 | 0.246 | 1,121 | 0.022 |
+| Thick singles | 269 | 0.234 | 275 | 0.066 |
+| Thin multis | 878 | 0.171 | 862 | 0.030 |
+| Thick multis | 209 | 0.141 | 207 | 0.033 |
 
-The QC sensitivity is reported because the thin-multi result is strongly
-affected by a small number of poor or high-leverage posteriors. Neither table
-reproduces the paper.
+These values are the deterministic 1,000-draw SIR branch used in the final
+weighting audit. The earlier grid and QC sensitivities remain in the evidence
+tables. None reproduces the paper.
+
+Equal raw-row weighting gives 0.0747, 0.0630, 0.0332, and 0.0444 for thin
+singles, thick singles, thin multis, and thick multis. It is not a valid
+nested-sampling estimator. More importantly, its BIC comparison favors a
+half-Gaussian in all four populations, whereas the paper reports a strong
+Rayleigh preference. It cannot be used as an answer-matching shortcut.
 
 ## Checks That Are Closed
 
@@ -75,6 +81,12 @@ reproduces the paper.
   by only +0.00042 across 13 matched planets, although several individual
   systems move more than the small repeat-run threshold.
 - Removing the most influential planets cannot reproduce the thin-single value.
+- A real-ALDERAAN Gilbert control recovers a Beta mean of 0.0487 for all small
+  planets and 0.0684 for observed singles. The same quality-cut ladder applied
+  to the Sagear populations does not recover Table 3.
+- The weighted and equal-row branches fail in different ways: the weighted
+  branch misses both values and model ordering, while the equal-row branch
+  partly approaches the values but still misses the ordering.
 - The paired ALDERAAN circular-density audit contains all 2,465 planets and places
   the disagreement in the transit-shape and density inputs before hierarchy.
 - Impact-parameter uncertainty contributes to broad density posteriors. In an
@@ -85,8 +97,8 @@ reproduces the paper.
 
 ## Remaining Information Gaps
 
-1. The exact stellar-density table and uncertainty representation supplied to
-   the eccentricity calculation.
+1. The exact stellar-density and planet-radius tables supplied to the
+   eccentricity calculation.
 2. The identities of the final rejected planets and systems.
 3. The per-planet `(e, omega)` posterior samples used in the paper.
 4. The exact sampling-importance-resampling convention applied to ALDERAAN
@@ -102,6 +114,8 @@ replication.
 - `metadata/public_reconstruction_20260727/`: current compact reconstruction.
 - `metadata/recovery_preflight_20260724/`: published-host and recovery audits.
 - `metadata/factorial_validation_20260715/`: six-arm ALDERAAN validation.
+- `metadata/final_forensic_20260808/`: Gilbert control, residual attribution,
+  full-sample QC sensitivity, and nested-weighting diagnostics.
 - `docs/full_factorial_validation_assessment.md`: interpretation of the 82-fit
   experiment.
 - `docs/author_clarification_request.md`: concise request for unavailable

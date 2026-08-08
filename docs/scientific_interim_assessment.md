@@ -1,14 +1,16 @@
 # Scientific Interim Assessment
 
-Updated: 2026-08-07
+Updated: 2026-08-08
 
 ## Executive Finding
 
-The replication is not at a dead end, but the current four-population result is not
-publishable. The exact published host classifications and the corrected multiplicity
-contract have removed two major upstream ambiguities. The remaining mismatch is centered
-on the eccentricity posteriors and the target-level quality decisions that created
-Sagear et al.'s final posterior sample.
+The public-data replication is technically complete but does not reproduce the
+four population results. The exact published host classifications and the
+corrected multiplicity contract removed two major upstream ambiguities. A
+real-data Gilbert control now verifies that the extraction and hierarchy can
+recover an external published eccentricity scale. The remaining Sagear
+mismatch is centered on unreleased posterior construction, resampling, and
+target-level quality decisions.
 
 The July uniformly processed diagnostic began with 710 planets and retained
 703 across the four hierarchy cells after its deterministic exclusions. That
@@ -38,22 +40,27 @@ The four planet bins are:
 | thin multis | 862 | 0.030 (0.023-0.031) |
 | thick multis | 207 | 0.033 (0.015-0.065) |
 
-## Current Uniform Diagnostic
+## Current Full-Sample Diagnostic
 
-The direct paired-impact subset uses nested-sampling weights, row-paired ALDERAAN
-`T14`, `Rp/Rstar`, and impact samples, the exact MacDougall density equation, and a
-deterministic QC manifest. Coverage is incomplete and nonrandom.
+The full 2,465-planet branch uses dynesty weights, row-paired ALDERAAN `T14`,
+`Rp/Rstar`, impact, and period samples, the exact MacDougall density equation,
+and deterministic posterior QC.
 
-| population | planets | hosts | current mean e | published mean e | ratio |
-|---|---:|---:|---:|---:|---:|
-| thin singles | 304 | 304 | 0.335 (0.319-0.353) | 0.022 | 15.2 |
-| thick singles | 108 | 108 | 0.288 (0.263-0.315) | 0.066 | 4.4 |
-| thin multis | 222 | 101 | 0.122 (0.108-0.136) | 0.030 | 4.1 |
-| thick multis | 69 | 28 | 0.117 (0.086-0.154) | 0.033 | 3.5 |
+| population | reconstructed planets | weighted Rayleigh mean e | published planets | published mean e |
+|---|---:|---:|---:|---:|
+| thin singles | 1,109 | 0.246 | 1,121 | 0.022 |
+| thick singles | 269 | 0.234 | 275 | 0.066 |
+| thin multis | 878 | 0.171 | 862 | 0.030 |
+| thick multis | 209 | 0.141 | 207 | 0.033 |
 
-These values reproduce Sagear's printed reciprocal transit-selection convention. A
-generative forward-normalized selection model gives 0.342, 0.316, 0.124, and 0.121 for
-the same four groups. Transit selection therefore does not explain the discrepancy.
+The total planet count is exact, but the four cell memberships are not. Equal
+raw-row weighting gives values closer to the paper in two cells, but its BIC
+comparison favors a half-Gaussian in all four populations. Sagear reports a
+strong Rayleigh preference. The equal-row branch is therefore a diagnostic of
+an unresolved posterior-export convention, not a valid replication result.
+
+The earlier 703-planet uniform subset remains useful as a historical stress
+test. It is not the current headline sample.
 
 ## Host-Clustered Robustness
 
@@ -108,6 +115,8 @@ and next decisions.
 | A few thin-single outliers | Not sufficient. Thin singles remain high under host-level resampling and top-leverage removal. |
 | Hidden convergence or visual vetting | Still plausible and not publicly identifiable because the final planet and rejected-fit tables are unavailable. |
 | ALDERAAN cadence, priors, and run stochasticity | Measured in the complete matrix and nine-system combined confirmation. They affect some individual fits but do not explain the panel-wide discrepancy. |
+| Generic extraction or hierarchy failure | Disfavored by the real-ALDERAAN Gilbert control, which recovers Beta means of 0.0487 for all small planets and 0.0684 for observed singles. |
+| Importing Gilbert's full quality cuts | Not justified for the Sagear sample and does not recover Table 3 when applied as a labeled sensitivity. |
 
 ## Circular-Density Diagnostic
 
@@ -177,14 +186,15 @@ uninformative-data normalization check. For a generative population analysis,
 intrinsic Rayleigh distribution more accurately. Both results must be reported and must
 not be blended into one headline number.
 
-## Remaining Decision Gates
+## Remaining Reproduction Inputs
 
-1. Inspect the high-leverage systems named in the factorial leverage tables.
-2. Freeze one stellar-density construction and record it per planet.
-3. Request Sagear's final planet list, visually rejected targets, density-prior table,
-   and NumPyro likelihood if an exact numerical match remains impossible.
-4. Re-extract and refit only after the density and inclusion contracts are fixed.
+1. Sagear's final included and rejected KOI list.
+2. The stellar-density and planet-radius tables used in the eccentricity step.
+3. The intermediate `(e, omega)` posteriors or the exact nested-point SIR rule.
+4. The population-fitting implementation and Table 3 array ordering.
 
-The current evidence rules out several easy explanations. It does not justify giving up.
-It narrows the unresolved problem to a smaller and testable set of posterior-generation
-and unpublished provenance choices.
+The public-data investigation has exhausted the defensible internal tests
+identified so far. Further tuning against the published values would weaken,
+rather than improve, the replication. The next scientifically useful step is a
+focused request for these products, followed by a preregistered rerun of the
+affected stages.

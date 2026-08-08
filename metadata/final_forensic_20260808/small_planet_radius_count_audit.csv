@@ -1,0 +1,17 @@
+source,radius_definition,disk,system,count,paper_small_count,difference
+pre_visual_manifest,DR25 koi_prad < 3.5,thick,single,237,238,-1
+pre_visual_manifest,DR25 koi_prad < 3.5,thin,single,933,961,-28
+pre_visual_manifest,DR25 koi_prad < 3.5,thick,multi,194,199,-5
+pre_visual_manifest,DR25 koi_prad < 3.5,thin,multi,789,786,3
+pre_visual_manifest,DR25 koi_ror x Berger Rstar < 3.5,thick,single,232,238,-6
+pre_visual_manifest,DR25 koi_ror x Berger Rstar < 3.5,thin,single,930,961,-31
+pre_visual_manifest,DR25 koi_ror x Berger Rstar < 3.5,thick,multi,195,199,-4
+pre_visual_manifest,DR25 koi_ror x Berger Rstar < 3.5,thin,multi,806,786,20
+recovered_2465,DR25 koi_prad < 3.5,thick,single,234,238,-4
+recovered_2465,DR25 koi_prad < 3.5,thin,single,930,961,-31
+recovered_2465,DR25 koi_prad < 3.5,thick,multi,193,199,-6
+recovered_2465,DR25 koi_prad < 3.5,thin,multi,787,786,1
+recovered_2465,DR25 koi_ror x Berger Rstar < 3.5,thick,single,229,238,-9
+recovered_2465,DR25 koi_ror x Berger Rstar < 3.5,thin,single,926,961,-35
+recovered_2465,DR25 koi_ror x Berger Rstar < 3.5,thick,multi,194,199,-5
+recovered_2465,DR25 koi_ror x Berger Rstar < 3.5,thin,multi,804,786,18

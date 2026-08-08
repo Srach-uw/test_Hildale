@@ -1,0 +1,15 @@
+cut,n_before,n_after,n_removed
+DR25 catalog rows in released Gilbert catalog,3729,3729,0
+period 1-100 d,3729,3308,421
+planet radius 0.5-16 R_earth,3308,3240,68
+FPP < 0.1 or confirmed,3240,2788,452
+logg > 4,2788,2622,166
+Furlan radius correction < 5% or unavailable,2622,2487,135
+RUWE < 1.4,2487,2370,117
+stellar radius precision < 20%,2370,2370,0
+stellar radius 0.7-1.4 R_sun,2370,1760,610
+Teff 4700-6500 K,1760,1683,77
+[Fe/H] -0.6 to 0.6,1683,1682,1
+age 0-14 Gyr,1682,1659,23
+small planets 0.5-3.5 R_earth,1659,1512,147
+present in final Sagear ALDERAAN inventory,1512,1261,251
