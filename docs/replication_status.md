@@ -116,7 +116,20 @@ replication.
 - `metadata/factorial_validation_20260715/`: six-arm ALDERAAN validation.
 - `metadata/final_forensic_20260808/`: Gilbert control, residual attribution,
   full-sample QC sensitivity, and nested-weighting diagnostics.
+- `metadata/uncertainty_calibration_20260810/`: bootstrap interval calibration
+  and the Berger-2018 density-reconstruction branch.
 - `docs/full_factorial_validation_assessment.md`: interpretation of the 82-fit
   experiment.
+- `docs/uncertainty_and_density_findings_20260810.md`: two results that narrow
+  where the remaining difference lives, both confined to the equal-row
+  diagnostic branch. First, the population fit's reported interval understates
+  its own uncertainty for thin singles by about 1.5x, so the residual
+  thin-single difference in that branch is 0.83 sigma rather than significant.
+  Second, reconstructing stellar densities from Berger et al. (2018) radii
+  rather than adopting Berger et al. (2020) densities lowers the sixteen-value
+  Table 3 chi-square from 183.2 to 54.0. The canonical `LN_WT` result is
+  unchanged. The same document closes five hypotheses by measurement, including
+  the rejection-list and evolved-star explanations, and withdraws the Table 3
+  ordering lead.
 - `docs/author_clarification_request.md`: concise request for unavailable
   reproduction inputs.
