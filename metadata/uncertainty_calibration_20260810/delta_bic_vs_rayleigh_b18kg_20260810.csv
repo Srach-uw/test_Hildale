@@ -1,0 +1,13 @@
+population,n,model,dBIC_vs_rayleigh
+thick_singles,269,beta,5.237172294712757
+thick_singles,269,monotonic_beta,0.9517971143700095
+thick_singles,269,half_gaussian,0.7082284735222544
+thin_singles,1109,beta,3.625525887397032
+thin_singles,1109,monotonic_beta,-2.3668576095518006
+thin_singles,1109,half_gaussian,-1.8944292822594093
+thick_multis,209,beta,5.216365882825045
+thick_multis,209,monotonic_beta,-1.800911937197867
+thick_multis,209,half_gaussian,-1.4747046042333807
+thin_multis,878,beta,6.123845236549755
+thin_multis,878,monotonic_beta,-0.6538013576431467
+thin_multis,878,half_gaussian,-0.6756211320667944

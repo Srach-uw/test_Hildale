@@ -37,18 +37,23 @@ comparison is **0.83 sigma**, and **27 percent of bootstrap resamples fall
 inside the published 16-84 interval**. The apparent factor-of-two residual in
 that branch was an artefact of an under-dispersed likelihood interval.
 
-**2. Reconstructing stellar densities from Berger et al. (2018) radii rather
-than Berger et al. (2020) densities is a large, real improvement**, and it holds
-in both weighting branches at the level of the density input itself. Across all
-sixteen published Table 3 values the asymmetric chi-square falls from **183.2 to
-54.0**. This is not a Rayleigh-only effect; Beta, monotonic Beta and
-half-Gaussian all improve. The manuscript states Berger 2018, so this is also
-the more source-faithful reading of the stated method.
+**2. WITHDRAWN, see section 6.** An earlier version of this document reported
+that reconstructing stellar densities from Berger et al. (2018) radii lowers the
+sixteen-value Table 3 chi-square from 183.2 to 54.0 and called that a genuine
+improvement in density provenance. The chi-square measurement is correct, but
+the attribution is not: the Berger-2018 reconstruction as implemented carries a
+**defective uncertainty model**, and that defect is the strongest single
+predictor of inferred eccentricity in the whole dataset. The improvement cannot
+currently be credited to better density values.
 
-Taken together: the density provenance is a genuine and previously
-unrecognised part of the gap, and the interval calibration means the
-equal-row branch should no longer be described as carrying a significant
-thin-single residual. The canonical branch discrepancy is untouched by both.
+**3. The finding that replaces it: stellar-density uncertainty is the dominant
+driver of inferred eccentricity.** Across 2,465 planets the rank correlation
+between fractional density uncertainty and per-planet median eccentricity is
+**Spearman +0.52**, larger than any other variable tested in this project by a
+wide margin (impact parameter is +0.13; host temperature, metallicity and
+evolutionary state are all null). This is the mechanism behind the
+singles-versus-multis pattern and behind the low information content of the
+per-planet posteriors.
 
 ## 1. Uncertainty calibration
 
@@ -163,6 +168,123 @@ question remaining, and it is answerable by the authors in one sentence.
 
 Establishing either point to the precision the paper reports would require the
 planet-level posterior products that remain unreleased.
+
+## 6. Correction: the Berger-2018 branch has a defective uncertainty model
+
+This section withdraws the density-provenance claim made earlier in this
+document and records what replaced it.
+
+### What is wrong
+
+The Berger-2018 reconstruction (`B18_KG_LOGG_FIXED_EQUAL`) produces fractional
+stellar-density uncertainties that are **bimodal** and far too large:
+
+| Quantity | B18-KG reconstruction | Canonical Berger 2020 | Berger published |
+| --- | --- | --- | --- |
+| distribution | **bimodal: 0.315 and 1.712** | unimodal | single value |
+| median fractional sigma | 0.476 | **0.101** | 0.13 |
+| planets with sigma > rho | **35.2 percent** | **0.0 percent** | none expected |
+| singles vs multis median | **1.696 vs 0.320 (5.3x)** | 0.107 vs 0.090 (1.19x) | no dependence expected |
+
+Two things are wrong independently. The high cluster sits at **13.2x** Berger's
+published 13 percent uncertainty, and a density prior with sigma larger than rho
+is not a constraint at all. And the split tracks **planet multiplicity**, which
+is physically impossible: stellar density is a property of the star and cannot
+depend on how many planets transit it.
+
+The canonical Berger-2020 path is sound and was verified in source:
+`absolute_density_error(x) = 10**x` (`scripts/alderaan_shape_diagnostics.py:207`)
+correctly interprets the CDS `E_rho` and `e_rho` columns as log10 of the linear
+uncertainty, recovering a median of 0.101 against Berger's published 0.13.
+
+### Why it matters
+
+The defect is not cosmetic. Fractional density uncertainty is the strongest
+predictor of inferred eccentricity in the dataset:
+
+| Split | n | median fractional sigma | median per-planet e50 |
+| --- | ---: | ---: | ---: |
+| low-uncertainty cluster | 1574 | 0.318 | 0.3156 |
+| high-uncertainty cluster | 891 | 1.712 | **0.4393** |
+
+Mann-Whitney p = 6e-149; Spearman(fractional sigma, e50) = **+0.52**.
+
+The inflated cluster is concentrated in singles: **58.0 percent of thick singles
+and 53.7 percent of thin singles**, against 13.4 and 12.8 percent of the two
+multi populations. **That alone explains why this reconstruction reports singles
+as roughly twice as eccentric as multis**, without invoking any dynamics.
+
+### Consequences
+
+- The chi-square improvement from 183.2 to 54.0 is a real measurement but
+  **cannot be attributed to better density provenance**. It is confounded with a
+  four-to-thirteen-fold inflation of the density uncertainties.
+- The Berger-2018 **values** may still be the more source-faithful reading, since
+  the manuscript states Berger 2018. That part is not withdrawn. Only the
+  uncertainty model is defective.
+- **Required follow-up:** rebuild the Berger-2018 branch propagating
+  uncertainties to Berger's published scale, confirm the bimodality and the
+  multiplicity dependence are gone, and only then re-evaluate the chi-square.
+  Until that is done, no result from this branch should be quoted.
+- The bootstrap calibration in section 1 was computed on this branch and
+  inherits the caveat. The finding that the reported interval is under-dispersed
+  is a property of the estimator rather than of the density input, so it is
+  expected to survive, but it should be recomputed on the corrected branch.
+
+### Information content, and why nothing else worked
+
+Measured directly as the Kullback-Leibler divergence of each per-planet
+eccentricity posterior from its uniform proposal prior:
+
+| Population | median KL (nats) |
+| --- | ---: |
+| thick singles | **0.019** |
+| thin singles | **0.043** |
+| thick multis | 0.141 |
+| thin multis | 0.132 |
+
+A KL of 0.02 nats means the posterior is within a few percent of the prior: that
+planet contributes almost nothing. **Singles carry three to seven times less
+information than multis**, and thick singles least of all, which is precisely
+the population carrying the paper's headline claim.
+
+This is the unifying explanation for the whole investigation. It is why the
+models cannot be discriminated (see section 7), why the fit intervals are
+under-dispersed, why thin and thick singles are statistically indistinguishable,
+and why no global convention could ever have reconciled the four populations.
+
+## 7. The model-comparison constraint, which has not been met
+
+The paper states a hard, quantitative result at `main.tex:215`: the Rayleigh
+distribution is the best fit in **both** disks, with Beta and monotonic Beta
+disfavoured at **delta-BIC of about 20** and half-Gaussian at **delta-BIC above
+25**.
+
+Recomputed on the Berger-2018 branch, using matched files (identical n and
+identical likelihood normalisation, both checked):
+
+| Population | dBIC Beta | dBIC mono-Beta | dBIC half-Gaussian | Rayleigh best |
+| --- | ---: | ---: | ---: | :---: |
+| thick singles | +5.2 | +1.0 | +0.7 | yes |
+| thin singles | +3.6 | -2.4 | -1.9 | no |
+| thick multis | +5.2 | -1.8 | -1.5 | no |
+| thin multis | +6.1 | -0.7 | -0.7 | no |
+
+Maximum absolute delta-BIC is **6.1**, against a published 20 to 25. **These
+posteriors cannot discriminate the four model families at all**, and Rayleigh is
+preferred in only one of four populations.
+
+This is a demanding test because delta-BIC measures discriminating power rather
+than any eccentricity value, so it is immune to every multiplicative convention
+that has been explored. It should be adopted as a standard acceptance criterion:
+a candidate reconstruction that cannot reproduce the published model ranking has
+not reproduced the paper's posteriors, whatever its Table 3 values look like.
+
+An equivalent comparison for the canonical branch could not be made. No matched
+pair of files exists (the available Rayleigh and multi-model outputs come from
+different runs with different planet counts, 1109 against 1105, and different
+reported mean eccentricities), and comparing them would produce a meaningless
+number. Generating a matched canonical pair is a worthwhile follow-up.
 
 ## Reproducing
 

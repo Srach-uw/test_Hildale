@@ -120,16 +120,18 @@ replication.
   and the Berger-2018 density-reconstruction branch.
 - `docs/full_factorial_validation_assessment.md`: interpretation of the 82-fit
   experiment.
-- `docs/uncertainty_and_density_findings_20260810.md`: two results that narrow
-  where the remaining difference lives, both confined to the equal-row
-  diagnostic branch. First, the population fit's reported interval understates
-  its own uncertainty for thin singles by about 1.5x, so the residual
-  thin-single difference in that branch is 0.83 sigma rather than significant.
-  Second, reconstructing stellar densities from Berger et al. (2018) radii
-  rather than adopting Berger et al. (2020) densities lowers the sixteen-value
-  Table 3 chi-square from 183.2 to 54.0. The canonical `LN_WT` result is
-  unchanged. The same document closes five hypotheses by measurement, including
-  the rejection-list and evolved-star explanations, and withdraws the Table 3
-  ordering lead.
+- `docs/uncertainty_and_density_findings_20260810.md`: identifies stellar-density
+  uncertainty as the dominant driver of inferred eccentricity (Spearman +0.52
+  against per-planet e50, larger than any other variable tested). Records that
+  the Berger-2018 reconstruction carries a defective uncertainty model, bimodal
+  at 0.315 and 1.712 fractional with 35 percent of planets having sigma larger
+  than rho, and that the defect tracks planet multiplicity, which is physically
+  impossible. That confound explains why this reconstruction reports singles as
+  twice as eccentric as multis. The canonical Berger-2020 path is verified sound
+  (unimodal, median 0.101, no planet with sigma above rho). Also measures the
+  per-planet information content directly (median KL from prior of 0.019 nats
+  for thick singles, 0.141 for thick multis), shows the published delta-BIC model
+  ranking of about 20 to 25 is not reproduced (maximum 6.1), closes five
+  hypotheses by measurement, and withdraws the Table 3 ordering lead.
 - `docs/author_clarification_request.md`: concise request for unavailable
   reproduction inputs.
