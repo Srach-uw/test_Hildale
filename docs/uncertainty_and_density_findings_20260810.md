@@ -286,6 +286,46 @@ different runs with different planet counts, 1109 against 1105, and different
 reported mean eccentricities), and comparing them would produce a meaningless
 number. Generating a matched canonical pair is a worthwhile follow-up.
 
+## 8. Where the disagreement actually is: thin singles alone
+
+The causal follow-up to section 6 was run: refit each population using only the
+planets whose density prior is an actual constraint (fractional sigma below 1),
+discarding the 35 percent inflated cluster.
+
+| Population | All planets | Well-constrained densities only | Paper | Off by |
+| --- | ---: | ---: | ---: | ---: |
+| thick singles | 0.0429 (n=269) | **0.0603** (n=113) | 0.066 | **8.7 percent** |
+| thin singles | 0.0472 (n=1109) | **0.0605** (n=514) | 0.022 | 175 percent |
+| thick multis | 0.0097 (n=209) | 0.0086 (n=181) | 0.033 | 74 percent |
+| thin multis | 0.0242 (n=878) | 0.0246 (n=766) | 0.030 | 18 percent |
+
+Two things follow, and the first is a negative result worth recording.
+
+**The inflated uncertainties are not a simple cause.** Removing them does not
+move the sample toward the paper overall; mean fractional error goes from 59.9
+to 68.9 percent. The Spearman +0.52 correlation in section 6 is real but is not
+a mechanism that can be corrected by selection. The defect still needs fixing on
+its own merits, but it is not the missing key.
+
+**The disagreement is confined to thin singles, and thick singles is
+reproduced.** Restricted to well-constrained densities the two single
+populations come out at **0.0603 and 0.0605**, statistically identical, which is
+consistent with the per-planet posteriors being indistinguishable
+(Kolmogorov-Smirnov p = 0.57 on e50, p = 0.18 on e16). The paper's thick-single
+value of 0.066 sits **8.7 percent** from our 0.0603. Its thin-single value of
+0.022 sits a factor of 2.8 below our 0.0605.
+
+So this reconstruction agrees with the paper on thick singles and disagrees only
+on thin singles, and it cannot distinguish the two populations from each other
+at all. The open question is therefore narrower and more specific than "the
+replication fails": **what makes the published thin-single value low, when the
+same analysis applied to the kinematically thick sample reproduces?**
+
+Note that the well-constrained thick-single fit is boundary-flagged with a wide
+interval (0.0135 to 0.1019), so its agreement is a point-estimate agreement
+rather than a precise one. Thin singles, the largest population at n = 1109 and
+the most precisely determined in the paper, is where the disagreement is real.
+
 ## Reproducing
 
 ```bash
