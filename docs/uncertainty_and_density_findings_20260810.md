@@ -333,3 +333,61 @@ python hierarchical_table3_order_diagnostic.py --summary outputs/eccentricity_po
 ```
 
 Supporting artifacts are in `metadata/uncertainty_calibration_20260810/`.
+
+## 9. The paper's own robustness test, run on our posteriors
+
+Sagear et al. state a quantitative stability criterion at `main.tex:219`:
+
+> "For each fit presented in this work, we remove 10 % of the sample and re-fit
+> the hierarchical eccentricity models. We do this 10 times for each sample...
+> The expected value of e is affected by less than 5% with each leave N out
+> iteration."
+
+That is a published number, directly comparable, and it tests estimator
+stability rather than any eccentricity value. It is therefore immune to every
+convention explored in this project: density source, weighting, selection
+normalisation, label ordering. Run verbatim on our posteriors, 10 iterations
+per population:
+
+| Population | n | full mean e | max shift | mean shift | passes under 5 percent |
+| --- | ---: | ---: | ---: | ---: | :---: |
+| thick singles | 269 | 0.0427 | **28.9 percent** | 16.0 | no |
+| thin singles | 1109 | 0.0471 | **10.5 percent** | 5.3 | no |
+| thick multis | 209 | 0.0096 | **36.2 percent** | 8.1 | no |
+| thin multis | 878 | 0.0241 | **8.9 percent** | 4.6 | no |
+
+**All four populations fail, by factors of two to seven.**
+
+Split by fit generation, the original public archive (Gilbert's own campaign
+fits, not our cloud recovery) fails worst rather than best:
+
+| Generation | Population | n | mean e | max shift |
+| --- | --- | ---: | ---: | ---: |
+| original archive | thin singles | 772 | 0.0515 | 69.3 percent |
+| original archive | thick singles | 164 | 0.0101 | 112.9 percent |
+| first cloud | thin singles | 256 | 0.0259 | 23.4 percent |
+| recovery | thin singles | 81 | 0.0591 | 12.8 percent |
+
+The generation split uses smaller subsamples and 6 iterations rather than 10,
+so those numbers are noisier and should be read as supporting rather than
+primary. The full-sample result above is the firm one.
+
+### What this establishes
+
+Estimator stability scales inversely with the square root of the information
+carried by the per-planet posteriors. Failing by a factor of two to seven
+implies our posteriors carry roughly **one order of magnitude less information
+per planet** than whatever Sagear et al. fitted. That is consistent with the
+direct KL measurement in section 6 (median 0.019 to 0.141 nats, i.e. posteriors
+within a few percent of their prior) and with the delta-BIC result in section 7
+(maximum 6.1 against a published 20 to 25).
+
+Three independent measurements, on three different scales, agree: **the missing
+ingredient is posterior precision, not a convention, a label, a density table,
+or a rejection list.**
+
+Crucially, the original public archive fails this test too. **No publicly
+available ALDERAAN posterior product, including the original campaign fits,
+reaches the precision the paper's own stated robustness criterion implies.**
+This is the sharpest available statement of the public-data boundary, and it is
+derived entirely from published information.
