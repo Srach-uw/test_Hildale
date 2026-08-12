@@ -391,3 +391,45 @@ available ALDERAAN posterior product, including the original campaign fits,
 reaches the precision the paper's own stated robustness criterion implies.**
 This is the sharpest available statement of the public-data boundary, and it is
 derived entirely from published information.
+
+## 10. The published Table 2 priors, and why they cannot be the answer
+
+Sagear et al. Table 2 prints `R_p/R_s ~ U(1e-5, 0.99)`, uniform. Gilbert's text
+and the pinned ALDERAAN source both use **log**-uniform on the same bounds
+(`dynesty_helpers.py:118`, `loguniform_ppf(u_[2 + npl * 5], 1e-5, 0.99)`). Over
+five decades that is a large prior difference and a genuine discrepancy between
+the published table and the code.
+
+It does not matter. Comparing the `paper_priors_original_lc` arm, which applies
+exactly this substitution, against `original_lc` on nine matched planets:
+
+| Quantity | log-uniform | uniform (as printed) | ratio |
+| --- | ---: | ---: | ---: |
+| median rho_circ half-width | 0.0308 dex | 0.0305 dex | **0.979** |
+
+Median width ratio across the nine planets is 0.979. Recovering the roughly
+tenfold information deficit would need this ratio near 0.33. The printed-prior
+ambiguity is therefore closed as an explanation, on posterior width rather than
+only on eccentricity shift, which is how the earlier factorial had tested it.
+
+The remaining Table 2 entries match the code exactly: `b ~ U(0, 1 + Rp/Rs)`,
+`T14 ~ logU` between one short-cadence integration and three times the fitted
+duration, `C0, C1 ~ N(0,1)`, quadratic limb darkening under the Kipping
+parametrisation.
+
+### Why the information deficit is not simply a fitting failure
+
+The raw `rho_circ` posteriors are not especially broad. On the validation panel
+the median half-width is about 0.03 dex, against a Berger stellar-density
+uncertainty of about 0.041 dex, so the two are comparable and the transit fit is
+not the limiting term for well-measured planets.
+
+The eccentricity posteriors are nonetheless close to their prior (median KL 0.019
+to 0.141 nats) because of the intrinsic `(e, omega)` degeneracy: a single value
+of `delta = 3 log10 g` is produced by a one-parameter family of `(e, omega)`, so
+marginalising over `omega` leaves `e` substantially free even when `delta` is
+well measured. That degeneracy is a property of the photoeccentric method and
+applies equally to the published analysis.
+
+This is why the deficit cannot be closed by better fitting, better priors, or a
+different density catalogue, all of which have now been tested and closed.
