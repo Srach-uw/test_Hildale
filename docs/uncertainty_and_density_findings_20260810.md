@@ -417,19 +417,39 @@ The remaining Table 2 entries match the code exactly: `b ~ U(0, 1 + Rp/Rs)`,
 duration, `C0, C1 ~ N(0,1)`, quadratic limb darkening under the Kipping
 parametrisation.
 
-### Why the information deficit is not simply a fitting failure
+### Correction, and the actual limiting term
 
-The raw `rho_circ` posteriors are not especially broad. On the validation panel
-the median half-width is about 0.03 dex, against a Berger stellar-density
-uncertainty of about 0.041 dex, so the two are comparable and the transit fit is
-not the limiting term for well-measured planets.
+An earlier version of this section attributed the low per-planet information to
+the intrinsic `(e, omega)` degeneracy. **That is wrong and is withdrawn.**
 
-The eccentricity posteriors are nonetheless close to their prior (median KL 0.019
-to 0.141 nats) because of the intrinsic `(e, omega)` degeneracy: a single value
-of `delta = 3 log10 g` is produced by a one-parameter family of `(e, omega)`, so
-marginalising over `omega` leaves `e` substantially free even when `delta` is
-well measured. That degeneracy is a property of the photoeccentric method and
-applies equally to the published analysis.
+A floor calculation settles it. Marginalising `omega` with the transit-selection
+weight, given a perfectly measured `delta = 3 log10 g`:
 
-This is why the deficit cannot be closed by better fitting, better priors, or a
-different density catalogue, all of which have now been tested and closed.
+| true delta | sigma_delta | e16 | e50 | e84 | KL from prior |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0.00 | 0.001 | 0.0001 | **0.0072** | 0.2138 | **2.34 nats** |
+| 0.00 | 0.041 | 0.0186 | 0.0943 | 0.4738 | |
+| 0.10 | 0.041 | 0.0813 | 0.1993 | 0.5941 | |
+| 0.20 | 0.041 | 0.1664 | **0.2999** | 0.6697 | |
+
+A planet whose `delta` is near zero yields a sharp posterior, median `e` of
+0.007 and 2.34 nats. The degeneracy is therefore **not** the binding constraint.
+
+Our measured per-planet median `e50` of 0.31 sits almost exactly on the floor
+for `delta = 0.20`, which is the median absolute `delta` actually measured in
+this reconstruction. **The per-planet posteriors are behaving correctly. They are
+at the theoretical floor for the `delta` values they are given.**
+
+So the whole question reduces to one quantity. Reproducing a population mean of
+0.022 requires a median absolute `delta` near 0.03 dex. This reconstruction
+measures 0.16 to 0.22 dex. And because `rho_circ` is determined to about 0.03
+dex and the Berger density to about 0.041 dex, a `delta` of 0.2 dex is a
+four-sigma per-planet disagreement between two independent density estimates,
+not measurement noise.
+
+That is the irreducible statement of the discrepancy: **the transit-derived
+circular densities and the catalogue stellar densities genuinely disagree, at
+high significance, by roughly seven times more than the published population
+allows.** Every mechanism that could have produced such an offset spuriously has
+now been tested and closed, and the remaining possibilities are not decidable
+from public products.
