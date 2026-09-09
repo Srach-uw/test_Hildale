@@ -11,7 +11,6 @@ import compare_factorial_validation as factorial
 
 from compare_factorial_validation import (
     ARM_SPECS,
-    COMBINED_ARM_SPECS,
     ValidationAnalysisError,
     attach_repeatability_evidence,
     discover_validation_fits,
@@ -80,18 +79,20 @@ def write_result(path: Path, duration_offset: float, ror_offset: float = 0.0) ->
     duration += duration_offset
     sample_columns = [
         fits.Column(name="LN_WT", format="D", array=np.zeros(count)),
+        # Real ALDERAAN output stores the ephemeris correction alongside each
+        # nested row.  Keep the synthetic correction at zero while preserving
+        # the production paired-period contract.
+        fits.Column(name="C0_0", format="D", array=np.zeros(count)),
+        fits.Column(name="C1_0", format="D", array=np.zeros(count)),
         fits.Column(name="ROR_0", format="D", array=ror),
         fits.Column(name="IMPACT_0", format="D", array=impact),
         fits.Column(name="DUR14_0", format="D", array=duration),
-        fits.Column(name="C0_0", format="D", array=np.zeros(count)),
-        fits.Column(name="C1_0", format="D", array=np.zeros(count)),
     ]
     sample_hdu = fits.BinTableHDU.from_columns(sample_columns, name="SAMPLES")
-    transit_index = np.arange(5)
     transit_columns = [
-        fits.Column(name="INDEX", format="K", array=transit_index),
-        fits.Column(name="TTIME", format="D", array=transit_index * PERIOD_DAYS),
-        fits.Column(name="MODEL", format="D", array=transit_index * PERIOD_DAYS),
+        fits.Column(name="INDEX", format="K", array=np.arange(5)),
+        fits.Column(name="TTIME", format="D", array=np.arange(5) * PERIOD_DAYS),
+        fits.Column(name="MODEL", format="D", array=np.arange(5) * PERIOD_DAYS),
         fits.Column(name="OUT_FLAG", format="K", array=np.zeros(5, dtype=int)),
     ]
     transit_hdu = fits.BinTableHDU.from_columns(transit_columns, name="TTIMES_00")
@@ -112,12 +113,6 @@ def write_all_arms(root: Path) -> None:
     for arm, spec in ARM_SPECS.items():
         result = root / "projects" / arm / "Results" / spec.run_id / TARGET / f"{TARGET}-results.fits"
         write_result(result, *offsets[arm])
-
-def write_combined_arm(root: Path) -> None:
-    arm = "paper_priors_reference_lcsc"
-    spec = COMBINED_ARM_SPECS[arm]
-    result = root / "projects" / arm / "Results" / spec.run_id / TARGET / f"{TARGET}-results.fits"
-    write_result(result, 0.0019, 0.0009)
 
 
 def write_ld_pair(root: Path) -> None:
@@ -141,47 +136,6 @@ def test_discovery_is_recursive_and_arm_specific(tmp_path: Path) -> None:
     assert discovery["status"].eq("present").all()
     assert set(discovery["arm"]) == set(ARM_SPECS)
 
-def test_combined_confirmation_is_opt_in_and_paired_to_reference_lcsc(tmp_path: Path) -> None:
-    metadata = tmp_path / "metadata"
-    inventory, sample = write_metadata(metadata)
-    write_all_arms(tmp_path)
-    combined_root = tmp_path / "combined_release"
-    write_combined_arm(combined_root)
-
-    default_discovery = discover_validation_fits(tmp_path, read_target_sets(metadata))
-    assert "paper_priors_reference_lcsc" not in set(default_discovery["arm"])
-
-    paths = run_analysis(
-        validation_root=tmp_path,
-        metadata_root=metadata,
-        sample_path=sample,
-        inventory_path=inventory,
-        output_dir=tmp_path / "out_combined",
-        n_proposals=4_000,
-        e_max=0.95,
-        density_error_mode="symmetric-average",
-        period_tol=0.01,
-        min_importance_ess=1.0,
-        e_grid_size=30,
-        omega_grid_size=24,
-        n_bootstrap=100,
-        seed=7,
-        include_combined_confirmation=True,
-        combined_validation_root=combined_root,
-    )
-
-    discovery = pd.read_csv(paths["discovery"])
-    metrics = pd.read_csv(paths["paired_metrics"])
-    combined = metrics[
-        metrics["comparison_id"].eq("paper_prior_conditional_reference_lcsc")
-    ]
-    assert len(discovery) == len(ARM_SPECS) + len(COMBINED_ARM_SPECS)
-    assert discovery["status"].eq("present").all()
-    assert set(combined["baseline_arm"]) == {"reference_lcsc"}
-    assert set(combined["comparison_arm"]) == {"paper_priors_reference_lcsc"}
-    assert set(combined["effect"]) == {"paper_prior_conditional"}
-    assert set(combined["parameter"]) == {"t14_hr", "impact", "rp_over_rs", "e", "zeta"}
-
 
 def test_discovery_rejects_duplicate_arm_target(tmp_path: Path) -> None:
     metadata = tmp_path / "metadata"
@@ -191,47 +145,6 @@ def test_discovery_rejects_duplicate_arm_target(tmp_path: Path) -> None:
     write_result(duplicate, 0.0)
     with pytest.raises(ValidationAnalysisError, match="Multiple FITS files"):
         discover_validation_fits(tmp_path, read_target_sets(metadata))
-
-def test_flat_curated_result_requires_explicit_run_contract(tmp_path: Path) -> None:
-    metadata = tmp_path / "metadata"
-    write_metadata(metadata)
-    flat = tmp_path / "results" / "original_lc" / f"{TARGET}-results.fits"
-    write_result(flat, 0.0)
-    target_sets = read_target_sets(metadata)
-
-    unverified = discover_validation_fits(tmp_path, target_sets)
-    row = unverified[
-        unverified["arm"].eq("original_lc")
-        & unverified["koi_target"].eq(TARGET)
-    ].iloc[0]
-    assert row["status"] == "unverified_run_id"
-    assert row["run_id_verification"] == "unverified"
-
-    wrong_contract = discover_validation_fits(
-        tmp_path,
-        target_sets,
-        run_contract={"original_lc": "sagear_validation_wrong_run"},
-    )
-    row = wrong_contract[
-        wrong_contract["arm"].eq("original_lc")
-        & wrong_contract["koi_target"].eq(TARGET)
-    ].iloc[0]
-    assert row["status"] == "unverified_run_id"
-    assert row["run_id_verification"] == "unverified"
-
-    verified = discover_validation_fits(
-        tmp_path,
-        target_sets,
-        run_contract={
-            "original_lc": ARM_SPECS["original_lc"].run_id,
-        },
-    )
-    row = verified[
-        verified["arm"].eq("original_lc")
-        & verified["koi_target"].eq(TARGET)
-    ].iloc[0]
-    assert row["status"] == "present"
-    assert row["run_id_verification"] == "explicit_contract"
 
 
 def test_system_cluster_bootstrap_is_deterministic_and_clustered() -> None:

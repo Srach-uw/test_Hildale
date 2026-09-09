@@ -13,7 +13,8 @@ def test_launch_uses_stop_and_distinct_regions() -> None:
     assert "--machine-type=c3d-highcpu-16" in script
     assert "--provisioning-model=STANDARD" in script
     assert "DELETE" not in script
-    assert 'LinuxUser = "shreshth_rach1"' in script
+    assert "[string]$LinuxUser" in script
+    assert 'LinuxUser = "' + "shreshth" + '_rach1"' not in script
     assert "Assert-NativeSuccess" in script
     assert "--zone=$worker.Zone" not in script
     zones = [

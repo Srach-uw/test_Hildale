@@ -2,6 +2,7 @@ cff-version: 1.2.0
 message: "If you use this replication code, please cite this repository and the source article."
 title: "Hildale Sagear Replication"
 type: software
+license: MIT
 authors:
   - family-names: "Rach"
     given-names: "Shreshth"

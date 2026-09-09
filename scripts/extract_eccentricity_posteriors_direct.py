@@ -133,10 +133,43 @@ def adjust_stellar_density(
     return rho_true * factor, err_hi * factor * error_scale, err_lo * factor * error_scale
 
 
-def nested_sample_weights(log_weights: np.ndarray, mode: str) -> np.ndarray:
+def periastron_eccentricity_cut(
+    period_days: float | np.ndarray,
+    rho_solar: float,
+    *,
+    ceiling: float,
+) -> float:
+    """Apply Gilbert's a/Rstar * (1-e) > 1 proposal-support condition."""
+    periods = np.asarray(period_days, dtype=float)
+    valid = np.isfinite(periods) & (periods > 0.0)
+    if not valid.any() or not np.isfinite(rho_solar) or rho_solar <= 0.0:
+        raise ValueError("cannot calculate periastron eccentricity cut")
+    period_s = periods[valid] * DAY_S
+    a_over_r = (
+        G_SI * rho_solar * RHO_SUN_KG_M3 * period_s**2 / (3.0 * np.pi)
+    ) ** (1.0 / 3.0)
+    source_cut = 1.0 - 1.0 / float(np.mean(a_over_r))
+    effective_cut = min(float(ceiling), source_cut)
+    if not 0.0 < effective_cut < 1.0:
+        raise ValueError(f"invalid periastron eccentricity cut: {effective_cut}")
+    return effective_cut
+
+
+def nested_sample_weights(
+    log_weights: np.ndarray,
+    mode: str,
+    log_likelihood: np.ndarray | None = None,
+) -> np.ndarray:
     log_weights = np.asarray(log_weights, dtype=float)
     if mode == "dynesty":
         return normalize_dynesty_weights(log_weights)
+    if mode == "likelihood":
+        if log_likelihood is None:
+            raise ValueError("likelihood weighting requires the ALDERAAN LN_LIKE column")
+        log_likelihood = np.asarray(log_likelihood, dtype=float)
+        if len(log_likelihood) != len(log_weights):
+            raise ValueError("LN_LIKE and LN_WT must have the same number of rows")
+        return normalize_dynesty_weights(log_likelihood)
     if mode == "equal":
         if len(log_weights) == 0:
             raise ValueError("cannot assign equal weights to zero nested samples")
@@ -154,6 +187,11 @@ def density_log_likelihood(
     """Gaussian density log likelihood with an explicit error convention."""
     if mode == "symmetric-average":
         sigma = np.full_like(np.asarray(rho_model, dtype=float), 0.5 * (err_hi + err_lo))
+    elif mode == "symmetric-rms":
+        sigma = np.full_like(
+            np.asarray(rho_model, dtype=float),
+            np.sqrt(err_hi**2 + err_lo**2) / np.sqrt(2.0),
+        )
     elif mode == "split":
         sigma = np.where(np.asarray(rho_model) >= rho_true, err_hi, err_lo)
     else:
@@ -265,7 +303,12 @@ def direct_importance_posterior(
     density_error_mode: str,
     seed: int,
     posterior_sampling_mode: str = "weighted_grid",
+    posterior_resample_draws: int | None = None,
+    proposal_sampling_mode: str = "joint_random",
+    transit_resample_draws: int = 8000,
+    proposals_per_transit_draw: int = 500,
     density_sampling_mode: str = "fixed_central",
+    jacobian_mode: str = "none",
 ) -> dict[str, object]:
     """Pair ALDERAAN rows, draw uniform (e, omega), and importance reweight."""
     ror = np.asarray(ror, dtype=float)
@@ -276,16 +319,27 @@ def direct_importance_posterior(
         raise ValueError("ROR, IMPACT, DUR14, and nested weights must remain row-paired")
     nested_weights = nested_weights / nested_weights.sum()
     rng = np.random.default_rng(seed)
-    sample_idx = rng.choice(len(ror), size=n_proposals, replace=True, p=nested_weights)
+    if proposal_sampling_mode == "joint_random":
+        sample_idx = rng.choice(len(ror), size=n_proposals, replace=True, p=nested_weights)
+    elif proposal_sampling_mode == "gilbert_two_stage":
+        if transit_resample_draws <= 0 or proposals_per_transit_draw <= 0:
+            raise ValueError("Gilbert two-stage draw counts must be positive")
+        transit_idx = rng.choice(
+            len(ror), size=transit_resample_draws, replace=True, p=nested_weights
+        )
+        sample_idx = np.repeat(transit_idx, proposals_per_transit_draw)
+    else:
+        raise ValueError(f"Unknown proposal sampling mode: {proposal_sampling_mode}")
+    actual_proposal_count = len(sample_idx)
     period_days = np.asarray(period_days, dtype=float)
     if period_days.ndim == 0:
-        proposal_period_days = np.full(n_proposals, float(period_days))
+        proposal_period_days = np.full(actual_proposal_count, float(period_days))
     else:
         if len(period_days) != len(ror):
             raise ValueError("Row-specific PERIOD must remain paired with ALDERAAN samples")
         proposal_period_days = period_days[sample_idx]
-    eccentricity = rng.uniform(0.0, e_max, size=n_proposals)
-    omega = rng.uniform(-0.5 * np.pi, 1.5 * np.pi, size=n_proposals)
+    eccentricity = rng.uniform(0.0, e_max, size=actual_proposal_count)
+    omega = rng.uniform(-0.5 * np.pi, 1.5 * np.pi, size=actual_proposal_count)
     rho_model = macdougall_rho_star_samp(
         proposal_period_days * DAY_S,
         dur14_days[sample_idx] * DAY_S,
@@ -295,14 +349,14 @@ def direct_importance_posterior(
         omega,
     )
     if density_sampling_mode == "fixed_central":
-        rho_reference = np.full(n_proposals, rho_true, dtype=float)
+        rho_reference = np.full(actual_proposal_count, rho_true, dtype=float)
         sigma_reference = None
     elif density_sampling_mode == "draw_gaussian":
         sigma_draw = 0.5 * (err_hi + err_lo)
-        rho_reference = rng.normal(rho_true, sigma_draw, size=n_proposals)
+        rho_reference = rng.normal(rho_true, sigma_draw, size=actual_proposal_count)
         sigma_reference = sigma_draw
     elif density_sampling_mode == "draw_split_normal":
-        standard_draw = rng.normal(0.0, 1.0, size=n_proposals)
+        standard_draw = rng.normal(0.0, 1.0, size=actual_proposal_count)
         upper = standard_draw >= 0.0
         sigma_reference = np.where(upper, err_hi, err_lo)
         rho_reference = rho_true + np.where(
@@ -320,7 +374,22 @@ def direct_importance_posterior(
     if not valid.any():
         raise ValueError("no finite positive MacDougall density proposals")
     loglike_valid = loglike[valid]
-    importance_weights = np.exp(loglike_valid - np.max(loglike_valid))
+    log_importance = loglike_valid - np.max(loglike_valid)
+    if jacobian_mode == "gilbert_inverse":
+        period_s = proposal_period_days[valid] * DAY_S
+        duration_s = dur14_days[sample_idx][valid] * DAY_S
+        geometry = ((1.0 + ror[sample_idx][valid]) ** 2 - impact[sample_idx][valid] ** 2) ** 1.5
+        jacobian = (
+            (12.0 * np.pi**3) / (period_s**3 * G_SI)
+            * geometry
+            * (np.pi * duration_s / period_s) ** -4
+        )
+        if not (np.isfinite(jacobian) & (jacobian > 0.0)).all():
+            raise ValueError("Gilbert inverse-Jacobian correction is non-finite")
+        log_importance -= np.log(jacobian)
+    elif jacobian_mode != "none":
+        raise ValueError(f"Unknown Jacobian mode: {jacobian_mode}")
+    importance_weights = np.exp(log_importance - np.max(log_importance))
     weight_sum = importance_weights.sum()
     if not np.isfinite(weight_sum) or weight_sum <= 0.0:
         raise ValueError("importance weights have zero or invalid sum")
@@ -330,16 +399,26 @@ def direct_importance_posterior(
     if posterior_sampling_mode == "weighted_grid":
         posterior = weighted_posterior_grid(e_valid, omega_valid, importance_weights, e_grid, omega_grid)
         posterior_e = e_valid
+        posterior_omega = omega_valid
+        posterior_weights = importance_weights
     elif posterior_sampling_mode == "unweighted_resample":
-        posterior, posterior_e, _ = resampled_posterior_grid(
+        resample_draws = (
+            actual_proposal_count
+            if posterior_resample_draws is None
+            else int(posterior_resample_draws)
+        )
+        if resample_draws <= 0:
+            raise ValueError("posterior_resample_draws must be positive")
+        posterior, posterior_e, posterior_omega = resampled_posterior_grid(
             e_valid,
             omega_valid,
             importance_weights,
             e_grid,
             omega_grid,
-            n_draws=n_proposals,
+            n_draws=resample_draws,
             rng=rng,
         )
+        posterior_weights = np.full(len(posterior_e), 1.0 / len(posterior_e))
     else:
         raise ValueError(f"Unknown posterior sampling mode: {posterior_sampling_mode}")
     if posterior.sum() <= 0.0:
@@ -352,13 +431,29 @@ def direct_importance_posterior(
         "posterior": posterior,
         "e_pdf": posterior.sum(axis=1),
         "e_quantiles": quantiles,
-        "proposal_count": int(n_proposals),
+        "proposal_count": int(actual_proposal_count),
         "valid_proposal_count": int(valid.sum()),
         "valid_proposal_fraction": float(valid.mean()),
         "nested_ess": float(1.0 / np.sum(nested_weights**2)),
         "importance_ess": float(1.0 / np.sum(importance_weights**2)),
         "posterior_sampling_mode": posterior_sampling_mode,
+        "proposal_sampling_mode": proposal_sampling_mode,
+        "transit_resample_draws": (
+            int(transit_resample_draws) if proposal_sampling_mode == "gilbert_two_stage" else 0
+        ),
+        "proposals_per_transit_draw": (
+            int(proposals_per_transit_draw) if proposal_sampling_mode == "gilbert_two_stage" else 0
+        ),
+        "posterior_draw_count": (
+            int(actual_proposal_count)
+            if posterior_sampling_mode == "weighted_grid"
+            else int(resample_draws)
+        ),
         "density_sampling_mode": density_sampling_mode,
+        "jacobian_mode": jacobian_mode,
+        "posterior_e_samples": posterior_e,
+        "posterior_omega_samples": posterior_omega,
+        "posterior_sample_weights": posterior_weights,
     }
 
 
@@ -509,11 +604,18 @@ def process_target(
     allow_density_error_fallback: bool,
     nested_weight_mode: str = "dynesty",
     posterior_sampling_mode: str = "weighted_grid",
+    posterior_resample_draws: int | None = None,
+    proposal_sampling_mode: str = "joint_random",
+    transit_resample_draws: int = 8000,
+    proposals_per_transit_draw: int = 500,
+    save_posterior_samples: bool = False,
     density_sampling_mode: str = "fixed_central",
     density_error_scale: float = 1.0,
     density_offset_dex: float = 0.0,
     density_source: str = "berger2020_table2",
     period_sampling_mode: str = "paired_alderaan",
+    eccentricity_cut_mode: str = "fixed",
+    jacobian_mode: str = "none",
 ) -> tuple[list[dict[str, object]], list[dict[str, object]]]:
     with fits.open(results_file, memmap=False) as hdul:
         if "SAMPLES" not in hdul:
@@ -526,7 +628,18 @@ def process_target(
         } if period_sampling_mode == "paired_alderaan" else {}
     if "LN_WT" not in samples:
         return [], [_exclusion(row, results_file, "fits", "missing LN_WT column") for _, row in planets.iterrows()]
-    nested_weights = nested_sample_weights(samples["LN_WT"].to_numpy(float), nested_weight_mode)
+    if nested_weight_mode == "likelihood" and "LN_LIKE" not in samples:
+        return [], [_exclusion(row, results_file, "fits", "missing LN_LIKE column") for _, row in planets.iterrows()]
+    log_likelihood = (
+        samples["LN_LIKE"].to_numpy(float)
+        if nested_weight_mode == "likelihood"
+        else None
+    )
+    nested_weights = nested_sample_weights(
+        samples["LN_WT"].to_numpy(float),
+        nested_weight_mode,
+        log_likelihood,
+    )
     matches = match_planets_by_period(planets, fit_planets, period_tol)
     matched = {match[0] for match in matches}
     summaries: list[dict[str, object]] = []
@@ -563,6 +676,16 @@ def process_target(
                 period_input = float(planet["koi_period"])
             else:
                 raise ValueError(f"Unknown period sampling mode: {period_sampling_mode}")
+            if eccentricity_cut_mode == "fixed":
+                proposal_e_max = e_max
+            elif eccentricity_cut_mode == "periastron":
+                proposal_e_max = periastron_eccentricity_cut(
+                    period_input,
+                    rho_true,
+                    ceiling=e_max,
+                )
+            else:
+                raise ValueError(f"Unknown eccentricity cut mode: {eccentricity_cut_mode}")
             result = direct_importance_posterior(
                 samples[required[0]].to_numpy(float),
                 samples[required[1]].to_numpy(float),
@@ -573,20 +696,28 @@ def process_target(
                 err_hi,
                 err_lo,
                 n_proposals=n_proposals,
-                e_max=e_max,
+                e_max=proposal_e_max,
                 e_grid=e_grid,
                 omega_grid=omega_grid,
                 density_error_mode=density_error_mode,
                 posterior_sampling_mode=posterior_sampling_mode,
+                posterior_resample_draws=posterior_resample_draws,
+                proposal_sampling_mode=proposal_sampling_mode,
+                transit_resample_draws=transit_resample_draws,
+                proposals_per_transit_draw=proposals_per_transit_draw,
                 density_sampling_mode=density_sampling_mode,
+                jacobian_mode=jacobian_mode,
                 seed=stable_seed(
                     "macdougall-direct",
                     planet.get("kepoi_name"),
                     n_proposals,
-                    e_max,
+                    proposal_e_max,
+                    eccentricity_cut_mode,
                     density_error_mode,
                     nested_weight_mode,
-                    posterior_sampling_mode,
+                    proposal_sampling_mode,
+                    transit_resample_draws,
+                    proposals_per_transit_draw,
                     density_sampling_mode,
                     density_error_scale,
                     density_offset_dex,
@@ -608,12 +739,17 @@ def process_target(
             include_transit_prior=False,
             formalism=FORMALISM,
             formalism_equation=EQUATION,
-            proposal_e_prior=f"Uniform(0,{e_max:g})",
+            proposal_e_prior=f"Uniform(0,{proposal_e_max:g})",
             proposal_omega_prior="Uniform(-pi/2,3pi/2)",
             density_error_mode=density_error_mode,
             nested_weight_mode=nested_weight_mode,
             posterior_sampling_mode=posterior_sampling_mode,
+            posterior_draw_count=result["posterior_draw_count"],
+            proposal_sampling_mode=result["proposal_sampling_mode"],
+            transit_resample_draws=result["transit_resample_draws"],
+            proposals_per_transit_draw=result["proposals_per_transit_draw"],
             density_sampling_mode=density_sampling_mode,
+            jacobian_mode=jacobian_mode,
             density_error_scale=density_error_scale,
             density_offset_dex=density_offset_dex,
             density_source=density_source,
@@ -628,6 +764,8 @@ def process_target(
             posterior_source="alderaan_direct_importance",
             impact_mode="alderaan",
             e_max=e_max,
+            proposal_e_max=proposal_e_max,
+            eccentricity_cut_mode=eccentricity_cut_mode,
             proposal_count=result["proposal_count"],
             valid_proposal_count=result["valid_proposal_count"],
             nested_ess=result["nested_ess"],
@@ -638,6 +776,15 @@ def process_target(
             alderaan_planet_index=alderaan_index,
             alderaan_period_days=fit_period,
             period_relative_difference=relative_difference,
+            **(
+                {
+                    "posterior_e_samples": result["posterior_e_samples"],
+                    "posterior_omega_samples": result["posterior_omega_samples"],
+                    "posterior_sample_weights": result["posterior_sample_weights"],
+                }
+                if save_posterior_samples
+                else {}
+            ),
         )
         summaries.append(
             {
@@ -661,7 +808,12 @@ def process_target(
                 "density_error_mode": density_error_mode,
                 "nested_weight_mode": nested_weight_mode,
                 "posterior_sampling_mode": posterior_sampling_mode,
+                "posterior_draw_count": result["posterior_draw_count"],
+                "proposal_sampling_mode": result["proposal_sampling_mode"],
+                "transit_resample_draws": result["transit_resample_draws"],
+                "proposals_per_transit_draw": result["proposals_per_transit_draw"],
                 "density_sampling_mode": density_sampling_mode,
+                "jacobian_mode": jacobian_mode,
                 "density_error_scale": density_error_scale,
                 "density_offset_dex": density_offset_dex,
                 "density_source": density_source,
@@ -673,6 +825,8 @@ def process_target(
                 "paired_period_p84": float(np.quantile(paired_periods[alderaan_index], 0.84))
                 if period_sampling_mode == "paired_alderaan" else float(planet["koi_period"]),
                 "e_max": e_max,
+                "proposal_e_max": proposal_e_max,
+                "eccentricity_cut_mode": eccentricity_cut_mode,
                 "nested_sample_count": len(samples),
                 "nested_ess": result["nested_ess"],
                 "proposal_count": result["proposal_count"],
@@ -718,13 +872,12 @@ def load_density_source(
     """Load one explicit stellar-density provenance branch."""
     if source == "berger2020_table2":
         return read_berger_table2(cfg)
-    if source != "berger2018_kg":
+    if source not in {"berger2018_kg", "custom_csv"}:
         raise ValueError(f"Unknown density source: {source}")
     path = Path(sample_path) if sample_path else root_path(cfg, "berger2018_kg_density_sample")
     if path is None or not path.exists():
         raise FileNotFoundError(
-            "Berger-2018 density sample not found; pass --density-sample explicitly "
-            "or build it with build_berger2018_kg_density_sample.py"
+            "Requested density sample not found; pass --density-sample explicitly"
         )
     frame = pd.read_csv(path, low_memory=False)
     required = {"kepid", "rho_log", "rho_log_upper", "rho_log_lower"}
@@ -752,12 +905,29 @@ def main() -> None:
         default=0.95,
         help="Uniform-e proposal upper bound: 0.95 in Sagear commented source (default); use 0.92 for MacDougall sensitivity.",
     )
-    parser.add_argument("--density-error-mode", choices=["symmetric-average", "split"], default="symmetric-average")
+    parser.add_argument(
+        "--eccentricity-cut-mode",
+        choices=["fixed", "periastron"],
+        default="fixed",
+        help=(
+            "fixed uses --e-max for every planet; periastron reproduces Gilbert's "
+            "a/Rstar * (1-e) > 1 support condition, capped by --e-max."
+        ),
+    )
+    parser.add_argument(
+        "--density-error-mode",
+        choices=["symmetric-average", "symmetric-rms", "split"],
+        default="symmetric-average",
+    )
     parser.add_argument(
         "--nested-weight-mode",
-        choices=["dynesty", "equal"],
+        choices=["dynesty", "equal", "likelihood"],
         default="dynesty",
-        help="Diagnostic equal treats all nested-sampling rows equally; canonical default uses dynesty LN_WT.",
+        help=(
+            "Canonical dynesty uses LN_WT; equal treats raw rows equally. "
+            "Diagnostic likelihood follows Greg Gilbert's June 2026 instruction "
+            "literally by normalizing LN_LIKE alone."
+        ),
     )
     parser.add_argument(
         "--posterior-sampling-mode",
@@ -766,6 +936,51 @@ def main() -> None:
         help=(
             "weighted_grid integrates importance weights directly; "
             "unweighted_resample performs the source-described sampling-importance-resampling step."
+        ),
+    )
+    parser.add_argument(
+        "--posterior-resample-draws",
+        type=int,
+        default=None,
+        help=(
+            "Final SIR draw count when --posterior-sampling-mode=unweighted_resample. "
+            "Gilbert's public workflow uses 1000; the legacy default uses one draw per proposal."
+        ),
+    )
+    parser.add_argument(
+        "--proposal-sampling-mode",
+        choices=["joint_random", "gilbert_two_stage"],
+        default="joint_random",
+        help=(
+            "joint_random draws transit rows and eccentricity proposals together; "
+            "gilbert_two_stage first resamples transit rows and then repeats each row "
+            "for a fixed proposal expansion, matching the public Gilbert workflow."
+        ),
+    )
+    parser.add_argument(
+        "--transit-resample-draws",
+        type=int,
+        default=8000,
+        help="First-stage transit posterior draws for gilbert_two_stage.",
+    )
+    parser.add_argument(
+        "--proposals-per-transit-draw",
+        type=int,
+        default=500,
+        help="Second-stage (e, omega) proposals per transit draw for gilbert_two_stage.",
+    )
+    parser.add_argument(
+        "--save-posterior-samples",
+        action="store_true",
+        help="Also preserve proposal-level (e, omega, weight) samples for a literal sample-level HBM sensitivity.",
+    )
+    parser.add_argument(
+        "--jacobian-mode",
+        choices=["none", "gilbert_inverse"],
+        default="none",
+        help=(
+            "Optional second-stage inverse-Jacobian weighting used by Gilbert's "
+            "released Kepler hierarchy workflow."
         ),
     )
     parser.add_argument(
@@ -811,20 +1026,32 @@ def main() -> None:
     parser.add_argument("--max-targets", type=int, default=None)
     parser.add_argument(
         "--density-source",
-        choices=["berger2020_table2", "berger2018_kg"],
+        choices=["berger2020_table2", "berger2018_kg", "custom_csv"],
         default="berger2020_table2",
         help="Explicit stellar-density provenance; the paper-aligned Berger-2018 branch is opt-in until compared.",
     )
     parser.add_argument(
         "--density-sample",
         default=None,
-        help="CSV with kepid,rho_log,rho_log_upper,rho_log_lower for --density-source berger2018_kg.",
+        help="CSV with kepid,rho_log,rho_log_upper,rho_log_lower for a non-default density source.",
     )
     args = parser.parse_args()
     if not 0.0 < args.e_max < 1.0:
         parser.error("--e-max must be strictly between 0 and 1")
     if args.n_proposals <= 0:
         parser.error("--n-proposals must be positive")
+    if args.transit_resample_draws <= 0 or args.proposals_per_transit_draw <= 0:
+        parser.error("two-stage proposal draw counts must be positive")
+    if args.posterior_resample_draws is not None and args.posterior_resample_draws <= 0:
+        parser.error("--posterior-resample-draws must be positive")
+    if (
+        args.posterior_resample_draws is not None
+        and args.posterior_sampling_mode != "unweighted_resample"
+    ):
+        parser.error(
+            "--posterior-resample-draws requires "
+            "--posterior-sampling-mode=unweighted_resample"
+        )
     if args.min_importance_ess <= 0:
         parser.error("--min-importance-ess must be positive")
     if not np.isfinite(args.density_error_scale) or args.density_error_scale <= 0.0:
@@ -883,11 +1110,18 @@ def main() -> None:
             allow_density_error_fallback=args.allow_density_error_fallback,
             nested_weight_mode=args.nested_weight_mode,
             posterior_sampling_mode=args.posterior_sampling_mode,
+            posterior_resample_draws=args.posterior_resample_draws,
+            proposal_sampling_mode=args.proposal_sampling_mode,
+            transit_resample_draws=args.transit_resample_draws,
+            proposals_per_transit_draw=args.proposals_per_transit_draw,
+            save_posterior_samples=args.save_posterior_samples,
             density_sampling_mode=args.density_sampling_mode,
             density_error_scale=args.density_error_scale,
             density_offset_dex=args.density_offset_dex,
             density_source=args.density_source,
             period_sampling_mode=args.period_sampling_mode,
+            eccentricity_cut_mode=args.eccentricity_cut_mode,
+            jacobian_mode=args.jacobian_mode,
         )
         summaries.extend(target_summary)
         exclusions.extend(target_excluded)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from common import trapezoid
 from hierarchical_rayleigh import fit_from_mass_matrix, leave_one_planet_influence, rayleigh_grid
 
 
@@ -19,7 +20,7 @@ def test_positive_outlier_floor_adds_finite_tail_and_renormalizes() -> None:
     sigmas = np.array([0.01, 0.03])
     rays, _ = rayleigh_grid(e_grid, sigmas, False, "none", 1e-6)
     assert np.all(rays[-1] > 0.0)
-    np.testing.assert_allclose(np.trapezoid(rays, e_grid, axis=0), 1.0, rtol=1e-10)
+    np.testing.assert_allclose(trapezoid(rays, e_grid, axis=0), 1.0, rtol=1e-10)
 
 
 def test_outlier_floor_rejects_invalid_values() -> None:

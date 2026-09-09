@@ -1,0 +1,5 @@
+check,result,value,interpretation
+berger2018_public_density_contract,not_uniquely_reconstructable,Density;Density_err;Mass;Mass_err,"The cited 2018 public table supplies radius errors but no stellar-density posterior, mass, or mass-radius covariance."
+paired_vs_catalog_period,negligible,max_rel=0.000426902;p99=7.52209e-05,The maximum period mismatch is too small to generate the observed density or eccentricity discrepancy.
+disk_label_swap,refuted,thick_singles:1028/275;thin_singles:256/1121;thick_multis:828/207;thin_multis:204/862,"Although swapped point estimates look tempting, the population counts and uncertainty ordering contradict the published groups."
+raw_equal_nested_rows,invalid,ALDERAAN FITS store raw dynesty LN_WT and LN_Z,Raw nested rows are not posterior draws; they must be Dynesty-weighted or posterior-resampled before hierarchical inference.

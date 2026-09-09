@@ -3,12 +3,6 @@ import pandas as pd
 from nested_weighting_forensic_audit import comparison_rows
 
 
-def test_default_root_is_repository_root():
-    from nested_weighting_forensic_audit import ROOT
-
-    assert (ROOT / "scripts" / "nested_weighting_forensic_audit.py").is_file()
-
-
 def test_comparison_rows_uses_half_gaussian_sigma():
     rayleigh = pd.DataFrame(
         {

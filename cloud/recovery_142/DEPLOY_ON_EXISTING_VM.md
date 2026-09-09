@@ -12,7 +12,9 @@ The 24-hour maximum runtime is a hard compute stop, unlike a budget alert.
 ## 1. Local Windows PowerShell
 
 ```powershell
-gcloud.cmd config set project project-7f7ff467-5d61-4072-8f4
+$PROJECT_ID = "<gcp-project-id>"
+$LINUX_USER = "<vm-linux-user>"
+gcloud.cmd config set project $PROJECT_ID
 
 gcloud.cmd compute instances set-machine-type alderaan-factorial `
   --zone=us-central1-b `
@@ -30,10 +32,10 @@ Start-Sleep -Seconds 75
 
 gcloud.cmd compute scp `
   "<local_bundle_path>\Hildale_ALDERAAN_Published_Inventory_Missing_142_20260724_v4.zip" `
-  "shreshth_rach1@alderaan-factorial:~/" `
+  "$LINUX_USER@alderaan-factorial:~/" `
   --zone=us-central1-b
 
-gcloud.cmd compute ssh shreshth_rach1@alderaan-factorial `
+gcloud.cmd compute ssh "$LINUX_USER@alderaan-factorial" `
   --zone=us-central1-b
 ```
 
@@ -72,8 +74,10 @@ VALIDATION OK: 142 targets, 181 catalog rows
 From Cloud Shell:
 
 ```bash
-gcloud config set project project-7f7ff467-5d61-4072-8f4
-gcloud compute ssh shreshth_rach1@alderaan-factorial \
+export PROJECT_ID="<gcp-project-id>"
+export LINUX_USER="<vm-linux-user>"
+gcloud config set project "$PROJECT_ID"
+gcloud compute ssh "$LINUX_USER@alderaan-factorial" \
   --zone=us-central1-b
 ```
 

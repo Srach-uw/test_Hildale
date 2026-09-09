@@ -1,30 +1,30 @@
-# Deploy The Reliability Repair
+# Deploy the reliability repair
 
 This revision is designed for the existing `alderaan-factorial` VM. It does
 not replace `projects/`, downloaded light curves, or any valid ALDERAAN FITS.
 It updates only the runner scripts and documentation.
 
-## 1. Extend The Automatic Stop Window
+## 1. Extend the automatic stop window
 
 In Cloud Shell, before starting new work:
 
 ```bash
-gcloud config set project project-7f7ff467-5d61-4072-8f4
+gcloud config set project <gcp-project-id>
 gcloud compute instances set-scheduling alderaan-factorial \
   --zone us-central1-b \
   --max-run-duration=48h \
   --instance-termination-action=STOP
 ```
 
-## 2. Upload The Zip
+## 2. Upload the archive
 
 In local PowerShell:
 
 ```powershell
-gcloud.cmd compute scp "<local_bundle_path>\Hildale_ALDERAAN_Factorial_Validation_Reliability_Repair_20260712.zip" shreshth_rach1@alderaan-factorial:~ --zone us-central1-b
+gcloud.cmd compute scp "<local_bundle_path>\Hildale_ALDERAAN_Factorial_Validation_Reliability_Repair_20260712.zip" <vm-linux-user>@alderaan-factorial:~ --zone us-central1-b
 ```
 
-## 3. Install Only The Repaired Files
+## 3. Install only the repaired files
 
 SSH to the VM, then run this whole block. It backs up the live scripts before
 copying the repaired versions and leaves `projects/` unchanged.

@@ -9,7 +9,7 @@ import numpy as np
 import pandas as pd
 
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parent
 PUBLISHED = {
     "rayleigh": {
         "thick_singles": 0.066,

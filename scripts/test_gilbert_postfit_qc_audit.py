@@ -4,10 +4,17 @@ import pandas as pd
 from gilbert_postfit_qc_audit import (
     build_result_index,
     catalog_density_solar,
+    grazing_exceeds_limit,
     radius_fractional_uncertainty,
     result_file,
     weighted_fraction,
 )
+
+
+def test_gilbert_analysis_notebook_grazing_limit_is_five_percent() -> None:
+    assert grazing_exceeds_limit(0.051)
+    assert not grazing_exceeds_limit(0.05)
+    assert not grazing_exceeds_limit(np.nan)
 
 
 def test_weighted_fraction_uses_nested_weights() -> None:

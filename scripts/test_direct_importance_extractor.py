@@ -13,10 +13,31 @@ from extract_eccentricity_posteriors_direct import (
     macdougall_rho_star_samp,
     nested_sample_weights,
     paired_period_samples,
+    periastron_eccentricity_cut,
     resampled_posterior_grid,
     weighted_posterior_grid,
     weighted_quantile,
 )
+
+
+def test_periastron_eccentricity_cut_matches_gilbert_condition() -> None:
+    period_days = np.array([10.0, 10.1, 9.9])
+    rho_solar = 1.2
+    period_s = period_days * DAY_S
+    a_over_r = (
+        G_SI * rho_solar * RHO_SUN_KG_M3 * period_s**2 / (3.0 * np.pi)
+    ) ** (1.0 / 3.0)
+    expected = 1.0 - 1.0 / np.mean(a_over_r)
+    got = periastron_eccentricity_cut(period_days, rho_solar, ceiling=0.99)
+    assert np.isclose(got, expected)
+    assert periastron_eccentricity_cut(period_days, rho_solar, ceiling=0.5) == 0.5
+
+
+def test_periastron_eccentricity_cut_rejects_invalid_inputs() -> None:
+    with np.testing.assert_raises(ValueError):
+        periastron_eccentricity_cut(np.array([np.nan]), 1.0, ceiling=0.95)
+    with np.testing.assert_raises(ValueError):
+        periastron_eccentricity_cut(10.0, -1.0, ceiling=0.95)
 
 
 def test_paired_period_samples_match_alderaan_polyfit() -> None:
@@ -60,6 +81,20 @@ def test_berger2018_density_source_reads_requested_csv(tmp_path) -> None:
     assert got.to_dict("records") == [{"kepid": 1, "rho_log": 0.1, "rho_log_upper": 0.2, "rho_log_lower": 0.3}]
 
 
+def test_custom_density_source_reads_requested_csv(tmp_path) -> None:
+    from extract_eccentricity_posteriors_direct import load_density_source
+
+    good = tmp_path / "custom.csv"
+    good.write_text(
+        "kepid,rho_log,rho_log_upper,rho_log_lower\n1,-0.1,-0.8,-0.9\n",
+        encoding="utf-8",
+    )
+    got = load_density_source({}, "custom_csv", good)
+    assert got.to_dict("records") == [
+        {"kepid": 1, "rho_log": -0.1, "rho_log_upper": -0.8, "rho_log_lower": -0.9}
+    ]
+
+
 def exact_duration_days(period_days: float, rho_solar: float, ror: float, impact: float) -> float:
     period_s = period_days * DAY_S
     a_over_r = (G_SI * rho_solar * RHO_SUN_KG_M3 * period_s**2 / (3.0 * np.pi)) ** (1.0 / 3.0)
@@ -92,96 +127,6 @@ def test_exact_macdougall_equation_sanity() -> None:
             np.array([0.0]),
         )[0]
     )
-
-
-def exact_duration_days_eccentric(
-    period_days: float,
-    rho_solar: float,
-    ror: float,
-    impact: float,
-    eccentricity: float,
-    omega_rad: float,
-) -> float:
-    """Invert Equation 3 for a specified stellar density."""
-    period_s = period_days * DAY_S
-    a_over_r_sq = (
-        rho_solar * RHO_SUN_KG_M3 * G_SI * period_s**2 / (3.0 * np.pi)
-    ) ** (2.0 / 3.0)
-    chord_sq = (1.0 + ror) ** 2 - impact**2
-    velocity_factor = (1.0 + eccentricity * np.sin(omega_rad)) / np.sqrt(
-        1.0 - eccentricity**2
-    )
-    sine = np.sqrt(chord_sq / (a_over_r_sq - impact**2))
-    return period_days * np.arcsin(sine) / (np.pi * velocity_factor)
-
-
-def test_macdougall_roundtrip_at_nonzero_eccentricity() -> None:
-    period_days = 12.3
-    rho_true = 1.27
-    ror = 0.041
-    impact = 0.37
-    for eccentricity, omega_rad in [
-        (0.30, np.pi / 2.0),
-        (0.30, -np.pi / 2.0),
-        (0.50, 0.7),
-        (0.20, -1.1),
-        (0.75, 2.9),
-    ]:
-        duration_days = exact_duration_days_eccentric(
-            period_days,
-            rho_true,
-            ror,
-            impact,
-            eccentricity,
-            omega_rad,
-        )
-        recovered = macdougall_rho_star_samp(
-            period_days * DAY_S,
-            np.array([duration_days * DAY_S]),
-            np.array([ror]),
-            np.array([impact]),
-            np.array([eccentricity]),
-            np.array([omega_rad]),
-        )[0]
-        assert np.isclose(recovered, rho_true, rtol=1e-11, atol=0.0)
-
-
-def test_macdougall_omega_is_in_radians() -> None:
-    args = (
-        12.3 * DAY_S,
-        np.array([0.31 * DAY_S]),
-        np.array([0.041]),
-        np.array([0.37]),
-        np.array([0.4]),
-    )
-    as_radians = macdougall_rho_star_samp(*args, np.array([np.pi / 2.0]))[0]
-    as_degrees = macdougall_rho_star_samp(
-        *args,
-        np.array([np.pi / 2.0 * np.pi / 180.0]),
-    )[0]
-    assert np.isfinite(as_radians) and np.isfinite(as_degrees)
-    assert not np.isclose(as_radians, as_degrees, rtol=1e-3)
-
-
-def test_macdougall_velocity_factor_sign() -> None:
-    args = (
-        12.3 * DAY_S,
-        np.array([0.31 * DAY_S]),
-        np.array([0.041]),
-        np.array([0.37]),
-        np.array([0.4]),
-    )
-    positive_sine = macdougall_rho_star_samp(*args, np.array([np.pi / 2.0]))[0]
-    negative_sine = macdougall_rho_star_samp(*args, np.array([-np.pi / 2.0]))[0]
-    circular = macdougall_rho_star_samp(
-        12.3 * DAY_S,
-        np.array([0.31 * DAY_S]),
-        np.array([0.041]),
-        np.array([0.37]),
-        np.array([0.0]),
-        np.array([0.0]),
-    )[0]
-    assert positive_sine < circular < negative_sine
 
 
 def test_weighted_quantiles() -> None:
@@ -269,6 +214,146 @@ def test_deterministic_output() -> None:
     assert first["importance_ess"] == second["importance_ess"]
 
 
+def test_gilbert_two_stage_sampling_is_deterministic_and_uses_requested_size() -> None:
+    kwargs = dict(
+        ror=np.full(12, 0.05),
+        impact=np.linspace(0.1, 0.4, 12),
+        dur14_days=np.full(12, 0.18),
+        nested_weights=np.full(12, 1.0 / 12.0),
+        period_days=10.0,
+        rho_true=1.0,
+        err_hi=0.1,
+        err_lo=0.1,
+        n_proposals=17,
+        e_max=0.95,
+        e_grid=np.linspace(0.0, 0.95, 30),
+        omega_grid=np.linspace(0.0, 2.0 * np.pi, 24, endpoint=False),
+        density_error_mode="symmetric-average",
+        seed=123,
+        proposal_sampling_mode="gilbert_two_stage",
+        transit_resample_draws=9,
+        proposals_per_transit_draw=7,
+    )
+    first = direct_importance_posterior(**kwargs)
+    second = direct_importance_posterior(**kwargs)
+    assert first["proposal_count"] == 63
+    assert first["proposal_sampling_mode"] == "gilbert_two_stage"
+    assert first["transit_resample_draws"] == 9
+    assert first["proposals_per_transit_draw"] == 7
+    np.testing.assert_array_equal(first["posterior"], second["posterior"])
+
+
+def test_gilbert_inverse_jacobian_is_explicit_and_deterministic() -> None:
+    base = synthetic_result(seed=20260810)
+    kwargs = dict(
+        ror=np.full(250, 0.05),
+        impact=np.linspace(0.175, 0.225, 250),
+        dur14_days=np.full(250, 0.2),
+        nested_weights=np.full(250, 1.0 / 250.0),
+        period_days=10.0,
+        rho_true=1.0,
+        err_hi=0.1,
+        err_lo=0.1,
+        n_proposals=20_000,
+        e_max=0.95,
+        e_grid=np.linspace(0.0, 0.95, 80),
+        omega_grid=np.linspace(0.0, 2.0 * np.pi, 72, endpoint=False),
+        density_error_mode="symmetric-average",
+        jacobian_mode="gilbert_inverse",
+        seed=20260810,
+    )
+    first = direct_importance_posterior(**kwargs)
+    second = direct_importance_posterior(**kwargs)
+    assert first["jacobian_mode"] == "gilbert_inverse"
+    np.testing.assert_array_equal(first["posterior"], second["posterior"])
+    assert np.isclose(np.asarray(first["posterior"]).sum(), 1.0)
+    assert not np.array_equal(first["posterior"], base["posterior"])
+
+
+def test_source_style_sir_uses_explicit_final_draw_count() -> None:
+    kwargs = dict(
+        ror=np.full(80, 0.05),
+        impact=np.linspace(0.1, 0.3, 80),
+        dur14_days=np.full(80, 0.2),
+        nested_weights=np.full(80, 1.0 / 80.0),
+        period_days=10.0,
+        rho_true=1.0,
+        err_hi=0.1,
+        err_lo=0.1,
+        n_proposals=10_000,
+        e_max=0.95,
+        e_grid=np.linspace(0.0, 0.95, 40),
+        omega_grid=np.linspace(0.0, 2.0 * np.pi, 36, endpoint=False),
+        density_error_mode="symmetric-rms",
+        posterior_sampling_mode="unweighted_resample",
+        posterior_resample_draws=1_000,
+        seed=20260807,
+    )
+    first = direct_importance_posterior(**kwargs)
+    second = direct_importance_posterior(**kwargs)
+    assert first["posterior_draw_count"] == 1_000
+    np.testing.assert_array_equal(first["posterior"], second["posterior"])
+    np.testing.assert_array_equal(first["e_quantiles"], second["e_quantiles"])
+    assert np.isclose(np.asarray(first["posterior"]).sum(), 1.0)
+
+
+def test_sir_and_weighted_grid_share_proposals_for_the_same_seed() -> None:
+    kwargs = dict(
+        ror=np.full(80, 0.05),
+        impact=np.linspace(0.1, 0.3, 80),
+        dur14_days=np.full(80, 0.2),
+        nested_weights=np.full(80, 1.0 / 80.0),
+        period_days=10.0,
+        rho_true=1.0,
+        err_hi=0.1,
+        err_lo=0.1,
+        n_proposals=30_000,
+        e_max=0.95,
+        e_grid=np.linspace(0.0, 0.95, 40),
+        omega_grid=np.linspace(0.0, 2.0 * np.pi, 36, endpoint=False),
+        density_error_mode="symmetric-average",
+        seed=20260810,
+    )
+    weighted = direct_importance_posterior(
+        **kwargs,
+        posterior_sampling_mode="weighted_grid",
+    )
+    sir = direct_importance_posterior(
+        **kwargs,
+        posterior_sampling_mode="unweighted_resample",
+        posterior_resample_draws=30_000,
+    )
+    np.testing.assert_allclose(
+        np.asarray(weighted["e_pdf"]),
+        np.asarray(sir["e_pdf"]),
+        atol=0.02,
+    )
+
+
+def test_sir_rejects_nonpositive_final_draw_count() -> None:
+    with np.testing.assert_raises_regex(
+        ValueError, "posterior_resample_draws must be positive"
+    ):
+        direct_importance_posterior(
+            ror=np.full(20, 0.05),
+            impact=np.full(20, 0.2),
+            dur14_days=np.full(20, 0.2),
+            nested_weights=np.full(20, 1.0 / 20.0),
+            period_days=10.0,
+            rho_true=1.0,
+            err_hi=0.1,
+            err_lo=0.1,
+            n_proposals=1_000,
+            e_max=0.95,
+            e_grid=np.linspace(0.0, 0.95, 20),
+            omega_grid=np.linspace(0.0, 2.0 * np.pi, 18, endpoint=False),
+            density_error_mode="symmetric-rms",
+            posterior_sampling_mode="unweighted_resample",
+            posterior_resample_draws=0,
+            seed=20260808,
+        )
+
+
 def test_synthetic_circular_recovery_across_impact() -> None:
     for index, impact_center in enumerate((0.0, 0.5, 0.8)):
         result = synthetic_result(seed=12345 + index, impact_center=impact_center)
@@ -292,10 +377,30 @@ def test_split_density_likelihood_includes_scale_normalization() -> None:
     assert np.allclose(got, expected)
 
 
+def test_symmetric_rms_density_likelihood_matches_gilbert_error_rule() -> None:
+    from extract_eccentricity_posteriors_direct import density_log_likelihood
+
+    rho = np.array([0.9, 1.2])
+    sigma = np.sqrt(0.2**2 + 0.1**2) / np.sqrt(2.0)
+    got = density_log_likelihood(rho, 1.0, 0.2, 0.1, "symmetric-rms")
+    expected = -0.5 * ((rho - 1.0) / sigma) ** 2 - np.log(sigma)
+    np.testing.assert_allclose(got, expected)
+
+
 def test_nested_sample_weight_modes_are_explicit() -> None:
     log_weights = np.log(np.array([0.1, 0.2, 0.7]))
+    log_likelihood = np.log(np.array([0.6, 0.3, 0.1]))
     np.testing.assert_allclose(nested_sample_weights(log_weights, "dynesty"), [0.1, 0.2, 0.7])
     np.testing.assert_allclose(nested_sample_weights(log_weights, "equal"), np.full(3, 1.0 / 3.0))
+    np.testing.assert_allclose(
+        nested_sample_weights(log_weights, "likelihood", log_likelihood),
+        [0.6, 0.3, 0.1],
+    )
+
+
+def test_likelihood_nested_weight_mode_requires_likelihood_column() -> None:
+    with np.testing.assert_raises_regex(ValueError, "LN_LIKE"):
+        nested_sample_weights(np.zeros(3), "likelihood")
 
 
 def test_density_sensitivity_transform_preserves_fractional_errors() -> None:

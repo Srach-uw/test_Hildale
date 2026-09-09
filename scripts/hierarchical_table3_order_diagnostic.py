@@ -27,12 +27,27 @@ from hierarchical_rayleigh import (
 from common import trapezoid
 
 
-PUBLISHED = {
-    "thick_singles": 0.066,
-    "thin_singles": 0.022,
-    "thick_multis": 0.033,
-    "thin_multis": 0.030,
+PUBLISHED_BY_MODEL = {
+    "beta": {
+        "thick_singles": 0.058,
+        "thick_multis": 0.042,
+        "thin_singles": 0.023,
+        "thin_multis": 0.030,
+    },
+    "monotonic_beta": {
+        "thick_singles": 0.041,
+        "thick_multis": 0.025,
+        "thin_singles": 0.022,
+        "thin_multis": 0.026,
+    },
+    "half_gaussian": {
+        "thick_singles": 0.066,
+        "thick_multis": 0.037,
+        "thin_singles": 0.025,
+        "thin_multis": 0.033,
+    },
 }
+PUBLISHED_ORDER = ("thick_singles", "thick_multis", "thin_singles", "thin_multis")
 
 
 def normalized_density(e: np.ndarray, raw: np.ndarray) -> np.ndarray:
@@ -40,45 +55,32 @@ def normalized_density(e: np.ndarray, raw: np.ndarray) -> np.ndarray:
     return raw / max(float(trapezoid(raw, e)), 1e-300)
 
 
-def beta_density(e: np.ndarray, alpha: float, beta: float) -> np.ndarray:
+def beta_density(e: np.ndarray, alpha: float, beta: float, outlier_floor: float = 0.0) -> np.ndarray:
     logf = (alpha - 1.0) * np.log(np.clip(e, 1e-12, None)) + (beta - 1.0) * np.log1p(-e)
     logf -= gammaln(alpha) + gammaln(beta) - gammaln(alpha + beta)
-    return normalized_density(e, np.exp(np.clip(logf, -700, 700)))
+    return normalized_density(e, np.exp(np.clip(logf, -700, 700)) + outlier_floor)
 
 
-def half_gaussian_density(e: np.ndarray, sigma: float) -> np.ndarray:
-    return normalized_density(e, np.exp(-0.5 * (e / sigma) ** 2))
+def half_gaussian_density(e: np.ndarray, sigma: float, outlier_floor: float = 0.0) -> np.ndarray:
+    return normalized_density(e, np.exp(-0.5 * (e / sigma) ** 2) + outlier_floor)
 
 
-def model_density(model: str, e: np.ndarray, x: np.ndarray) -> tuple[np.ndarray, float, dict]:
+def model_density(
+    model: str, e: np.ndarray, x: np.ndarray, outlier_floor: float = 0.0
+) -> tuple[np.ndarray, float, dict]:
     if model == "beta":
         alpha, beta = np.exp(x)
-        f = beta_density(e, alpha, beta)
+        f = beta_density(e, alpha, beta, outlier_floor)
         return f, float(trapezoid(f * e, e)), {"alpha": alpha, "beta": beta}
     if model == "monotonic_beta":
         alpha, beta = np.exp(x)
-        f = beta_density(e, alpha, beta)
+        f = beta_density(e, alpha, beta, outlier_floor)
         return f, float(trapezoid(f * e, e)), {"alpha": alpha, "beta": beta}
     if model == "half_gaussian":
         sigma = float(np.exp(x[0]))
-        f = half_gaussian_density(e, sigma)
+        f = half_gaussian_density(e, sigma, outlier_floor)
         return f, float(trapezoid(f * e, e)), {"sigma": sigma}
     raise ValueError(model)
-
-
-def population_normalizer(
-    density: np.ndarray,
-    e: np.ndarray,
-    selection_mode: str,
-) -> float:
-    if selection_mode == "legacy_forward_norm":
-        return max(
-            float(trapezoid(density / np.clip(1.0 - e**2, 1e-12, None), e)),
-            1e-300,
-        )
-    if selection_mode in {"none", "manuscript_reciprocal"}:
-        return 1.0
-    raise ValueError(f"Unknown selection mode: {selection_mode}")
 
 
 def fit_model(
@@ -86,18 +88,18 @@ def fit_model(
     e: np.ndarray,
     model: str,
     starts: list[np.ndarray],
-    selection_mode: str,
+    outlier_floor: float = 0.0,
 ) -> dict:
     # Each row is a planet's posterior mass over e after the same omega
     # selection correction used by the Rayleigh implementation.
     def objective(x: np.ndarray) -> float:
-        f, _, _ = model_density(model, e, x)
-        terms = (masses @ f) / population_normalizer(
-            f,
-            e,
-            selection_mode,
-        )
-        terms = np.clip(terms, 1e-300, None)
+        if model == "beta":
+            alpha, beta = np.exp(x)
+            # Sagear samples tau=1/sqrt(alpha+beta) on (0,1].
+            if alpha + beta < 1.0:
+                return 1e100
+        f, _, _ = model_density(model, e, x, outlier_floor)
+        terms = np.clip(masses @ f, 1e-300, None)
         return float(-np.log(terms).sum())
 
     bounds = {
@@ -112,7 +114,7 @@ def fit_model(
         if best is None or result.fun < best.fun:
             best = result
     assert best is not None
-    _, mean_e, pars = model_density(model, e, best.x)
+    _, mean_e, pars = model_density(model, e, best.x, outlier_floor)
     return {"status": "ok" if best.success else "optimizer_warning", "nll": best.fun, "mean_e": mean_e, **pars}
 
 
@@ -126,18 +128,23 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--summary", required=True)
     ap.add_argument("--tag", required=True)
-    ap.add_argument(
-        "--selection-mode",
-        choices=["legacy_forward_norm", "none", "manuscript_reciprocal"],
-        required=True,
-        help="Choose explicitly; manuscript_reciprocal is a literal sensitivity only.",
-    )
+    ap.add_argument("--selection-mode", choices=["none", "manuscript_reciprocal"], default="manuscript_reciprocal")
     ap.add_argument("--allow-non-dynesty-weights", action="store_true")
     ap.add_argument("--allow-nonpaired-impact", action="store_true")
     ap.add_argument("--allow-mixed-posterior-sources", action="store_true")
     ap.add_argument("--allow-missing-qc-manifest", action="store_true")
     ap.add_argument("--no-qc", action="store_true")
+    ap.add_argument(
+        "--outlier-floor",
+        type=float,
+        default=0.0,
+        help="Add a constant to each analytic density before normalization (Gilbert diagnostic).",
+    )
     args = ap.parse_args()
+    if not np.isfinite(args.outlier_floor) or not 0.0 <= args.outlier_floor <= 1.0:
+        ap.error("--outlier-floor must be finite and between 0 and 1")
+    if args.outlier_floor > 0 and "FLOOR" not in args.tag.upper():
+        ap.error("A nonzero --outlier-floor requires FLOOR in --tag")
     summary = pd.read_csv(args.summary)
     validate_summary_contract(
         summary,
@@ -156,15 +163,9 @@ def main() -> None:
         sub = summary[(summary.disk == disk) & (summary.system == system)].reset_index(drop=True)
         masses, e = load_population_masses(sub, args.selection_mode != "none", args.selection_mode)
         for model in ("beta", "monotonic_beta", "half_gaussian"):
-            fit = fit_model(
-                masses,
-                e,
-                model,
-                starts_for(model),
-                args.selection_mode,
-            )
+            fit = fit_model(masses, e, model, starts_for(model), args.outlier_floor)
             fit["comparison_value"] = fit["sigma"] if model == "half_gaussian" else fit["mean_e"]
-            rows.append({"population": label, "n": len(sub), "model": model, "selection_mode": args.selection_mode, **fit})
+            rows.append({"population": label, "n": len(sub), "model": model, "selection_mode": args.selection_mode, "outlier_floor": args.outlier_floor, **fit})
 
     result = pd.DataFrame(rows)
     out = Path("outputs") / f"table3_model_order_diagnostic_{args.tag}.csv"
@@ -176,14 +177,25 @@ def main() -> None:
     # for the Beta-family models.  Compare like with like.
     piv = result.pivot(index="model", columns="population", values="comparison_value")
     perm_rows = []
-    labels = list(PUBLISHED)
+    labels = list(PUBLISHED_ORDER)
     for model in piv.index:
         vals = piv.loc[model]
+        published = PUBLISHED_BY_MODEL[model]
         for source_order in itertools.permutations(labels):
             assigned = [float(vals[s]) for s in source_order]
-            target = [PUBLISHED[k] for k in labels]
+            target = [published[k] for k in labels]
             rmse = float(np.sqrt(np.mean((np.asarray(assigned) - target) ** 2)))
-            perm_rows.append({"model": model, "source_order": "|".join(source_order), "rmse": rmse, "mean_abs_error": float(np.mean(np.abs(np.asarray(assigned)-target)))})
+            perm_rows.append(
+                {
+                    "model": model,
+                    "source_order": "|".join(source_order),
+                    "target_order": "|".join(labels),
+                    "rmse": rmse,
+                    "mean_abs_error": float(
+                        np.mean(np.abs(np.asarray(assigned) - target))
+                    ),
+                }
+            )
     perms = pd.DataFrame(perm_rows).sort_values(["model", "rmse"])
     p_out = Path("outputs") / f"table3_model_order_permutations_{args.tag}.csv"
     perms.to_csv(p_out, index=False)

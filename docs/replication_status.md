@@ -1,22 +1,22 @@
-# Replication Status
+# Replication status
 
-Updated: 2026-08-08
+Updated: 2026-08-13
 
-## Bottom Line
+## Bottom line
 
-The public-data pipeline now has a usable ALDERAAN result for every planet in
-the reconstructed 2,465-planet inventory. The sample, multiplicity, posterior,
-and population-fit contracts have been checked independently. A real-data
-Gilbert control recovers its published small-planet eccentricity scale, while
-the Sagear Rayleigh eccentricities remain substantially above Table 3.
+The public reconstruction recovers the paper's total of 2,465 planets and uses
+the published host classifications. The strict source-faithful hierarchy does
+not reproduce the four Rayleigh means in Table 3. This is a failed numerical
+replication from public inputs, not evidence that the paper's astrophysical
+interpretation is wrong.
 
-This is a failed public-data replication, not evidence that the paper's
-astrophysical conclusion is wrong. Several inputs required for an exact
-reproduction are not public.
+The remaining discrepancy is already present in the comparison between the
+ALDERAAN circular-density posteriors and the adopted stellar-density priors.
+Changing the population model cannot remove that upstream disagreement.
 
-## Published and Reconstructed Populations
+## Inventory
 
-| Population | Reconstructed N | Paper N | Difference |
+| Population | Reconstructed | Paper | Difference |
 | --- | ---: | ---: | ---: |
 | Thin singles | 1,109 | 1,121 | -12 |
 | Thick singles | 269 | 275 | -6 |
@@ -24,114 +24,75 @@ reproduction are not public.
 | Thick multis | 209 | 207 | +2 |
 | Total | 2,465 | 2,465 | 0 |
 
-The total is exact, but individual planet membership in the paper's final
-post-fit rejection set is unavailable. Count-matched and adversarial-removal
-tests do not account for the full eccentricity difference.
+The exact total is recovered. The paper does not publish the final accepted
+planet ledger, so the remaining category differences cannot be resolved by ID.
+Multiplicity is assigned from the full eligible system before planet-level
+quality cuts.
 
-## Current Weighted Diagnostic
+## Current source-faithful result
 
-The primary public-data diagnostic uses:
+The comparison below uses paired ALDERAAN transit-shape samples, dynesty
+`LN_WT` weights, the documented post-fit quality rules, and the paper's
+reciprocal transit-selection prescription as a literal replication branch.
+The hierarchy-ready counts are smaller than the inventory because only planets
+with valid posterior support and complete quality fields enter the fit.
 
-- published host labels;
-- multiplicity assigned before planet-level cuts;
-- paired ALDERAAN `T14`, `Rp/R*`, impact, and period samples;
-- dynesty `LN_WT` weights;
-- fixed Berger et al. (2020) density;
-- direct MacDougall-style post-model importance sampling;
-- the arXiv v1 reciprocal transit-selection rule, retained only as a literal
-  replication sensitivity;
-- deterministic posterior QC.
-
-| Population | Reconstructed N | Weighted Rayleigh mean | Paper N | Paper mean |
+| Population | Fit N | Reconstructed mean | Paper N | Paper mean |
 | --- | ---: | ---: | ---: | ---: |
-| Thin singles | 1,109 | 0.246 | 1,121 | 0.022 |
-| Thick singles | 269 | 0.234 | 275 | 0.066 |
-| Thin multis | 878 | 0.171 | 862 | 0.030 |
-| Thick multis | 209 | 0.141 | 207 | 0.033 |
+| Thin singles | 887 | 0.214 | 1,121 | 0.022 |
+| Thick singles | 218 | 0.153 | 275 | 0.066 |
+| Thin multis | 821 | 0.086 | 862 | 0.030 |
+| Thick multis | 193 | 0.114 | 207 | 0.033 |
 
-These values are the deterministic 1,000-draw SIR branch used in the final
-weighting audit. The earlier grid and QC sensitivities remain in the evidence
-tables. None reproduces the paper.
+These values remain diagnostic rather than publishable reproduction results.
+The public products do not establish that the same planet-level inputs and
+final rejection ledger were used in the paper.
 
-Equal raw-row weighting gives 0.0747, 0.0630, 0.0332, and 0.0444 for thin
-singles, thick singles, thin multis, and thick multis. It is not a valid
-nested-sampling estimator. More importantly, its BIC comparison favors a
-half-Gaussian in all four populations, whereas the paper reports a strong
-Rayleigh preference. It cannot be used as an answer-matching shortcut.
+## What has been ruled out
 
-## Checks That Are Closed
-
-- The published inventory total is recovered exactly.
-- Published host labels are used directly for the primary analysis.
+- Published host labels replace reconstructed disk labels in the primary run.
 - Multiplicity is frozen before planet-level fit cuts.
-- ALDERAAN transit-shape samples remain paired.
-- Row-paired ALDERAAN periods replace fixed catalog periods. The controlled
-  change shifts the population values by at most `1.2e-5`.
-- Nested rows use `LN_WT`. Equal raw-row weighting is rejected.
-- The hierarchy requires homogeneous provenance and rejects a mixed archive.
-- Nonzero-eccentricity round trips test the MacDougall equation's sign,
-  angular units, and velocity factor.
-- The generative forward-normalized hierarchy passes synthetic recovery; the
-  arXiv v1 reciprocal rule is not used as a validated scientific estimator.
-- Fixed, Gaussian, and split-normal density sensitivities do not recover
-  Table 3.
-- The 82-fit experiment and nine-system combined confirmation show that the
-  tested cadence, limb-darkening, printed-prior, and sampler-seed differences
-  are not the main explanation. The combined arm changes median eccentricity
-  by only +0.00042 across 13 matched planets, although several individual
-  systems move more than the small repeat-run threshold.
-- Removing the most influential planets cannot reproduce the thin-single value.
-- A real-ALDERAAN Gilbert control recovers a Beta mean of 0.0487 for all small
-  planets and 0.0684 for observed singles. The same quality-cut ladder applied
-  to the Sagear populations does not recover Table 3.
-- The weighted and equal-row branches fail in different ways: the weighted
-  branch misses both values and model ordering, while the equal-row branch
-  partly approaches the values but still misses the ordering.
-- The paired ALDERAAN circular-density audit contains all 2,465 planets and places
-  the disagreement in the transit-shape and density inputs before hierarchy.
-- Impact-parameter uncertainty contributes to broad density posteriors. In an
-  exploratory narrower-impact subset, 114 thin singles remain after five
-  primary-QC failures are removed and give a forward-normalized hierarchical
-  mean eccentricity of 0.333 (0.317-0.350). This selected subset is diagnostic
-  rather than an unbiased population estimate.
+- ALDERAAN `T14`, `Rp/R*`, impact, and period samples remain paired.
+- Nested samples use `LN_WT`; equal raw-row weighting is invalid.
+- Fixed catalog periods and paired fitted periods give indistinguishable
+  population results in the controlled test.
+- The forward-normalized hierarchy passes synthetic recovery tests.
+- Fixed, Gaussian, and split-normal density treatments do not recover Table 3.
+- The 82-fit factorial experiment does not identify cadence, limb darkening,
+  printed priors, or sampler seed as the principal cause.
+- The Gilbert real-data control recovers the expected low-eccentricity scale.
+- High-leverage removal does not recover the thin-single value robustly.
+- Importance-sampling effective sample sizes are adequate; Monte Carlo scatter
+  is much smaller than the discrepancy.
+- The ALDERAAN radius-ratio prior difference printed in Table 2 has negligible
+  effect on the circular-density width in the direct test.
 
-## Remaining Information Gaps
+## Remaining public-data boundary
 
-1. The exact stellar-density and planet-radius tables supplied to the
-   eccentricity calculation.
-2. The identities of the final rejected planets and systems.
-3. The per-planet `(e, omega)` posterior samples used in the paper.
-4. The exact sampling-importance-resampling convention applied to ALDERAAN
-   nested points.
-5. The population-fitting implementation and explicit Table 3 array ordering.
+An exact replication now requires at least one unpublished intermediate:
 
-These are appropriate questions for the corresponding author. Further
-parameter tuning against the published answer would not be a valid
-replication.
+1. the accepted planet ledger, including the final rejected KOIs;
+2. the stellar-density values and uncertainty representation supplied to the
+   eccentricity calculation;
+3. the final per-planet `(e, omega)` posteriors; or
+4. the exact population-model implementation and input ordering.
 
-## Evidence
+The article is internally inconsistent about whether Berger et al. (2018) or
+Berger et al. (2020) supplied the stellar properties. The public 2018 catalog
+does not contain the homogeneous density product needed to reconstruct the
+stated prior without additional choices. Those choices materially affect the
+inference and should not be guessed to match the published answer.
 
-- `metadata/public_reconstruction_20260727/`: current compact reconstruction.
-- `metadata/recovery_preflight_20260724/`: published-host and recovery audits.
+See `docs/final_public_data_boundary.md` for the complete forensic boundary and
+`docs/author_clarification_request.md` for the minimal data request.
+
+## Evidence map
+
+- `metadata/public_reconstruction_20260727/`: compact 2,465-planet inventory.
+- `metadata/recovery_preflight_20260724/`: host, multiplicity, and recovery audits.
 - `metadata/factorial_validation_20260715/`: six-arm ALDERAAN validation.
-- `metadata/final_forensic_20260808/`: Gilbert control, residual attribution,
-  full-sample QC sensitivity, and nested-weighting diagnostics.
-- `metadata/uncertainty_calibration_20260810/`: bootstrap interval calibration
-  and the Berger-2018 density-reconstruction branch.
-- `docs/full_factorial_validation_assessment.md`: interpretation of the 82-fit
-  experiment.
-- `docs/uncertainty_and_density_findings_20260810.md`: identifies stellar-density
-  uncertainty as the dominant driver of inferred eccentricity (Spearman +0.52
-  against per-planet e50, larger than any other variable tested). Records that
-  the Berger-2018 reconstruction carries a defective uncertainty model, bimodal
-  at 0.315 and 1.712 fractional with 35 percent of planets having sigma larger
-  than rho, and that the defect tracks planet multiplicity, which is physically
-  impossible. That confound explains why this reconstruction reports singles as
-  twice as eccentric as multis. The canonical Berger-2020 path is verified sound
-  (unimodal, median 0.101, no planet with sigma above rho). Also measures the
-  per-planet information content directly (median KL from prior of 0.019 nats
-  for thick singles, 0.141 for thick multis), shows the published delta-BIC model
-  ranking of about 20 to 25 is not reproduced (maximum 6.1), closes five
-  hypotheses by measurement, and withdraws the Table 3 ordering lead.
-- `docs/author_clarification_request.md`: concise request for unavailable
-  reproduction inputs.
+- `metadata/combined_confirmation_20260806/`: combined cadence and prior check.
+- `metadata/final_forensic_20260808/`: controls, QC sensitivity, and weighting audits.
+- `metadata/uncertainty_calibration_20260810/`: density and interval calibration.
+- `docs/full_factorial_validation_assessment.md`: interpretation of the 82 fits.
+- `docs/uncertainty_and_density_findings_20260810.md`: density diagnostics.

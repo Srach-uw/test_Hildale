@@ -12,6 +12,9 @@ TEXT_SUFFIXES = {
 }
 FORBIDDEN = {
     "personal Windows home path": re.compile(r"C:[\\/]Users[\\/][^\\/\s`]+", re.IGNORECASE),
+    "personal cloud project": re.compile(r"\bproject-[0-9a-f-]{20,}\b", re.IGNORECASE),
+    "personal email": re.compile(r"\b[A-Z0-9._%+-]+@gmail\.com\b", re.IGNORECASE),
+    "personal VM username": re.compile(r"shreshth" r"_rach1", re.IGNORECASE),
     "Unicode em dash": re.compile("\N{EM DASH}"),
     "merge conflict marker": re.compile(r"^(?:<{7}|>{7})", re.MULTILINE),
     "AI assistant marker": re.compile(

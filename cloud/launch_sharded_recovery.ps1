@@ -1,7 +1,10 @@
 param(
-    [string]$ProjectId = "project-7f7ff467-5d61-4072-8f4",
-    [string]$Account = "shreshth.rach1@gmail.com",
-    [string]$LinuxUser = "shreshth_rach1",
+    [Parameter(Mandatory = $true)]
+    [string]$ProjectId,
+    [Parameter(Mandatory = $true)]
+    [string]$Account,
+    [Parameter(Mandatory = $true)]
+    [string]$LinuxUser,
     [Parameter(Mandatory = $true)]
     [string]$Bundle,
     [switch]$ConfirmCredit

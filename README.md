@@ -10,18 +10,18 @@ Reference article:
 ## Status
 
 This repository does not reproduce the population eccentricities reported in
-the paper. It recovers a 2,465-planet public-data inventory, preserves the
-published host classifications and pre-cut multiplicity labels, and constructs
-a uniform posterior set. The total matches the paper, but the four population
-counts do not, so the final planet membership is not exact.
+the paper. It recovers the 2,465-planet total, preserves the published host
+classifications, and assigns multiplicity before planet-level fit cuts. The
+four population counts still differ because the article data do not identify
+the final rejected planets.
 
-The valid public-data branch keeps paired ALDERAAN transit-shape samples and
-uses dynesty `LN_WT` weights. Its Rayleigh means are 0.234, 0.246, 0.141, and
-0.171 for thick singles, thin singles, thick multis, and thin multis. These are
-well above the paper's 0.066, 0.022, 0.033, and 0.030. Equal raw-row weighting
-moves some values toward the paper but reverses the reported model comparison:
-it favors a half-Gaussian rather than Rayleigh. That branch is retained only as
-a diagnostic.
+The strict source-faithful branch keeps paired ALDERAAN transit-shape samples,
+uses Dynesty `LN_WT` weights, and evaluates the exact finite-duration
+importance equation. After deterministic posterior QC, its Rayleigh means are
+0.153, 0.214, 0.114, and 0.086 for thick singles, thin singles, thick multis,
+and thin multis. These remain above the paper's 0.066, 0.022, 0.033, and 0.030.
+Raw equal-row weighting is retained only as a diagnostic because nested points
+are not equal-weight posterior draws.
 
 An independent control using Gilbert et al.'s released small-planet catalog
 and the same real ALDERAAN archive recovers a Beta mean of 0.0487 for all small
@@ -39,10 +39,14 @@ reconstruction is in
 [`metadata/public_reconstruction_20260727/`](metadata/public_reconstruction_20260727/),
 with the final control and weighting audits in
 [`metadata/final_forensic_20260808/`](metadata/final_forensic_20260808/).
+The [final public-data boundary](docs/final_public_data_boundary.md) records the
+last source and convention checks completed on 2026-08-13.
 The [documentation guide](docs/README.md) separates current conclusions from
 historical audits and cloud runbooks.
+The [reproducibility map](docs/reproducibility_map.md) links each main claim to
+its implementation, tests, and compact evidence.
 
-## Main Findings
+## Main findings
 
 1. The machine-readable host table contains 1,888 stars: 1,515 labeled thin and
    373 labeled thick. The text's value of 378 thick hosts is inconsistent with
@@ -76,12 +80,15 @@ historical audits and cloud runbooks.
 8. Applying Gilbert's full post-fit quality cuts to the Sagear sample does not
    recover Table 3. The same cuts do recover Gilbert's published small-planet
    result from the real ALDERAAN archive, providing a positive control.
-9. The remaining high-value unknowns are the exact stellar-density and radius
-   products, the final rejected-planet list, the intermediate `(e, omega)`
-   posteriors, the nested-point resampling convention, and the population-fit
-   implementation used for Table 3.
+9. The paper's Methods cite Berger et al. (2018) for stellar densities, while
+   its commented formalism and Conclusions cite Berger et al. (2020). The
+   public 2018 table lacks density, mass, and mass-radius covariance, so the
+   exact density inputs cannot be reconstructed from that table.
+10. The remaining high-value unknowns are the final accepted-fit ledger, the
+    stellar-density rows or posteriors used for each planet, and the resulting
+    `(e, omega)` posterior samples.
 
-## Reproduce the Checks
+## Reproduce the checks
 
 Use Python 3.11:
 
@@ -98,7 +105,7 @@ execution is optional and billable. Read
 [`docs/gcp_no_charge_safety_checklist.md`](docs/gcp_no_charge_safety_checklist.md)
 before creating a VM.
 
-## Repository Layout
+## Repository layout
 
 | Path | Contents |
 | --- | --- |
@@ -109,6 +116,9 @@ before creating a VM.
 | `reference/` | Published article, tables, and source references |
 | `docs/` | Current status, focused audits, and runbooks |
 | `legacy/` | Superseded early analysis retained for provenance |
+
+See [docs/data_availability.md](docs/data_availability.md) for the boundary
+between versioned evidence and large local products.
 
 Large and regenerable products are excluded: Kepler light curves, posterior
 archives, cloud result bundles, virtual environments, checkpoints, temporary
@@ -125,8 +135,10 @@ git lfs pull
 
 Citation metadata for this repository and the source article are provided in
 [`CITATION.cff`](CITATION.cff). GitHub can render this file as APA or BibTeX.
+Original software is available under the [MIT License](LICENSE). Third-party
+data and article files retain their original terms.
 
-## Scientific Boundary
+## Scientific boundary
 
 The repository supports reproducibility and diagnosis. A match obtained by
 relabeling populations, removing influential planets after looking at the

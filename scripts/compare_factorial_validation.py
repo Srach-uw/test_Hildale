@@ -79,23 +79,6 @@ PAIR_SPECS = (
     ),
 )
 
-COMBINED_ARM_SPECS = {
-    "paper_priors_reference_lcsc": ArmSpec(
-        "sagear_validation_paper_priors_reference_lcsc",
-        "sc",
-    ),
-}
-
-COMBINED_PAIR_SPECS = (
-    PairSpec(
-        "paper_prior_conditional_reference_lcsc",
-        "paper_prior_conditional",
-        "paper_priors_reference_lcsc",
-        "reference_lcsc",
-        "sc",
-    ),
-)
-
 TARGET_MANIFESTS = {
     "all": "targets_ld_reference_validation.csv",
     "repeat": "targets_repeatability_validation.csv",
@@ -153,85 +136,40 @@ def read_target_sets(metadata_root: Path) -> dict[str, set[str]]:
     return target_sets
 
 
-def read_run_contract(path: Path | None) -> dict[str, str]:
-    if path is None:
-        return {}
-    if not path.is_file():
-        raise ValidationAnalysisError(f"Arm/run contract not found: {path}")
-    frame = pd.read_csv(path)
-    _require_columns(frame, ["arm", "run_id"], str(path))
-    if frame["arm"].isna().any() or frame["run_id"].isna().any():
-        raise ValidationAnalysisError(f"Arm/run contract contains missing values: {path}")
-    frame["arm"] = frame["arm"].astype(str)
-    frame["run_id"] = frame["run_id"].astype(str)
-    if frame["arm"].duplicated().any():
-        raise ValidationAnalysisError(f"Arm/run contract contains duplicate arms: {path}")
-    return dict(zip(frame["arm"], frame["run_id"]))
-
-
 def discover_validation_fits(
     validation_root: Path,
     target_sets: dict[str, set[str]],
-    arm_specs: dict[str, ArmSpec] | None = None,
-    run_contract: dict[str, str] | None = None,
-    single_arm_root: bool = False,
 ) -> pd.DataFrame:
     """Return one audit row for every expected arm/target FITS file."""
     if not validation_root.is_dir():
         raise ValidationAnalysisError(f"Validation root is not a directory: {validation_root}")
 
-    arm_specs = ARM_SPECS if arm_specs is None else arm_specs
-    run_contract = {} if run_contract is None else run_contract
-    if single_arm_root and len(arm_specs) != 1:
-        raise ValidationAnalysisError(
-            "single-arm root discovery requires exactly one arm specification"
-        )
     found: dict[tuple[str, str], list[Path]] = {}
-    arm_names = set(arm_specs)
+    arm_names = set(ARM_SPECS)
     for path in sorted(validation_root.rglob("*-results.fits")):
         matching_arms = arm_names.intersection(path.parts)
-        if len(matching_arms) == 1:
-            arm = next(iter(matching_arms))
-        elif single_arm_root and not matching_arms:
-            arm = next(iter(arm_specs))
-        else:
+        if len(matching_arms) != 1:
             continue
+        arm = next(iter(matching_arms))
         target = path.name.removesuffix("-results.fits")
-        if target in target_sets[arm_specs[arm].target_set]:
+        if target in target_sets[ARM_SPECS[arm].target_set]:
             found.setdefault((arm, target), []).append(path.resolve())
 
     rows: list[dict[str, object]] = []
     duplicate_messages: list[str] = []
-    for arm, spec in arm_specs.items():
+    for arm, spec in ARM_SPECS.items():
         for target in sorted(target_sets[spec.target_set]):
             paths = found.get((arm, target), [])
             if len(paths) > 1:
                 duplicate_messages.append(f"{arm}/{target}: " + ", ".join(map(str, paths)))
             path = paths[0] if len(paths) == 1 else None
-            path_verifies_run = path is not None and spec.run_id in path.parts
-            contract_verifies_run = run_contract.get(arm) == spec.run_id
-            run_id_verification = (
-                "path"
-                if path_verifies_run
-                else ("explicit_contract" if contract_verifies_run else "unverified")
-            )
-            status = (
-                "duplicate"
-                if len(paths) > 1
-                else (
-                    "missing"
-                    if path is None
-                    else ("present" if run_id_verification != "unverified" else "unverified_run_id")
-                )
-            )
             rows.append(
                 {
                     "arm": arm,
                     "run_id": spec.run_id,
                     "target_set": spec.target_set,
                     "koi_target": target,
-                    "run_id_verification": run_id_verification,
-                    "status": status,
+                    "status": "present" if path is not None else ("duplicate" if paths else "missing"),
                     "results_file": str(path) if path is not None else "",
                 }
             )
@@ -485,7 +423,6 @@ def build_paired_outputs(
     target_sets: dict[str, set[str]],
     *,
     allow_incomplete: bool = False,
-    pair_specs: tuple[PairSpec, ...] = PAIR_SPECS,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
     identifiers = ["koi_target", "kepoi_name", "kepid", "koi_period", "disk", "system"]
     summary_columns = sorted({column for spec in PARAMETERS.values() for column in spec[:3]})
@@ -499,7 +436,7 @@ def build_paired_outputs(
     wide_rows: list[pd.DataFrame] = []
     long_rows: list[dict[str, object]] = []
 
-    for pair in pair_specs:
+    for pair in PAIR_SPECS:
         targets = target_sets[pair.target_set]
         baseline = arm_planets[
             arm_planets["arm"].eq(pair.baseline_arm) & arm_planets["koi_target"].isin(targets)
@@ -650,20 +587,14 @@ def attach_repeatability_evidence(metrics: pd.DataFrame) -> tuple[pd.DataFrame, 
     return out, thresholds
 
 
-def summarize_arms(
-    metrics: pd.DataFrame,
-    *,
-    n_bootstrap: int,
-    seed: int,
-    pair_specs: tuple[PairSpec, ...] = PAIR_SPECS,
-) -> pd.DataFrame:
+def summarize_arms(metrics: pd.DataFrame, *, n_bootstrap: int, seed: int) -> pd.DataFrame:
     rows: list[dict[str, object]] = []
     for (comparison_id, parameter), group in metrics.groupby(["comparison_id", "parameter"], sort=True):
         direct_qc = _direct_qc_mask(group)
         finite = group[
             np.isfinite(pd.to_numeric(group["delta"], errors="coerce")) & ~direct_qc
         ].copy()
-        pair = next(spec for spec in pair_specs if spec.comparison_id == comparison_id)
+        pair = next(spec for spec in PAIR_SPECS if spec.comparison_id == comparison_id)
         signed_bootstrap = system_cluster_bootstrap(
             finite,
             "delta",
@@ -780,34 +711,10 @@ def run_analysis(
     seed: int,
     allow_incomplete: bool = False,
     density_sampling_mode: str = "fixed_central",
-    include_combined_confirmation: bool = False,
-    combined_validation_root: Path | None = None,
-    run_contract_path: Path | None = None,
 ) -> dict[str, Path]:
     output_dir.mkdir(parents=True, exist_ok=True)
     target_sets = read_target_sets(metadata_root)
-    pair_specs = PAIR_SPECS
-    run_contract = read_run_contract(run_contract_path)
-    discovery_frames = [
-        discover_validation_fits(
-            validation_root,
-            target_sets,
-            ARM_SPECS,
-            run_contract,
-        )
-    ]
-    if include_combined_confirmation:
-        pair_specs += COMBINED_PAIR_SPECS
-        discovery_frames.append(
-            discover_validation_fits(
-                combined_validation_root or validation_root,
-                target_sets,
-                COMBINED_ARM_SPECS,
-                run_contract,
-                single_arm_root=combined_validation_root is not None,
-            )
-        )
-    discovery = pd.concat(discovery_frames, ignore_index=True)
+    discovery = discover_validation_fits(validation_root, target_sets)
     discovery_path = output_dir / "factorial_validation_discovery.csv"
     discovery.to_csv(discovery_path, index=False)
     missing = discovery[discovery["status"].ne("present")]
@@ -856,15 +763,9 @@ def run_analysis(
         arm_planets,
         target_sets,
         allow_incomplete=allow_incomplete,
-        pair_specs=pair_specs,
     )
     paired_metrics, thresholds = attach_repeatability_evidence(paired_metrics)
-    summaries = summarize_arms(
-        paired_metrics,
-        n_bootstrap=n_bootstrap,
-        seed=seed,
-        pair_specs=pair_specs,
-    )
+    summaries = summarize_arms(paired_metrics, n_bootstrap=n_bootstrap, seed=seed)
 
     paths = {
         "discovery": discovery_path,
@@ -908,35 +809,9 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Full-system inventory CSV (default: <metadata-root>/full_system_inventory.csv).",
     )
-    parser.add_argument(
-        "--run-contract",
-        default=None,
-        help=(
-            "CSV with arm and run_id columns for curated flat releases whose "
-            "paths do not retain the original run-ID directory."
-        ),
-    )
     parser.add_argument("--sample", default="outputs/canonical_sample_old_astropy_rawcc.csv")
     parser.add_argument("--config", default="config.json", help="Config used for default direct grid sizes.")
     parser.add_argument("--output-dir", default="outputs/factorial_validation")
-    parser.add_argument(
-        "--include-combined-confirmation",
-        action="store_true",
-        help=(
-            "Require and compare the optional paper-priors + reference-LD + "
-            "short-cadence arm against reference_lcsc. This estimates the "
-            "paper-prior effect conditional on reference LD and LC+SC; it is "
-            "not a full factorial interaction contrast."
-        ),
-    )
-    parser.add_argument(
-        "--combined-validation-root",
-        help=(
-            "Optional separate root for the combined confirmation FITS. "
-            "Requires --include-combined-confirmation. If omitted, the "
-            "combined arm is discovered beneath --validation-root."
-        ),
-    )
     parser.add_argument("--n-proposals", type=int, default=150_000)
     parser.add_argument("--e-max", type=float, default=0.95)
     parser.add_argument(
@@ -985,10 +860,6 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("--min-importance-ess must be positive")
     if args.bootstrap_replicates <= 0:
         parser.error("--bootstrap-replicates must be positive")
-    if args.combined_validation_root and not args.include_combined_confirmation:
-        parser.error(
-            "--combined-validation-root requires --include-combined-confirmation"
-        )
 
     validation_root = resolve_path(args.validation_root)
     metadata_root = resolve_path(args.metadata_root) if args.metadata_root else validation_root
@@ -1017,17 +888,6 @@ def main(argv: list[str] | None = None) -> int:
             n_bootstrap=args.bootstrap_replicates,
             seed=args.seed,
             allow_incomplete=args.allow_incomplete,
-            include_combined_confirmation=args.include_combined_confirmation,
-            combined_validation_root=(
-                resolve_path(args.combined_validation_root)
-                if args.combined_validation_root
-                else None
-            ),
-            run_contract_path=(
-                resolve_path(args.run_contract)
-                if args.run_contract
-                else None
-            ),
         )
     except (ValidationAnalysisError, FileNotFoundError, pd.errors.ParserError) as exc:
         print(f"ERROR: factorial validation analysis failed: {exc}", file=sys.stderr)

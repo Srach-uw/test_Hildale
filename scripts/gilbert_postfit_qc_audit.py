@@ -47,6 +47,10 @@ def weighted_fraction(mask: np.ndarray, weights: np.ndarray) -> float:
     return float(weights[mask].sum() / total)
 
 
+def grazing_exceeds_limit(fraction: float, limit: float = 0.05) -> bool:
+    return bool(np.isfinite(fraction) and fraction > limit)
+
+
 def catalog_density_solar(planet: pd.Series) -> float:
     direct = float(planet.get("rho_true_solar", np.nan))
     if np.isfinite(direct) and direct > 0:
@@ -109,12 +113,18 @@ def audit(
     archive_dir: Path,
     cloud_dir: Path,
     radius_errors: pd.DataFrame,
+    *,
+    grazing_fraction_limit: float = 0.05,
 ) -> pd.DataFrame:
     radius_lookup = radius_errors.set_index("kepid")
     result_index = build_result_index(archive_dir, cloud_dir)
     rows: list[dict] = []
-    grouped = summary.groupby(["koi_target", "transit_fit_source"], sort=True)
-    for (target, source), planets in grouped:
+    group_columns = ["koi_target"]
+    if "transit_fit_source" in summary.columns:
+        group_columns.append("transit_fit_source")
+    grouped = summary.groupby(group_columns, sort=True)
+    for group_key, planets in grouped:
+        target = group_key[0] if isinstance(group_key, tuple) else group_key
         path, conflicting_duplicates, candidate_count = result_file(
             str(target), result_index
         )
@@ -228,7 +238,10 @@ def audit(
                         "rho_circular_p84_solar": rho84,
                         "rho_catalog_solar": catalog_density_solar(planet),
                         "rho_circular_to_catalog_ratio": rho_ratio,
-                        "gilbert_grazing_exclude": bool(grazing_fraction > 0.05),
+                        "gilbert_grazing_exclude": grazing_exceeds_limit(
+                            grazing_fraction, grazing_fraction_limit
+                        ),
+                        "gilbert_grazing_fraction_limit": grazing_fraction_limit,
                         "gilbert_radius_precision_exclude": bool(rp_frac > 0.20),
                     }
                 )
@@ -260,7 +273,18 @@ def main() -> None:
         default="outputs/eccentricity_posterior_summary_uniform_paired_gilbert_qc.csv",
         help="Summary with the published Gilbert grazing and radius-precision exclusions applied.",
     )
+    parser.add_argument(
+        "--grazing-fraction-limit",
+        type=float,
+        default=0.05,
+        help=(
+            "Maximum weighted grazing-sample fraction. Gilbert's analysis notebook "
+            "sets 0.05; its command-line parser separately defaults to 0.01."
+        ),
+    )
     args = parser.parse_args()
+    if not 0.0 <= args.grazing_fraction_limit <= 1.0:
+        parser.error("--grazing-fraction-limit must be between 0 and 1")
 
     summary = pd.read_csv(args.summary)
     required = {
@@ -268,7 +292,6 @@ def main() -> None:
         "kepid",
         "koi_target",
         "alderaan_planet_index",
-        "transit_fit_source",
     }
     missing = required - set(summary.columns)
     if missing:
@@ -280,6 +303,7 @@ def main() -> None:
         Path(args.archive_dir),
         Path(args.cloud_dir),
         read_berger_radius_errors(cfg),
+        grazing_fraction_limit=args.grazing_fraction_limit,
     )
     out = Path(args.output)
     out.parent.mkdir(parents=True, exist_ok=True)

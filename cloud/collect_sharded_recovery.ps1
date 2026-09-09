@@ -1,6 +1,8 @@
 param(
-    [string]$ProjectId = "project-7f7ff467-5d61-4072-8f4",
-    [string]$LinuxUser = "shreshth_rach1",
+    [Parameter(Mandatory = $true)]
+    [string]$ProjectId,
+    [Parameter(Mandatory = $true)]
+    [string]$LinuxUser,
     [string]$DestinationRoot = (Join-Path $PSScriptRoot "recovery_results")
 )
 
