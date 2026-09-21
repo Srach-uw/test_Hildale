@@ -5,6 +5,7 @@ Start with these files:
 | Document | Purpose |
 | --- | --- |
 | `replication_status.md` | Current result, population counts, and unresolved inputs |
+| `sagear_replication_walkthrough.md` | Step-by-step companion to the paper, reconstruction code, and evidence |
 | `replication_match_ledger.md` | What is matched, unresolved, invalidated, or unavailable |
 | `current_inference_audit.md` | Current limits, reopened checks, and the next discriminating tests |
 | `pilot_injection_preflight.md` | Six-system pilot inputs and the public validation-branch limitation |
