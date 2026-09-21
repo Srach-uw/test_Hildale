@@ -6,6 +6,7 @@ Start with these files:
 | --- | --- |
 | `replication_status.md` | Current result, population counts, and unresolved inputs |
 | `current_inference_audit.md` | Current limits, reopened checks, and the next discriminating tests |
+| `pilot_injection_preflight.md` | Six-system pilot inputs and the public validation-branch limitation |
 | `scientific_interim_assessment.md` | Detailed scientific interpretation and diagnostics |
 | `full_factorial_validation_assessment.md` | Results from the completed 82-fit validation matrix |
 | `combined_configuration_confirmation.md` | Completed nine-system combined configuration check |
