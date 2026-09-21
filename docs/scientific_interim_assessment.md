@@ -40,9 +40,10 @@ The four planet bins are:
 | thin multis | 862 | 0.030 (0.023-0.031) |
 | thick multis | 207 | 0.033 (0.015-0.065) |
 
-## Current Full-Sample Diagnostic
+## Historical Full-Sample Diagnostic
 
-The full 2,465-planet branch uses dynesty weights, row-paired ALDERAAN `T14`,
+The full 2,465-planet branch summarized here is a historical diagnostic. It
+uses dynesty weights, row-paired ALDERAAN `T14`,
 `Rp/Rstar`, impact, and period samples, the exact MacDougall density equation,
 and deterministic posterior QC.
 
@@ -53,7 +54,10 @@ and deterministic posterior QC.
 | thin multis | 878 | 0.171 | 862 | 0.030 |
 | thick multis | 209 | 0.141 | 207 | 0.033 |
 
-The total planet count is exact, but the four cell memberships are not. Equal
+The total planet count is exact, but the four cell memberships are not. The
+current public QC values are in
+[`metadata/public_reconstruction_20260727/population_comparison.csv`](../metadata/public_reconstruction_20260727/population_comparison.csv)
+and are summarized in [replication_status.md](replication_status.md). Equal
 raw-row weighting gives values closer to the paper in two cells, but its BIC
 comparison favors a half-Gaussian in all four populations. Sagear reports a
 strong Rayleigh preference. The equal-row branch is therefore a diagnostic of

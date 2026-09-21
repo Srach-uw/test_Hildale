@@ -1,10 +1,11 @@
 # Replication status
 
-Updated: 2026-08-13
+Updated: 2026-09-20
 
-Reassessment, 2026-09-15: numerical values below are unchanged. See the
-[current inference audit](current_inference_audit.md) before treating the
-earlier tests as exhaustive or attributing the discrepancy to stellar densities
+This page summarizes the current public QC branch. Earlier source-faithful
+branches remain archived as historical sensitivity work. See the
+[current inference audit](current_inference_audit.md) before treating any
+earlier test as exhaustive or attributing the discrepancy to stellar densities
 alone.
 
 ## Bottom line
@@ -36,18 +37,19 @@ quality cuts.
 
 ## Current source-faithful result
 
-The comparison below uses paired ALDERAAN transit-shape samples, dynesty
-`LN_WT` weights, the documented post-fit quality rules, and the paper's
-reciprocal transit-selection prescription as a literal replication branch.
-The hierarchy-ready counts are smaller than the inventory because only planets
-with valid posterior support and complete quality fields enter the fit.
+The comparison below uses the current public QC branch: paired ALDERAAN
+transit-shape samples, Dynesty `LN_WT` weights, documented post-fit quality
+rules, and the paper's reciprocal transit-selection prescription. The
+hierarchy-ready counts are smaller than the inventory because only planets with
+valid posterior support and complete quality fields enter the fit. These values
+supersede the older source-faithful summary that appeared here previously.
 
 | Population | Fit N | Reconstructed mean | Paper N | Paper mean |
 | --- | ---: | ---: | ---: | ---: |
-| Thin singles | 887 | 0.214 | 1,121 | 0.022 |
-| Thick singles | 218 | 0.153 | 275 | 0.066 |
-| Thin multis | 821 | 0.086 | 862 | 0.030 |
-| Thick multis | 193 | 0.114 | 207 | 0.033 |
+| Thin singles | 1,104 | 0.232 (0.225-0.239) | 1,121 | 0.022 (0.017-0.029) |
+| Thick singles | 268 | 0.208 (0.194-0.223) | 275 | 0.066 (0.045-0.096) |
+| Thin multis | 873 | 0.094 (0.088-0.103) | 862 | 0.030 (0.023-0.031) |
+| Thick multis | 209 | 0.133 (0.121-0.147) | 207 | 0.033 (0.015-0.065) |
 
 These values remain diagnostic rather than publishable reproduction results.
 The public products do not establish that the same planet-level inputs and

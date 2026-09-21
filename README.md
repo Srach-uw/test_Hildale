@@ -20,11 +20,11 @@ classifications, and assigns multiplicity before planet-level fit cuts. The
 four population counts still differ because the article data do not identify
 the final rejected planets.
 
-The strict source-faithful branch keeps paired ALDERAAN transit-shape samples,
-uses Dynesty `LN_WT` weights, and evaluates the exact finite-duration
-importance equation. After deterministic posterior QC, its Rayleigh means are
-0.153, 0.214, 0.114, and 0.086 for thick singles, thin singles, thick multis,
-and thin multis. These remain above the paper's 0.066, 0.022, 0.033, and 0.030.
+The current public QC branch keeps paired ALDERAAN transit-shape samples,
+uses Dynesty `LN_WT` weights, and evaluates the finite-duration importance
+equation. After deterministic posterior QC, its Rayleigh means are 0.232,
+0.208, 0.134, and 0.094 for thin singles, thick singles, thick multis, and
+thin multis. These remain above the paper's 0.022, 0.066, 0.033, and 0.030.
 Raw equal-row weighting is retained only as a diagnostic because nested points
 are not equal-weight posterior draws.
 
