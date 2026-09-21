@@ -2,28 +2,36 @@
 
 ## Why It Exists
 
-The completed 82-fit experiment is a fractional factorial design. It measures
-limb darkening, cadence, the printed-prior ambiguity, and sampler variability
-in separate paired arms. It does not contain the exact combined configuration
-closest to the written methods: reference limb-darkening centers, available
-long and short cadence, and the Table 1 transit-prior sensitivity together.
+### Cadence interpretation boundary
 
-The full matrix found no panel-wide effect large enough to reconcile the
-current population mismatch. It also found a small number of systems with
-large individual cadence responses. A compact confirmation arm is therefore
-appropriate before treating the three choices as independently additive.
+This historical confirmation must not be used to rule out cadence. The
+archived factorial LC+SC arms omitted `--use_sc True` and processed no
+short-cadence data according to their logs. The confirmation is retained for
+its recorded configuration and prior comparison, but it does not replace the
+corrected test defined in
+[`corrected_cadence_validation_plan.md`](corrected_cadence_validation_plan.md).
+
+The completed 82-fit experiment is a fractional factorial design. Its valid
+paired comparisons concern limb darkening, the printed-prior ambiguity, and
+sampler variability. Its intended cadence arms did not process short-cadence
+data, so the matrix does not contain a valid LC+SC configuration closest to
+the written methods.
+
+The valid non-cadence comparisons found no panel-wide effect large enough to
+reconcile the current population mismatch. The historical cadence-labelled
+contrasts cannot support a cadence conclusion. A corrected cadence validation
+is required before treating these choices as independently additive.
 
 ## Scope
 
-The arm runs the nine short-cadence-audited systems already present in the
-complete matrix:
+The arm runs nine systems selected from the historical intended-LC+SC panel:
 
 `K00064`, `K00283`, `K00319`, `K00680`, `K00716`, `K01001`, `K01299`,
 `K02533`, and `K02712`.
 
-This includes `K00283` and `K02533`, the systems with the largest cadence
-responses. The arm fits each full seedable KOI system simultaneously, just as
-the completed validation arms did.
+This includes `K00283` and `K02533`, which had the largest historical
+labelled-arm differences. Those differences are not verified cadence
+responses. The arm fits each full seedable KOI system simultaneously.
 
 ## Fixed Inputs
 
@@ -55,8 +63,9 @@ The runner is resumable. It writes results under
 
 Compare this arm only with the already completed `reference_lcsc` arm for the
 same planets and systems. This contrast estimates the paper-prior effect
-conditional on reference limb darkening and LC+SC. It is not, by itself, a
-factorial difference-in-differences interaction estimate because the available
+conditional on its recorded reference-limb-darkening configuration. It is not
+evidence about cadence and is not, by itself, a factorial
+difference-in-differences interaction estimate because the available
 paper-prior baseline arm uses a different eight-target set.
 
 All nine systems completed with exit code 0. The matched comparison contains
@@ -73,8 +82,8 @@ All nine systems completed with exit code 0. The matched comparison contains
 Five of 13 eccentricity shifts exceed the 95th percentile of the available
 repeat-run shifts, showing that the prior patch can matter for individual
 difficult systems. The shifts are not coherent in sign, however, and their
-median is near zero. This combined configuration therefore does not explain
-the population-wide discrepancy.
+median is near zero. This result does not resolve the population-wide
+discrepancy for the recorded configuration; it does not test or close cadence.
 
 The conclusion remains conditional on this targeted system set. This is a
 narrow configuration check, not a replacement population study. It also does

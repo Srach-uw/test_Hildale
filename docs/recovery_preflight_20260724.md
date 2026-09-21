@@ -13,9 +13,11 @@ evolutionary-state flags, larger radii, and lower density metadata than covered 
 This is especially relevant to the thin-single population.
 
 The recovery candidate is deliberately separated from the 82-fit factorial validation.
-The factorial matrix tested plausible implementation differences and found effects too
-small to explain the population mismatch. The remaining 142 systems must be recovered or
-their exclusion must be documented before a population-level replication can be called
+The factorial matrix's valid non-cadence comparisons tested plausible implementation
+differences and found effects too small to explain the population mismatch. Its archived
+LC+SC arms did not process short-cadence data, so cadence remains open; see
+`docs/corrected_cadence_validation_plan.md`. The remaining 142 systems must be recovered
+or their exclusion must be documented before a population-level replication can be called
 complete.
 
 Supporting tables, the recovery feasibility manifest, the published-table provenance

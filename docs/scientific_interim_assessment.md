@@ -15,12 +15,12 @@ target-level quality decisions.
 The July uniformly processed diagnostic began with 710 planets and retained
 703 across the four hierarchy cells after its deterministic exclusions. That
 historical subset remains much more eccentric than the published result; it is
-not the current 2,465-planet reconstruction. The individual factorial arms
-quantify short-cadence, limb-darkening, prior, and nested-sampling effects.
-None creates a panel-wide shift large enough to explain the discrepancy on its
-own. The closest-to-paper combined arm is also complete: its 13 matched planets
-have a median eccentricity shift of +0.00042, so it does not supply the missing
-population-wide shift.
+not the current 2,465-planet reconstruction. The factorial's valid comparisons
+quantify limb-darkening, prior, and nested-sampling effects. Its 18 archived
+LC+SC arms did not process short-cadence data, so neither they nor the combined
+confirmation can rule out cadence. The paired configuration results remain
+useful within their recorded non-cadence provenance; see
+[`corrected_cadence_validation_plan.md`](corrected_cadence_validation_plan.md).
 
 ## Published Ground Truth
 
@@ -84,15 +84,17 @@ host-dominated and cannot support a population claim.
 ## Complete Factorial Validation
 
 The complete matrix contains 82 successful target-system FITS: 24 original-long-cadence,
-24 reference-long-cadence, 9 original long-plus-short-cadence, 9 reference
-long-plus-short-cadence, 8 repeat-seed, and 8 printed-prior runs. All expected FITS were
-directly re-extracted and all matched planets passed direct extraction QC.
+24 reference-long-cadence, 9 arms labelled original LC+SC, 9 labelled reference
+LC+SC, 8 repeat-seed, and 8 printed-prior runs. The 18 LC+SC-labelled archived
+arms did not pass `--use_sc True`, and their logs report no short-cadence data;
+they are not cadence tests. All expected FITS were directly re-extracted and
+all matched planets passed direct extraction QC.
 
 | comparison | planets / systems | median delta e | 95% system-bootstrap interval | median absolute delta e |
 |---|---:|---:|---:|---:|
 | reference versus original limb darkening | 34 / 24 | +0.00120 | -0.01034 to +0.00512 | 0.01545 |
-| long plus short versus long, original LD | 13 / 9 | +0.00101 | -0.00059 to +0.01280 | 0.00682 |
-| long plus short versus long, reference LD | 13 / 9 | -0.00081 | -0.04771 to +0.00263 | 0.00431 |
+| intended LC+SC versus LC, original LD | 13 / 9 | +0.00101 | -0.00059 to +0.01280 | 0.00682 |
+| intended LC+SC versus LC, reference LD | 13 / 9 | -0.00081 | -0.04771 to +0.00263 | 0.00431 |
 | printed priors versus public defaults | 9 / 8 | +0.00014 | -0.00053 to +0.00065 | 0.00065 |
 | same configuration, different sampler seed | 9 / 8 | +0.00071 | -0.00108 to +0.00276 | 0.00108 |
 
@@ -114,7 +116,7 @@ and next decisions.
 | Berger 2018 versus 2020 density | Still not exactly reproducible. Radius-based 2018-like shifts are generally too small and inconsistent in direction to remove the high-e tail. |
 | A few thin-single outliers | Not sufficient. Thin singles remain high under host-level resampling and top-leverage removal. |
 | Hidden convergence or visual vetting | Still plausible and not publicly identifiable because the final planet and rejected-fit tables are unavailable. |
-| ALDERAAN cadence, priors, and run stochasticity | Measured in the complete matrix and nine-system combined confirmation. They affect some individual fits but do not explain the panel-wide discrepancy. |
+| ALDERAAN cadence, priors, and run stochasticity | Priors and run stochasticity were measured in the complete matrix. Cadence remains untested because the 18 archived LC+SC arms processed no short-cadence data; the combined confirmation does not close it. See `corrected_cadence_validation_plan.md`. |
 | Generic extraction or hierarchy failure | Disfavored by the real-ALDERAAN Gilbert control, which recovers Beta means of 0.0487 for all small planets and 0.0684 for observed singles. |
 | Importing Gilbert's full quality cuts | Not justified for the Sagear sample and does not recover Table 3 when applied as a labeled sensitivity. |
 

@@ -67,11 +67,13 @@ from versioned Table 3 evidence and shows the current discrepancy directly.
 4. Dynesty nested points must be weighted with `LN_WT`. Equal weighting partly
    approaches the paper's means but fails its model ordering, so the numerical
    resemblance is not accepted as a replication.
-5. The completed 82-fit validation matrix and a separate nine-system combined
-   confirmation show that the tested cadence, limb-darkening, printed-prior,
-   and sampler-seed choices do not explain the population-wide discrepancy.
-   In the combined arm, the median paired eccentricity shift is `+0.00042`
-   across 13 planets.
+5. The completed 82-fit matrix remains useful for its limb-darkening,
+   printed-prior, and sampler-seed comparisons. Its 18 archived LC+SC arms
+   did not pass ALDERAAN's required `--use_sc True` argument, and their logs
+   report no processed short-cadence data. They therefore cannot rule out a
+   cadence contribution. The separate combined confirmation is likewise not
+   evidence that cadence is closed; see the
+   [corrected cadence validation plan](docs/corrected_cadence_validation_plan.md).
 6. A direct audit of all 2,465 reconstructed planets finds median absolute
    circular-density disagreements of 0.159-0.225 dex across the four
    populations. The corresponding posterior widths are 0.611-0.712 dex.
