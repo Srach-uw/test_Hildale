@@ -46,6 +46,15 @@ It contains 1,888 hosts: 1,515 thin and 373 thick. The manuscript text reports
 Published labels are matched in the primary comparison. The
 independent classifier remains useful as a diagnostic of the Toomre mismatch.
 
+![Published Toomre comparison](../figures/toomre_published_comparison.png)
+
+The left panel is the paper's Figure 2. The right panel redraws the same kind
+of diagram from the article's machine-readable Table 1 velocities and labels.
+It checks the plotting convention for the published velocity columns. It does
+not validate a separate public-catalog reconstruction of the chemical
+classifier, which is why the published labels remain the authority for the
+population comparison.
+
 ## 3. Freeze single and multi architecture before fit cuts
 
 A single or multi label describes the known system
@@ -134,6 +143,14 @@ cannot plausibly account for it alone. The current audit places the difference
 before the population fit: available transit-density posteriors and adopted
 stellar-density inputs do not produce the narrow low-eccentricity population
 signal reported in the paper.
+
+![Table 3 comparison](../figures/population_comparison.png)
+
+Each panel compares one reported Rayleigh mean with the current public
+quality-controlled reconstruction. The count labels make clear that the
+numerical difference is much larger than the remaining count difference. The
+plot cannot identify the final accepted membership, and it is not a new
+astrophysical measurement.
 
 ## 8. Additional diagnostic work
 
