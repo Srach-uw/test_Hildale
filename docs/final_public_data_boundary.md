@@ -2,6 +2,12 @@
 
 Updated: 2026-08-13
 
+Reassessment, 2026-09-15: this records the August investigation, not a proof
+that all public-data tests are exhausted. The
+[current inference audit](current_inference_audit.md) identifies
+uncertainty-model, grid-resolution, and population-validation checks still
+needed. The density offsets alone do not identify which input is incorrect.
+
 The reconstruction now uses the exact finite-duration equation described by
 MacDougall et al. and printed in Sagear et al.'s later radius analysis. It keeps
 the ALDERAAN duration, radius-ratio, impact, and period samples paired and uses
@@ -44,7 +50,7 @@ recover an unpublished density ledger exactly.
 
 ## Remaining request
 
-An exact numerical replication now requires two planet-specific products:
+Two author products would directly test the remaining input differences:
 
 1. the final accepted-fit table with KOI identifiers and rejection reasons;
 2. the stellar-density rows or posterior samples supplied to each eccentricity

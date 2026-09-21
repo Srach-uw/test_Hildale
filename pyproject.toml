@@ -1,5 +1,5 @@
 [tool.pytest.ini_options]
-testpaths = ["scripts"]
+testpaths = ["scripts", "tests"]
 python_files = ["test_*.py"]
 norecursedirs = [
     ".git",

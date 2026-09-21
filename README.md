@@ -9,6 +9,11 @@ Reference article:
 
 ## Status
 
+The [current inference audit](docs/current_inference_audit.md) records the
+September reassessment. It keeps the reported numerical results unchanged,
+but narrows several earlier conclusions about density offsets, cadence, and
+population recovery.
+
 This repository does not reproduce the population eccentricities reported in
 the paper. It recovers the 2,465-planet total, preserves the published host
 classifications, and assigns multiplicity before planet-level fit cuts. The
@@ -45,6 +50,8 @@ The [documentation guide](docs/README.md) separates current conclusions from
 historical audits and cloud runbooks.
 The [reproducibility map](docs/reproducibility_map.md) links each main claim to
 its implementation, tests, and compact evidence.
+The [population comparison figure](figures/population_comparison.png) is built
+from versioned Table 3 evidence and shows the current discrepancy directly.
 
 ## Main findings
 

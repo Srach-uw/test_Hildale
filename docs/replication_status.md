@@ -2,6 +2,11 @@
 
 Updated: 2026-08-13
 
+Reassessment, 2026-09-15: numerical values below are unchanged. See the
+[current inference audit](current_inference_audit.md) before treating the
+earlier tests as exhaustive or attributing the discrepancy to stellar densities
+alone.
+
 ## Bottom line
 
 The public reconstruction recovers the paper's total of 2,465 planets and uses
@@ -48,7 +53,7 @@ These values remain diagnostic rather than publishable reproduction results.
 The public products do not establish that the same planet-level inputs and
 final rejection ledger were used in the paper.
 
-## What has been ruled out
+## Checks completed on the tested configurations
 
 - Published host labels replace reconstructed disk labels in the primary run.
 - Multiplicity is frozen before planet-level fit cuts.
@@ -58,18 +63,22 @@ final rejection ledger were used in the paper.
   population results in the controlled test.
 - The forward-normalized hierarchy passes synthetic recovery tests.
 - Fixed, Gaussian, and split-normal density treatments do not recover Table 3.
-- The 82-fit factorial experiment does not identify cadence, limb darkening,
-  printed priors, or sampler seed as the principal cause.
+- The factorial's intended cadence comparison is invalidated by the September
+  18 audit: all 18 LC+SC logs report no short-cadence data, and its archived
+  runner omits ALDERAAN's required `--use_sc True` argument. Cadence remains
+  untested by those arms. Other factorial comparisons retain their separate
+  provenance and scope limitations.
 - The Gilbert real-data control recovers the expected low-eccentricity scale.
 - High-leverage removal does not recover the thin-single value robustly.
 - Importance-sampling effective sample sizes are adequate; Monte Carlo scatter
   is much smaller than the discrepancy.
-- The ALDERAAN radius-ratio prior difference printed in Table 2 has negligible
-  effect on the circular-density width in the direct test.
+- A prior-arm comparison reported a small circular-density width change.
+  Its execution-time radius-ratio prior still needs provenance reconciliation;
+  see the September reassessment before treating this hypothesis as closed.
 
 ## Remaining public-data boundary
 
-An exact replication now requires at least one unpublished intermediate:
+The following author intermediates would help locate the remaining difference:
 
 1. the accepted planet ledger, including the final rejected KOIs;
 2. the stellar-density values and uncertainty representation supplied to the

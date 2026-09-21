@@ -29,6 +29,21 @@ only for diagnosing the original Toomre-classification mismatch.
 | Post-fit QC | `gilbert_postfit_qc_audit.py` | Applies documented ALDERAAN quality criteria. |
 | Toomre diagnostics | `toomre_diagnostics.py` | Compares velocity conventions and classifier variants. |
 
+## Recent diagnostic tools
+
+The September audit scripts are grouped by question rather than by pipeline
+stage. `audit_factorial_cadence.py` checks whether a saved factorial arm used
+short-cadence data. `build_population_noise_inventory.py` constructs a bounded
+source manifest before any residual scan. `compare_alderaan_repeat_posteriors.py`
+compares only compatible saved FITS systems and records mismatches instead of
+forcing a comparison. `plot_population_comparison.py` generates the public
+Table 3 comparison figure.
+
+The first two tools may require large local inputs. Supply file paths on the
+command line, or set `SAGEAR_RESEARCH_ROOT` when using the documented local
+layout. Do not add raw light curves, large posterior archives, or personal
+paths to the repository.
+
 ## Scientific contracts
 
 - Assign system multiplicity before removing individual planets.

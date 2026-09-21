@@ -192,11 +192,17 @@ def density_log_likelihood(
             np.asarray(rho_model, dtype=float),
             np.sqrt(err_hi**2 + err_lo**2) / np.sqrt(2.0),
         )
-    elif mode == "split":
+    elif mode in {"split", "split-continuous"}:
         sigma = np.where(np.asarray(rho_model) >= rho_true, err_hi, err_lo)
     else:
         raise ValueError(f"Unknown density error mode: {mode}")
     with np.errstate(invalid="ignore", divide="ignore"):
+        if mode == "split-continuous":
+            # Sharing the peak preserves the continuous two-piece normal.
+            return (
+                -0.5 * ((np.asarray(rho_model, dtype=float) - rho_true) / sigma) ** 2
+                + np.log(np.sqrt(2.0 / np.pi) / (err_hi + err_lo))
+            )
         # The normalization cancels for symmetric errors but not when the
         # adopted sigma changes across the two sides of the split likelihood.
         return -0.5 * ((np.asarray(rho_model, dtype=float) - rho_true) / sigma) ** 2 - np.log(sigma)
@@ -916,7 +922,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--density-error-mode",
-        choices=["symmetric-average", "symmetric-rms", "split"],
+        choices=["symmetric-average", "symmetric-rms", "split", "split-continuous"],
         default="symmetric-average",
     )
     parser.add_argument(

@@ -110,7 +110,12 @@ fi
 
 STAGE="detrend"
 pushd "$ALDERAAN_REPO" >/dev/null
-python bin/detrend_and_estimate_ttvs.py --mission "$MISSION" --target "$TARGET" --run_id "$RUN_ID" --project_dir "$PROJECT_DIR" --data_dir "$DATA_DIR/" --catalog "$CATALOG_NAME"
+# Enabling available short-cadence data.
+SC_ARGS=()
+if [ "$CADENCE_MODE" = "both" ]; then
+  SC_ARGS=(--use_sc True)
+fi
+python bin/detrend_and_estimate_ttvs.py --mission "$MISSION" --target "$TARGET" --run_id "$RUN_ID" --project_dir "$PROJECT_DIR" --data_dir "$DATA_DIR/" --catalog "$CATALOG_NAME" "${SC_ARGS[@]}"
 # --data_dir/--catalog are required=True here too; omitting them makes
 # argparse raise SystemExit, which this script's own top-level
 # `except SystemExit: warnings.warn(...)` silently swallows instead of

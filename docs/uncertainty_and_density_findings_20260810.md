@@ -392,7 +392,15 @@ reaches the precision the paper's own stated robustness criterion implies.**
 This is the sharpest available statement of the public-data boundary, and it is
 derived entirely from published information.
 
-## 10. The published Table 2 priors, and why they cannot be the answer
+## 10. The published Table 2 priors: corrected interpretation
+
+September 16 correction: the patch utility's substring test incorrectly
+recognizes `uniform_ppf(...)` inside `loguniform_ppf(...)` as already patched.
+It leaves the radius prior unchanged. The archived combined-confirmation source
+confirms log-uniform radius ratio, with C0/C1 changed. The earlier claim that
+the 0.979 width ratio rules out the radius-prior hypothesis is withdrawn.
+See `current_inference_audit.md` for the executable regression tests
+and a new, explicitly labeled posterior-reweighting sensitivity.
 
 Sagear et al. Table 2 prints `R_p/R_s ~ U(1e-5, 0.99)`, uniform. Gilbert's text
 and the pinned ALDERAAN source both use **log**-uniform on the same bounds
@@ -400,17 +408,17 @@ and the pinned ALDERAAN source both use **log**-uniform on the same bounds
 five decades that is a large prior difference and a genuine discrepancy between
 the published table and the code.
 
-It does not matter. Comparing the `paper_priors_original_lc` arm, which applies
-exactly this substitution, against `original_lc` on nine matched planets:
+A historical comparison of `paper_priors_original_lc` against `original_lc`
+on nine matched planets reported the following widths. The column labels
+refer to arm names, not verified radius-prior distributions:
 
-| Quantity | log-uniform | uniform (as printed) | ratio |
+| Quantity | original_lc | paper_priors_original_lc | ratio |
 | --- | ---: | ---: | ---: |
 | median rho_circ half-width | 0.0308 dex | 0.0305 dex | **0.979** |
 
-Median width ratio across the nine planets is 0.979. Recovering the roughly
-tenfold information deficit would need this ratio near 0.33. The printed-prior
-ambiguity is therefore closed as an explanation, on posterior width rather than
-only on eccentricity shift, which is how the earlier factorial had tested it.
+The historical median width ratio is 0.979. It cannot be attributed to a
+uniform-radius change without execution evidence contradicting the patch bug.
+It therefore does not close the printed-radius-prior hypothesis.
 
 The remaining Table 2 entries match the code exactly: `b ~ U(0, 1 + Rp/Rs)`,
 `T14 ~ logU` between one short-cadence integration and three times the fitted

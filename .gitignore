@@ -41,6 +41,14 @@ tmp/
 **/report_Hildale.md
 **/RECOVERY_LIVE_CHECKPOINT.md
 
+# Local forensic workspaces. These products retain workstation paths, raw
+# diagnostics, and iterative research notes. Public summaries live in docs/.
+docs/reopened_inference_audit_*.md
+metadata/inference_assumptions_*/
+metadata/population_noise_audit_*/
+metadata/population_recovery_*/
+metadata/alderaan_repeatability_*/
+
 # The curated 82-file factorial ALDERAAN release is intentionally versioned via Git LFS.
 !data/alderaan_factorial_validation_20260715/results/**/*.fits
 !data/alderaan_combined_confirmation_20260806/results/**/*.fits

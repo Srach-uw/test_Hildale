@@ -9,6 +9,7 @@ validation arm only and must not replace the pinned public-code arm.
 from __future__ import annotations
 
 import argparse
+import re
 from pathlib import Path
 
 
@@ -24,11 +25,15 @@ def main() -> None:
         ("loguniform_ppf(u_[2 + npl * 5], 1e-5, 0.99)", "uniform_ppf(u_[2 + npl * 5], 1e-5, 0.99)"),
     ]
     for old, new in replacements:
-        if new in text:
+        old_pattern = r"(?<![\w])" + re.escape(old)
+        new_pattern = r"(?<![\w])" + re.escape(new)
+        old_count = len(re.findall(old_pattern, text))
+        new_count = len(re.findall(new_pattern, text))
+        if old_count == 0 and new_count == 1:
             continue
-        if old not in text:
+        if old_count != 1 or new_count != 0:
             raise RuntimeError(f"Expected prior-transform context not found: {old}")
-        text = text.replace(old, new, 1)
+        text = re.sub(old_pattern, lambda _: new, text, count=1)
     path.write_text(text, encoding="utf-8")
     print(f"Applied Sagear Table 1 prior sensitivity patch to {path}")
 
