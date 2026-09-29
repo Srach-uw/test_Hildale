@@ -30,7 +30,14 @@ duplicate mask rows, and indices outside the input. It modifies flux only at
 checked in the tests. In a real pilot, `mask_index` must contain the
 injection-eligible cadences after conservative masks have removed every known
 transit. The manifest records the complete input hash, separate time, flux,
-and selected-row hashes, plus the rendered output hash.
+and selected-row hashes, plus the rendered output hash. The companion
+preparation command, `prepare_diagnostic_injection_input.py`, creates this
+input from local PDCSAP and ALDERAAN files only after it checks the complete
+system catalog, fitted timing tables, Kepler time convention, quality-mask
+version, cadence mode, and exposure time. Its output also retains errors,
+cadence identifiers, quarters, source row mapping, and `known_transit_mask`.
+The recovery stage must exclude `known_transit_mask`; avoiding injection in
+those cadences alone would leave the original planets in the fit.
 
 ## Circular geometry
 
@@ -62,6 +69,15 @@ writes the injected NPZ and a manifest. The output directory must be absent or
 empty, and an existing manifest is never replaced. This makes accidental
 overwriting visible rather than silently changing provenance.
 
+`prepare_diagnostic_injection_background.py` provides the declared
+noise-realization step without changing the cadence contract. It creates a
+separate immutable NPZ and manifest for one of three baselines: observed raw
+PDCSAP flux, independent draws from `PDCSAP_FLUX_ERR`, or independent draws
+with a robust per-source-file PDCSAP residual scale. Synthetic baselines are
+centered on the median of injection-eligible cadences in each source file, so
+known-transit cadences cannot set the baseline or noise scale. The fixture
+builder still masks real transits before ALDERAAN reads the synthetic files.
+
 Example preflight:
 
 ```powershell
@@ -89,10 +105,15 @@ The first scientific use should remain narrow:
 2. Run noiseless circular cases at `b = 0.2` and `b = 0.8` for each target.
    Verify independent exposure-integrated flux agreement within 1 ppm and
    fixed-geometry density recovery within 1 percent before adding noise.
-3. Then use at most 24 noisy recoveries: four geometries, three backgrounds,
-   and two fixed realizations. The backgrounds are quoted-error Gaussian noise,
-   variance-matched independent Gaussian noise, and time-ordered PDCSAP
-   residuals. Record failed trials and selection losses.
+3. Then use at most 24 noisy recoveries. The observed-PDCSAP background is
+   deterministic and needs one realization. Each synthetic background gets two
+   fixed realizations. For two targets and two impact parameters, that is a
+   20-fit matrix: two targets times two geometries times five distinct
+   backgrounds. The backgrounds are observed PDCSAP, quoted-error Gaussian
+   noise, and variance-matched independent Gaussian noise. A time-ordered
+   PDCSAP-residual background is optional only after its detrending and
+   residual-construction rule is specified in advance. Record failed trials
+   and selection losses.
 4. Record `log10(rho_circ/rho_injected)`, interval coverage, input hashes,
    masks, timing treatment, and software versions. Do not tune the experiment
    against Sagear's Table 3 values.
@@ -104,3 +125,27 @@ population-level significance tests. A passing circular pilot establishes only
 that the declared pipeline can recover the limited injected cases. It does not
 resolve cadence, detrending, eccentricity-prior, stellar-density, or accepted
 sample differences.
+
+The full photometry test injects into raw, pre-detrending PDCSAP flux, then
+uses a declared ALDERAAN recovery workflow. A post-detrending injection is a
+separate control for isolating the detrending response. Neither should be
+presented as an ALDERAAN validation unless the recovery holds the transit
+geometry sufficiently free to infer circular density, reports coverage, and
+keeps the injected stellar density out of the transit-shape likelihood.
+## ALDERAAN fixture gate
+
+For a single-planet system, `build_diagnostic_alderaan_fixture.py` converts a
+rendered injection into a separate set of MAST-format PDCSAP files and a new
+catalog row. It checks the source-file hashes and row mapping, masks the known
+real transits with `NaN`, and updates the catalog period, epoch, depth,
+duration, impact parameter, and limb-darkening values to the injected circular
+specification. The resulting files can exercise the public ALDERAAN detrending
+path without modifying a source file or any canonical result. A successful
+fixture build is still only an input gate. The recovery fit, output validation,
+and density comparison remain separate gates.
+
+The single-target recovery runner is
+[`../cloud/diagnostic_injection/run_one_fixture.sh`](../cloud/diagnostic_injection/run_one_fixture.sh).
+It rejects reused project directories, copies the fixture rather than a source
+file, and never calls a downloader. Its result belongs in a separate
+diagnostic directory until the recovered density has passed the planned gates.

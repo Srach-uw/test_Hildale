@@ -26,6 +26,17 @@ G_SI = 6.67430e-11
 RHO_SUN_KG_M3 = 1408.0
 MANIFEST_NAME = "diagnostic_injection_manifest.json"
 OUTPUT_NAME = "diagnostic_injection.npz"
+POINT_ALIGNED_OPTIONAL_ARRAYS = (
+    "flux_err",
+    "cadence",
+    "quality",
+    "quarter",
+    "source_file_index",
+    "source_row_index",
+    "known_transit_mask",
+)
+SOURCE_MAPPING_ARRAY = "source_files"
+IN_TRANSIT_TOLERANCE = 1.0e-12
 
 
 class InjectionInputError(ValueError):
@@ -103,6 +114,30 @@ def circular_rho_star_solar(period_days: float, a_over_rstar: float) -> float:
     return float(3.0 * np.pi * a_over_rstar**3 / (G_SI * period_seconds**2 * RHO_SUN_KG_M3))
 
 
+def circular_first_to_fourth_duration_days(
+    period_days: float,
+    rho_star_solar: float,
+    radius_ratio: float,
+    impact_parameter: float,
+) -> float:
+    """Return the exact circular first-to-fourth-contact duration in days."""
+    a_over_rstar = circular_a_over_rstar(period_days, rho_star_solar)
+    if not np.isfinite(radius_ratio) or radius_ratio <= 0.0 or radius_ratio >= 1.0:
+        raise InjectionInputError("radius_ratio must be finite, positive, and smaller than one")
+    if not np.isfinite(impact_parameter) or impact_parameter < 0.0:
+        raise InjectionInputError("impact_parameter must be finite and non-negative")
+    if impact_parameter >= a_over_rstar:
+        raise InjectionInputError("impact_parameter must be smaller than circular a_over_rstar")
+    chord_squared = (1.0 + radius_ratio) ** 2 - impact_parameter**2
+    if chord_squared <= 0.0:
+        raise InjectionInputError("circular geometry does not yield a transiting first-to-fourth chord")
+    sin_inclination = np.sqrt(1.0 - (impact_parameter / a_over_rstar) ** 2)
+    argument = np.sqrt(chord_squared) / (a_over_rstar * sin_inclination)
+    if not np.isfinite(argument) or not 0.0 < argument < 1.0:
+        raise InjectionInputError("circular geometry does not yield a finite first-to-fourth duration")
+    return float(period_days / np.pi * np.arcsin(argument))
+
+
 def _sha256_file(path: Path) -> str:
     digest = hashlib.sha256()
     with path.open("rb") as handle:
@@ -114,6 +149,15 @@ def _sha256_file(path: Path) -> str:
 def _sha256_array(values: np.ndarray) -> str:
     contiguous = np.ascontiguousarray(values)
     return hashlib.sha256(contiguous.tobytes()).hexdigest()
+
+
+def _array_report(values: np.ndarray) -> dict[str, Any]:
+    """Describe an array without converting its dtype or values."""
+    return {
+        "dtype": values.dtype.str,
+        "shape": [int(size) for size in values.shape],
+        "sha256": _sha256_array(values),
+    }
 
 
 def load_input_contract(path: Path) -> dict[str, np.ndarray]:
@@ -128,6 +172,11 @@ def load_input_contract(path: Path) -> dict[str, np.ndarray]:
             time = np.asarray(payload["time"], dtype=np.float64)
             flux = np.asarray(payload["flux"], dtype=np.float64)
             raw_index = np.asarray(payload["mask_index"])
+            optional = {
+                name: np.asarray(payload[name])
+                for name in (*POINT_ALIGNED_OPTIONAL_ARRAYS, SOURCE_MAPPING_ARRAY)
+                if name in payload.files
+            }
     except (OSError, ValueError) as exc:
         if isinstance(exc, InjectionInputError):
             raise
@@ -147,7 +196,12 @@ def load_input_contract(path: Path) -> dict[str, np.ndarray]:
         raise InjectionInputError("mask_index is outside the time array")
     if np.any(np.diff(mask_index) <= 0):
         raise InjectionInputError("mask_index must be strictly increasing and unique")
-    return {"time": time, "flux": flux, "mask_index": mask_index}
+    for name in POINT_ALIGNED_OPTIONAL_ARRAYS:
+        if name in optional and (optional[name].ndim == 0 or len(optional[name]) != len(time)):
+            raise InjectionInputError(f"optional array {name} must have length matching time")
+    if SOURCE_MAPPING_ARRAY in optional and optional[SOURCE_MAPPING_ARRAY].ndim == 0:
+        raise InjectionInputError("optional array source_files must be an array source mapping")
+    return {"time": time, "flux": flux, "mask_index": mask_index, **optional}
 
 
 def _batman_module() -> Any:
@@ -160,6 +214,15 @@ def _batman_module() -> Any:
         ) from exc
 
 
+def _supports_parameter_contract(params: Any, *names: str) -> bool:
+    """Identify declared batman parameters without assigning unsupported fields."""
+    slots = getattr(type(params), "__slots__", ())
+    if isinstance(slots, str):
+        slots = (slots,)
+    declared = set(slots)
+    return all(hasattr(params, name) or name in declared for name in names)
+
+
 def exposure_integrated_circular_model(spec: InjectionSpec, time: np.ndarray) -> tuple[np.ndarray, str]:
     """Render a circular transit at selected times with batman's exposure integration."""
     spec.validate()
@@ -169,10 +232,24 @@ def exposure_integrated_circular_model(spec: InjectionSpec, time: np.ndarray) ->
     params.t0 = spec.t0_days
     params.per = spec.period_days
     params.rp = spec.radius_ratio
-    params.a = a_over_rstar
-    params.inc = float(np.degrees(np.arccos(spec.impact_parameter / a_over_rstar)))
-    params.ecc = 0.0
-    params.w = 90.0
+    if _supports_parameter_contract(params, "a", "inc"):
+        params.a = a_over_rstar
+        params.inc = float(np.degrees(np.arccos(spec.impact_parameter / a_over_rstar)))
+        params.ecc = 0.0
+        params.w = 90.0
+    elif _supports_parameter_contract(params, "b", "T14"):
+        params.b = spec.impact_parameter
+        params.T14 = circular_first_to_fourth_duration_days(
+            spec.period_days,
+            spec.rho_star_solar,
+            spec.radius_ratio,
+            spec.impact_parameter,
+        )
+    else:
+        raise BatmanDependencyError(
+            "batman's TransitParams supports neither the public a/inc contract nor "
+            "the ALDERAAN b/T14 contract"
+        )
     params.u = [spec.limb_darkening_u1, spec.limb_darkening_u2]
     params.limb_dark = "quadratic"
     model = batman.TransitModel(
@@ -184,6 +261,36 @@ def exposure_integrated_circular_model(spec: InjectionSpec, time: np.ndarray) ->
     return np.asarray(model.light_curve(params), dtype=np.float64), str(getattr(batman, "__version__", "unknown"))
 
 
+def evaluate_injection_coverage(full_model: np.ndarray, mask_index: np.ndarray) -> dict[str, Any]:
+    """Verify that the preserved injection mask retains every modeled transit cadence."""
+    model = np.asarray(full_model, dtype=np.float64)
+    if model.ndim != 1 or not np.all(np.isfinite(model)):
+        raise RuntimeError("batman returned an invalid model for the full time grid")
+    eligible = np.zeros(len(model), dtype=bool)
+    eligible[np.asarray(mask_index, dtype=np.int64)] = True
+    in_transit = model < 1.0 - IN_TRANSIT_TOLERANCE
+    total = int(np.count_nonzero(in_transit))
+    retained = int(np.count_nonzero(in_transit & eligible))
+    excluded = total - retained
+    coverage = {
+        "full_grid_count": int(len(model)),
+        "eligible_grid_count": int(np.count_nonzero(eligible)),
+        "in_transit_full_grid_count": total,
+        "eligible_in_transit_count": retained,
+        "masked_in_transit_count": excluded,
+        "in_transit_tolerance": IN_TRANSIT_TOLERANCE,
+        "all_in_transit_cadences_eligible": excluded == 0,
+    }
+    if total == 0:
+        raise InjectionInputError("the supplied time grid does not contain an injected transit cadence")
+    if excluded:
+        raise InjectionInputError(
+            "the preserved mask would remove "
+            f"{excluded} of {total} modeled in-transit cadences; choose a non-overlapping injection epoch"
+        )
+    return coverage
+
+
 def build_manifest(
     spec: InjectionSpec,
     input_path: Path,
@@ -191,10 +298,21 @@ def build_manifest(
     *,
     dry_run: bool,
     batman_version: str | None,
+    coverage: dict[str, Any] | None = None,
     output_path: Path | None = None,
 ) -> dict[str, Any]:
     """Build deterministic provenance for the exact declared input and geometry."""
     a_over_rstar = circular_a_over_rstar(spec.period_days, spec.rho_star_solar)
+    optional_reports = {
+        name: _array_report(contract[name])
+        for name in (*POINT_ALIGNED_OPTIONAL_ARRAYS, SOURCE_MAPPING_ARRAY)
+        if name in contract
+    }
+    output = None if output_path is None else {
+        "filename": output_path.name,
+        "sha256": _sha256_file(output_path),
+        "optional_arrays": optional_reports,
+    }
     return {
         "schema_version": 1,
         "scope": "New standalone diagnostic injection; not Sagear's missing alderaan.validate module and not an ALDERAAN result.",
@@ -213,11 +331,10 @@ def build_manifest(
             "time_sha256": _sha256_array(contract["time"]),
             "flux_sha256": _sha256_array(contract["flux"]),
             "mask_index_sha256": _sha256_array(contract["mask_index"]),
+            "optional_arrays": optional_reports,
         },
-        "output": None if output_path is None else {
-            "filename": output_path.name,
-            "sha256": _sha256_file(output_path),
-        },
+        "output": output,
+        "injected_transit_coverage": coverage,
         "software": {
             "python": platform.python_version(),
             "numpy": np.__version__,
@@ -248,19 +365,26 @@ def run_injection(spec: InjectionSpec, input_path: Path, output_dir: Path, *, dr
     if dry_run:
         _write_json_once(manifest_path, build_manifest(spec, input_path, contract, dry_run=True, batman_version=None))
         return manifest_path
-    model, version = exposure_integrated_circular_model(spec, contract["time"][contract["mask_index"]])
-    if model.shape != contract["mask_index"].shape or not np.all(np.isfinite(model)):
-        raise RuntimeError("batman returned an invalid model for the preserved mask index")
+    full_model, version = exposure_integrated_circular_model(spec, contract["time"])
+    if full_model.shape != contract["time"].shape:
+        raise RuntimeError("batman returned an invalid model for the full time grid")
+    coverage = evaluate_injection_coverage(full_model, contract["mask_index"])
+    model = full_model[contract["mask_index"]]
     injected_flux = contract["flux"].copy()
     injected_flux[contract["mask_index"]] *= model
     output_path = output_dir / OUTPUT_NAME
-    np.savez_compressed(
-        output_path,
-        time=contract["time"],
-        flux=injected_flux,
-        mask_index=contract["mask_index"],
-        transit_model=model,
-    )
+    output_payload = {
+        "time": contract["time"],
+        "flux": injected_flux,
+        "mask_index": contract["mask_index"],
+        "transit_model": model,
+    }
+    output_payload.update({
+        name: contract[name]
+        for name in (*POINT_ALIGNED_OPTIONAL_ARRAYS, SOURCE_MAPPING_ARRAY)
+        if name in contract
+    })
+    np.savez_compressed(output_path, **output_payload)
     _write_json_once(
         manifest_path,
         build_manifest(
@@ -269,6 +393,7 @@ def run_injection(spec: InjectionSpec, input_path: Path, output_dir: Path, *, dr
             contract,
             dry_run=False,
             batman_version=version,
+            coverage=coverage,
             output_path=output_path,
         ),
     )

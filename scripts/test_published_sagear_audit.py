@@ -1,3 +1,6 @@
+import hashlib
+from pathlib import Path
+
 import pandas as pd
 
 from common import load_config, read_sagear2026_kinematic_hosts
@@ -9,6 +12,16 @@ def test_published_table_count_and_threshold_contract() -> None:
     assert validate_published_hosts(hosts) == EXPECTED
     assert hosts["kepid"].is_unique
     assert hosts["p_thick_published"].between(0, 1).all()
+
+
+def test_published_table1_source_contract() -> None:
+    """Guard the exact public host-label source used by the relabeling audit."""
+    cfg = load_config()
+    source = Path(cfg["_root"]) / cfg["paths"]["sagear2026_kinematic_hosts"]
+    assert source.exists()
+    assert hashlib.sha256(source.read_bytes()).hexdigest() == (
+        "92280ede0c828413abb7c8314ac6f35b0ccc3e68aabbcf6a94075e84b30e76ed"
+    )
 
 
 def test_published_disk_relabel_preserves_pre_cut_multiplicity(tmp_path) -> None:

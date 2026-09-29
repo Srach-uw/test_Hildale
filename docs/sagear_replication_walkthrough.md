@@ -1,6 +1,6 @@
 # Sagear replication walkthrough
 
-Updated: 2026-09-20
+Updated: 2026-09-29
 
 This supporting guide follows Sagear et al.'s analysis in order and points to
 the corresponding code and evidence in this repository. It distinguishes a
@@ -162,7 +162,7 @@ astrophysical measurement.
 | Gilbert control | Tests the extraction and hierarchy against an independent low-eccentricity result. | [`gilbert_real_alderaan_control.py`](../scripts/gilbert_real_alderaan_control.py) |
 | Factorial comparisons | Measures selected prior, limb-darkening, and seed sensitivity within systems. | [`compare_factorial_validation.py`](../scripts/compare_factorial_validation.py) |
 | Robustness checks | Measures leverage and leave-out behavior. | [`population_system_robustness.py`](../scripts/population_system_robustness.py) |
-| Injection preflight | Freezes a small auditable photometric recovery test. | [`pilot_injection_preflight.md`](pilot_injection_preflight.md) |
+| Injection preflight | Freezes a small auditable photometric recovery test. | [`diagnostic_injection_protocol.md`](diagnostic_injection_protocol.md); [`diagnostic_injection_launch_gates.md`](diagnostic_injection_launch_gates.md) |
 
 ## 9. What would close the remaining gap
 
@@ -171,6 +171,12 @@ host labels, pre-cut multiplicity, paired transit samples, Dynesty weights, and
 explicit selection handling. It has also excluded invalid ways of making the
 numbers appear closer, including equal-row nested weighting and the mislabeled
 cadence arm.
+
+The pending circular-injection control is deliberately separate from the
+population result. It will test whether the declared photometry-to-density path
+can recover known circular cases under fixed inputs. A successful recovery would
+validate that narrow control; it would not establish the unpublished accepted
+planet list or stellar-density inputs used for the paper's Table 3 analysis.
 
 The smallest high-value author products are:
 

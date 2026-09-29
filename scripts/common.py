@@ -194,7 +194,10 @@ def read_sagear2026_kinematic_hosts(cfg: dict[str, Any]) -> pd.DataFrame:
         (68, 74), (75, 84), (85, 94), (95, 100), (101, 110), (111, 120),
         (121, 128), (129, 135), (136, 141),
     ]
-    table = pd.read_fwf(path, colspecs=colspecs, names=names, skiprows=28)
+    # The machine-readable file has a two-line note and a separator after the
+    # byte description. Start at the first fixed-width data record rather
+    # than relying on numeric coercion to discard those header rows.
+    table = pd.read_fwf(path, colspecs=colspecs, names=names, skiprows=30)
     table["kepid"] = pd.to_numeric(table["kepid"], errors="coerce")
     table = table.dropna(subset=["kepid"]).copy()
     table["kepid"] = table["kepid"].astype(int)

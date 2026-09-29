@@ -8,8 +8,9 @@ sensitivity adopted by MacDougall, Gilbert & Petigura (2023).
 """
 
 import argparse
+import json
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable, Mapping
 
 import numpy as np
 import pandas as pd
@@ -37,6 +38,186 @@ EXCLUSION_COLUMNS = [
     "stage",
     "reason",
 ]
+
+INTERFACE_CONTRACT_VERSION = "direct_vs_duration_v1"
+INTERFACE_SHARED_FIELDS = (
+    "synthetic_input_sha256",
+    "likelihood",
+    "likelihood_factorization",
+    "time_system",
+    "cadence_integration",
+    "noise_model",
+    "companion_inventory",
+    "period_prior",
+    "ror_prior",
+    "impact_prior",
+    "limb_darkening_prior",
+    "stellar_density_prior",
+    "eccentricity_prior",
+    "omega_prior",
+    "physical_support",
+    "transit_selection",
+)
+INTERFACE_PRIOR_FIELDS = (
+    "period_prior",
+    "ror_prior",
+    "impact_prior",
+    "limb_darkening_prior",
+    "stellar_density_prior",
+    "eccentricity_prior",
+    "omega_prior",
+)
+
+
+class InterfaceContractError(ValueError):
+    """Raised when two posterior paths do not describe the same experiment."""
+
+
+def _canonical_contract_value(value: object, label: str) -> str:
+    try:
+        return json.dumps(
+            value,
+            allow_nan=False,
+            separators=(",", ":"),
+            sort_keys=True,
+        )
+    except (TypeError, ValueError) as exc:
+        raise InterfaceContractError(
+            f"{label} must contain finite JSON-compatible values"
+        ) from exc
+
+
+def validate_direct_duration_interface_contract(
+    direct_contract: Mapping[str, Any],
+    duration_contract: Mapping[str, Any],
+) -> dict[str, object]:
+    """Validate a direct-fit versus duration-reweighting comparison contract.
+
+    This is deliberately a preflight check, not evidence that the two inference
+    paths are equivalent. A numerical comparison still requires a separately
+    implemented direct eccentric-transit likelihood. The validator prevents
+    that comparison from proceeding when its inputs, priors, support, or target
+    measure differ.
+    """
+    contracts = {
+        "direct": direct_contract,
+        "duration": duration_contract,
+    }
+    for label, contract in contracts.items():
+        if not isinstance(contract, Mapping):
+            raise InterfaceContractError(f"{label} contract must be a mapping")
+        if contract.get("contract_version") != INTERFACE_CONTRACT_VERSION:
+            raise InterfaceContractError(
+                f"{label}.contract_version must be {INTERFACE_CONTRACT_VERSION!r}"
+            )
+        shared = contract.get("shared")
+        if not isinstance(shared, Mapping):
+            raise InterfaceContractError(f"{label}.shared must be a mapping")
+        missing = [field for field in INTERFACE_SHARED_FIELDS if field not in shared]
+        if missing:
+            raise InterfaceContractError(
+                f"{label}.shared is missing required fields: {', '.join(missing)}"
+            )
+        for field in INTERFACE_PRIOR_FIELDS:
+            prior = shared[field]
+            if not isinstance(prior, Mapping):
+                raise InterfaceContractError(
+                    f"{label}.shared.{field} must be a mapping"
+                )
+            missing_prior = [
+                key for key in ("distribution", "bounds") if key not in prior
+            ]
+            if missing_prior:
+                raise InterfaceContractError(
+                    f"{label}.shared.{field} is missing required fields: "
+                    + ", ".join(missing_prior)
+                )
+        _canonical_contract_value(shared, f"{label}.shared")
+
+    if direct_contract.get("path") != "direct_eccentric_transit":
+        raise InterfaceContractError(
+            "direct.path must be 'direct_eccentric_transit'"
+        )
+    if duration_contract.get("path") != "duration_posterior_reweighting":
+        raise InterfaceContractError(
+            "duration.path must be 'duration_posterior_reweighting'"
+        )
+
+    direct_shared = direct_contract["shared"]
+    duration_shared = duration_contract["shared"]
+    all_shared_fields = sorted(set(direct_shared) | set(duration_shared))
+    mismatches = [
+        field
+        for field in all_shared_fields
+        if _canonical_contract_value(
+            direct_shared.get(field), f"direct.shared.{field}"
+        )
+        != _canonical_contract_value(
+            duration_shared.get(field), f"duration.shared.{field}"
+        )
+    ]
+    if mismatches:
+        raise InterfaceContractError(
+            "shared contract differs at: "
+            + ", ".join(f"shared.{field}" for field in mismatches)
+        )
+
+    target_measure_direct = direct_contract.get("target_measure")
+    target_measure_duration = duration_contract.get("target_measure")
+    if target_measure_direct is None or target_measure_duration is None:
+        raise InterfaceContractError("both paths must declare target_measure")
+    if _canonical_contract_value(target_measure_direct, "direct.target_measure") != (
+        _canonical_contract_value(
+            target_measure_duration, "duration.target_measure"
+        )
+    ):
+        raise InterfaceContractError("target_measure differs between paths")
+
+    reweighting = duration_contract.get("reweighting")
+    if not isinstance(reweighting, Mapping):
+        raise InterfaceContractError("duration.reweighting must be a mapping")
+    required_reweighting = {
+        "proposal_parameter": "duration_days",
+        "inverse_proposal_prior_applied": True,
+        "absolute_density_duration_jacobian_applied": True,
+        "jacobian": "abs_d_rho_star_d_duration",
+    }
+    for field, expected in required_reweighting.items():
+        if reweighting.get(field) != expected:
+            raise InterfaceContractError(
+                f"duration.reweighting.{field} must be {expected!r}"
+            )
+    proposal_prior = reweighting.get("proposal_prior")
+    if not isinstance(proposal_prior, Mapping):
+        raise InterfaceContractError(
+            "duration.reweighting.proposal_prior must explicitly declare its distribution and bounds"
+        )
+    missing_prior = [
+        field for field in ("distribution", "bounds", "measure") if field not in proposal_prior
+    ]
+    if missing_prior:
+        raise InterfaceContractError(
+            "duration.reweighting.proposal_prior is missing required fields: "
+            + ", ".join(missing_prior)
+        )
+    _canonical_contract_value(
+        proposal_prior, "duration.reweighting.proposal_prior"
+    )
+
+    input_sha = str(direct_shared["synthetic_input_sha256"])
+    if len(input_sha) != 64 or any(
+        char not in "0123456789abcdef" for char in input_sha
+    ):
+        raise InterfaceContractError(
+            "shared.synthetic_input_sha256 must be a lowercase SHA-256 digest"
+        )
+    return {
+        "contract_version": INTERFACE_CONTRACT_VERSION,
+        "synthetic_input_sha256": input_sha,
+        "shared_field_count": len(all_shared_fields),
+        "status": "preflight_passed",
+        "numerical_equivalence_tested": False,
+    }
 
 
 def direct_result_file_for_target(

@@ -2,6 +2,7 @@
 __pycache__/
 *.py[cod]
 .pytest_cache/
+.codex_*.log
 .ipynb_checkpoints/
 
 # Local environments

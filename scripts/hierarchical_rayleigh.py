@@ -518,20 +518,32 @@ def load_population_masses_from_files(
                 "Canonical population fit requires identical e/omega grids across planets; "
                 f"grid mismatch at {file}"
             )
-        if mode == "legacy_forward_norm":
-            weight = transit_probability_weight(this_e, this_omega)
-            e_mass = np.sum(posterior * weight, axis=1)
-        elif mode in {"manuscript_reciprocal", "manuscript_reciprocal_with_norm"}:
-            weight = transit_probability_weight(this_e, this_omega)
-            e_mass = np.sum(posterior / weight, axis=1)
-        elif mode == "none":
-            e_mass = np.sum(posterior, axis=1)
-        else:
-            raise ValueError(f"Unknown selection mode: {mode}")
+        e_mass = eccentricity_mass_from_posterior(
+            posterior,
+            this_e,
+            this_omega,
+            selection_mode=mode,
+        )
         e_masses.append(e_mass)
     if e_grid is None:
         raise ValueError("No posterior files supplied")
     return np.vstack(e_masses), e_grid
+
+
+def eccentricity_mass_from_posterior(
+    posterior: np.ndarray,
+    e_grid: np.ndarray,
+    omega_grid: np.ndarray,
+    selection_mode: str,
+) -> np.ndarray:
+    """Marginalize one interim posterior under a named selection convention."""
+    if selection_mode == "legacy_forward_norm":
+        return np.sum(posterior * transit_probability_weight(e_grid, omega_grid), axis=1)
+    if selection_mode in {"manuscript_reciprocal", "manuscript_reciprocal_with_norm"}:
+        return np.sum(posterior / transit_probability_weight(e_grid, omega_grid), axis=1)
+    if selection_mode == "none":
+        return np.sum(posterior, axis=1)
+    raise ValueError(f"Unknown selection mode: {selection_mode}")
 
 
 def fit_from_mass_matrix(

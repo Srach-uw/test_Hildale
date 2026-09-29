@@ -1,12 +1,17 @@
 from __future__ import annotations
 
+import copy
+
 import numpy as np
 import pandas as pd
+import pytest
 from astropy.io import fits
 
 from extract_eccentricity_posteriors_direct import (
     DAY_S,
     G_SI,
+    INTERFACE_CONTRACT_VERSION,
+    InterfaceContractError,
     RHO_SUN_KG_M3,
     adjust_stellar_density,
     direct_importance_posterior,
@@ -17,7 +22,141 @@ from extract_eccentricity_posteriors_direct import (
     resampled_posterior_grid,
     weighted_posterior_grid,
     weighted_quantile,
+    validate_direct_duration_interface_contract,
 )
+
+
+def matching_interface_contracts() -> tuple[dict, dict]:
+    shared = {
+        "synthetic_input_sha256": "a" * 64,
+        "likelihood": {"family": "gaussian_flux", "flux_unit": "relative"},
+        "likelihood_factorization": "same_photometry_and_nuisance_measure",
+        "time_system": "BKJD_TDB",
+        "cadence_integration": {"exposure_minutes": 29.4244, "supersample": 15},
+        "noise_model": {"family": "white_gaussian", "sigma": 0.0002},
+        "companion_inventory": ["K00001.01"],
+        "period_prior": {"distribution": "fixed", "bounds": [10.0, 10.0]},
+        "ror_prior": {"distribution": "uniform", "bounds": [1e-5, 0.99]},
+        "impact_prior": {"distribution": "uniform", "bounds": [0.0, 1.05]},
+        "limb_darkening_prior": {
+            "distribution": "gaussian",
+            "bounds": [[0.0, 1.0], [0.0, 1.0]],
+        },
+        "stellar_density_prior": {
+            "distribution": "split_normal",
+            "bounds": [0.0, None],
+        },
+        "eccentricity_prior": {"distribution": "uniform", "bounds": [0.0, 0.95]},
+        "omega_prior": {
+            "distribution": "uniform_periodic",
+            "bounds": [-np.pi / 2.0, 3.0 * np.pi / 2.0],
+        },
+        "physical_support": "non_grazing_positive_density_exact_duration_branch",
+        "transit_selection": "not_applied_per_planet",
+    }
+    target_measure = [
+        "d_e",
+        "d_omega",
+        "d_rho_star",
+        "d_ror",
+        "d_impact",
+        "d_limb_darkening",
+    ]
+    direct = {
+        "contract_version": INTERFACE_CONTRACT_VERSION,
+        "path": "direct_eccentric_transit",
+        "shared": shared,
+        "target_measure": target_measure,
+    }
+    duration = {
+        "contract_version": INTERFACE_CONTRACT_VERSION,
+        "path": "duration_posterior_reweighting",
+        "shared": copy.deepcopy(shared),
+        "target_measure": list(target_measure),
+        "reweighting": {
+            "proposal_parameter": "duration_days",
+            "proposal_prior": {
+                "distribution": "log_uniform",
+                "bounds": [0.02, 3.0],
+                "measure": "d_duration",
+            },
+            "inverse_proposal_prior_applied": True,
+            "absolute_density_duration_jacobian_applied": True,
+            "jacobian": "abs_d_rho_star_d_duration",
+        },
+    }
+    return direct, duration
+
+
+def test_direct_duration_interface_contract_accepts_identical_target_experiment() -> None:
+    direct, duration = matching_interface_contracts()
+    result = validate_direct_duration_interface_contract(direct, duration)
+    assert result == {
+        "contract_version": INTERFACE_CONTRACT_VERSION,
+        "synthetic_input_sha256": "a" * 64,
+        "shared_field_count": 16,
+        "status": "preflight_passed",
+        "numerical_equivalence_tested": False,
+    }
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement"),
+    [
+        ("synthetic_input_sha256", "b" * 64),
+        ("likelihood", {"family": "student_t", "flux_unit": "relative"}),
+        ("eccentricity_prior", {"distribution": "uniform", "bounds": [0.0, 0.8]}),
+        ("omega_prior", {"distribution": "uniform_periodic", "bounds": [0.0, 2.0 * np.pi]}),
+        ("transit_selection", "forward_geometric"),
+    ],
+)
+def test_direct_duration_interface_contract_rejects_shared_mismatch(
+    field: str, replacement: object
+) -> None:
+    direct, duration = matching_interface_contracts()
+    duration["shared"][field] = replacement
+    with pytest.raises(InterfaceContractError, match=rf"shared\.{field}"):
+        validate_direct_duration_interface_contract(direct, duration)
+
+
+def test_direct_duration_interface_contract_requires_complete_shared_contract() -> None:
+    direct, duration = matching_interface_contracts()
+    del duration["shared"]["limb_darkening_prior"]
+    with pytest.raises(InterfaceContractError, match="limb_darkening_prior"):
+        validate_direct_duration_interface_contract(direct, duration)
+
+
+def test_direct_duration_interface_contract_requires_explicit_prior_bounds() -> None:
+    direct, duration = matching_interface_contracts()
+    del direct["shared"]["impact_prior"]["bounds"]
+    del duration["shared"]["impact_prior"]["bounds"]
+    with pytest.raises(InterfaceContractError, match="impact_prior.*bounds"):
+        validate_direct_duration_interface_contract(direct, duration)
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["inverse_proposal_prior_applied", "absolute_density_duration_jacobian_applied"],
+)
+def test_direct_duration_interface_contract_requires_measure_correction(field: str) -> None:
+    direct, duration = matching_interface_contracts()
+    duration["reweighting"][field] = False
+    with pytest.raises(InterfaceContractError, match=field):
+        validate_direct_duration_interface_contract(direct, duration)
+
+
+def test_direct_duration_interface_contract_rejects_target_measure_mismatch() -> None:
+    direct, duration = matching_interface_contracts()
+    duration["target_measure"] = ["d_e", "d_omega", "d_rho_star"]
+    with pytest.raises(InterfaceContractError, match="target_measure"):
+        validate_direct_duration_interface_contract(direct, duration)
+
+
+def test_direct_duration_interface_contract_rejects_nonfinite_metadata() -> None:
+    direct, duration = matching_interface_contracts()
+    duration["shared"]["noise_model"] = {"family": "white_gaussian", "sigma": np.nan}
+    with pytest.raises(InterfaceContractError, match="finite JSON-compatible"):
+        validate_direct_duration_interface_contract(direct, duration)
 
 
 def test_periastron_eccentricity_cut_matches_gilbert_condition() -> None:

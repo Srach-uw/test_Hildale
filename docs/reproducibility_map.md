@@ -12,7 +12,7 @@ and compact evidence. It is a review aid, not a substitute for the methods.
 | Selection modes remain explicit | `scripts/hierarchical_rayleigh.py` | hierarchy and outlier-floor tests |
 | Factorial arms compare within planet | `scripts/compare_factorial_validation.py` | `scripts/test_compare_factorial_validation.py`; `metadata/factorial_validation_20260715/` |
 | Gilbert provides a real-data control | `scripts/gilbert_real_alderaan_control.py` | `metadata/final_forensic_20260808/` |
-| Density inputs drive the mismatch | density and residual audits | `metadata/uncertainty_calibration_20260810/`; `docs/uncertainty_and_density_findings_20260810.md` |
+| Density inputs are an unresolved upstream lead | density and residual audits | `metadata/uncertainty_calibration_20260810/`; `docs/uncertainty_and_density_findings_20260810.md` |
 | Public inputs do not fix the Table 3 path | final boundary audits | `metadata/final_public_boundary_20260813/`; `docs/final_public_data_boundary.md` |
 
 ## Review order

@@ -9,6 +9,11 @@ Start with these files:
 | `replication_match_ledger.md` | What is matched, unresolved, invalidated, or unavailable |
 | `current_inference_audit.md` | Current limits, reopened checks, and the next discriminating tests |
 | `pilot_injection_preflight.md` | Six-system pilot inputs and the public validation-branch limitation |
+| `diagnostic_injection_input_contract.md` | Immutable PDCSAP input, timing, cadence, and system-identity gates for a new diagnostic injection |
+| `diagnostic_injection_protocol.md` | Bounded photometry-to-density recovery experiment and its interpretation limits |
+| `diagnostic_injection_preflight_k00367_20260924.md` | Completed exact-environment input preflight for the first real diagnostic target |
+| `diagnostic_injection_launch_gates.md` | Required evidence before a circular-injection cloud recovery run |
+| `public_source_followup_20260924.md` | Checked public Sagear code and the paper's MAST DOI for additional reproducibility products |
 | `scientific_interim_assessment.md` | Detailed scientific interpretation and diagnostics |
 | `full_factorial_validation_assessment.md` | Results from the completed 82-fit validation matrix |
 | `combined_configuration_confirmation.md` | Completed nine-system combined configuration check |
